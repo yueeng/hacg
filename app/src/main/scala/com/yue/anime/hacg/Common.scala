@@ -6,7 +6,7 @@ import java.util.Date
 import android.os.AsyncTask
 import android.view.View
 
-import scala.language.implicitConversions
+import scala.language.{implicitConversions, reflectiveCalls}
 
 object Common {
   implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
@@ -25,6 +25,13 @@ object Common {
   implicit def date2long(date: Date): Long = date.getTime
 
   implicit def date2string(date: Date): String = datefmt.format(date)
+
+  def using[A, B <: {def close() : Unit}](closeable: B)(f: B => A): A =
+    try {
+      f(closeable)
+    } finally {
+      closeable.close()
+    }
 }
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {

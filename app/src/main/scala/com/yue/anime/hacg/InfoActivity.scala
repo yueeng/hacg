@@ -42,10 +42,9 @@ class InfoActivity extends AppCompatActivity {
           .replaceAll( """<a href="#">.*?</a>""", "")
           .replaceAll( """</?embed.*?>""", "")
         //          .replaceAll( """(?<!\w+=['"]?)(?:https?://|magnet:\?xt=)[^\s\"\'\<]+""", """<a href="$0">$0</a>""")
-        val reader = io.Source.fromInputStream(getResources.openRawResource(R.raw.template))
-        val target = reader.mkString.replace("{{title}}", article.title).replace("{{body}}", body)
-        reader.close()
-        target
+        using(io.Source.fromInputStream(getResources.openRawResource(R.raw.template))) {
+          reader => reader.mkString.replace("{{title}}", article.title).replace("{{body}}", body)
+        }
       }
 
       override def post(html: String): Unit = {
