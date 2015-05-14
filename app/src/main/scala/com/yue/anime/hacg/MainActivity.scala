@@ -1,11 +1,13 @@
 package com.yue.anime.hacg
 
+import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
-import android.support.v4.app.{Fragment, FragmentManager, FragmentPagerAdapter}
+import android.os.{Parcelable, Bundle}
+import android.support.v4.app.{Fragment, FragmentManager, FragmentStatePagerAdapter}
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
+import android.view.View.OnClickListener
 import android.view._
 import android.widget.{ImageView, ProgressBar, TextView}
 import com.astuetz.PagerSlidingTabStrip
@@ -42,7 +44,7 @@ class MainActivity extends AppCompatActivity {
     super.onOptionsItemSelected(item)
   }
 
-  class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentPagerAdapter(fm) {
+  class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
     val data = List("/wordpress", "/wordpress/anime.html", "/wordpress/comic.html", "/wordpress/erogame.html", "/wordpress/age.html", "/wordpress/op.html")
     val title = List("最新投稿", "动画", "漫画", "游戏", "文章", "音乐")
 
@@ -95,7 +97,7 @@ class MainActivity extends AppCompatActivity {
           val response = http.newCall(request).execute()
           val html = response.body().string()
           val dom = Jsoup.parse(html)
-          dom.select("article").map(Article).toList
+          dom.select("article").map(o => new Article(o)).toList
         }
 
         override def post(result: List[Article]): Unit = {
@@ -106,7 +108,15 @@ class MainActivity extends AppCompatActivity {
       }.execute(uri)
     }
 
-    class ArticleHolder(view: View) extends RecyclerView.ViewHolder(view) {
+    val click = new OnClickListener {
+      override def onClick(v: View): Unit = {
+        val article = v.getTag.asInstanceOf[Article]
+        startActivity(new Intent(MainActivity.this, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
+      }
+    }
+
+    class ArticleHolder(val view: View) extends RecyclerView.ViewHolder(view) {
+      view.setOnClickListener(click)
       val context = view.getContext
       val text1: TextView = view.findViewById(R.id.text1)
       val image1: ImageView = view.findViewById(R.id.image1)
@@ -119,6 +129,7 @@ class MainActivity extends AppCompatActivity {
 
       override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
         val item = data(position)
+        holder.view.setTag(item)
         holder.text1.setText(item.content)
         Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.ic_launcher).into(holder.image1)
       }
