@@ -2,6 +2,7 @@ package com.yue.anime.hacg
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.webkit.WebView
 import android.widget.ProgressBar
@@ -17,6 +18,7 @@ class InfoActivity extends AppCompatActivity {
   lazy val article = getIntent.getParcelableExtra[Article]("article")
   lazy val web: WebView = findViewById(R.id.webview)
   lazy val progress: ProgressBar = findViewById(R.id.progress1)
+  lazy val recycle: RecyclerView = findViewById(R.id.recycler)
 
   def busy(b: Boolean): Unit = {
     progress.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
