@@ -3,7 +3,6 @@ package com.yue.anime.hacg
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
-import android.util.Log
 import android.view.{LayoutInflater, View, ViewGroup}
 import android.webkit.WebView
 import android.widget.{ImageView, ProgressBar, TextView}
@@ -44,11 +43,44 @@ class InfoActivity extends AppCompatActivity {
     progress2.setIndeterminate(b)
   }
 
+  override def onCreate(savedInstanceState: Bundle): Unit = {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_info)
+    setSupportActionBar(findViewById(R.id.toolbar))
+    setTitle(article.title)
+
+    val recycle: RecyclerView = findViewById(R.id.recycler)
+    recycle.setLayoutManager(new MyLinearLayoutManager(this,LinearLayoutManager.VERTICAL,false))
+    recycle.setAdapter(adapter)
+
+    recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
+
+      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
+        super.onScrollStateChanged(recycler, state)
+        (recycler.getLayoutManager, state) match {
+          case (linear: LinearLayoutManager, RecyclerView.SCROLL_STATE_IDLE) =>
+            (progress2.getTag, linear.findLastVisibleItemPosition()) match {
+              case (url: String, pos: Int) if !url.isEmpty && pos >= adapter.data.size - 2 => query(url)
+              case _ =>
+            }
+          case _ =>
+        }
+      }
+    })
+    busy = false
+    busy2 = false
+    query(article.link, content = true)
+  }
+
   class CommentHolder(val view: View) extends RecyclerView.ViewHolder(view) {
     val context = view.getContext
     val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
     val image: ImageView = view.findViewById(R.id.image1)
+    val recycle: RecyclerView = view.findViewById(R.id.recycler)
+    val adapter = new CommentAdapter
+    recycle.setLayoutManager(new MyLinearLayoutManager(context,LinearLayoutManager.VERTICAL,false))
+    recycle.setAdapter(adapter)
   }
 
   class CommentAdapter extends RecyclerView.Adapter[CommentHolder] {
@@ -60,7 +92,9 @@ class InfoActivity extends AppCompatActivity {
       val item = data(position)
       holder.text1.setText(item.user)
       holder.text2.setText(item.content)
-      holder.view.setPadding(100 * item.deep, 0, 0, 0)
+      holder.adapter.data.clear()
+      holder.adapter.data.append(item.children: _*)
+      holder.adapter.notifyDataSetChanged()
       if (item.face.isEmpty) {
         holder.image.setImageResource(R.mipmap.ic_launcher)
       } else {
@@ -73,7 +107,6 @@ class InfoActivity extends AppCompatActivity {
   }
 
   def query(url: String, content: Boolean = false): Unit = {
-    Log.i("IA", "%s, %s".format(busy.toString, busy2.toString))
     if (busy || busy2) {
       return
     }
@@ -100,7 +133,7 @@ class InfoActivity extends AppCompatActivity {
             case Some(a) => a.attr("abs:href")
             case _ => null
           },
-          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList.reduceMap(_.children)
+          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList
         )
       }
 
@@ -119,32 +152,4 @@ class InfoActivity extends AppCompatActivity {
     }.execute()
   }
 
-  override def onCreate(savedInstanceState: Bundle): Unit = {
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_info)
-    setSupportActionBar(findViewById(R.id.toolbar))
-    setTitle(article.title)
-
-    val recycle: RecyclerView = findViewById(R.id.recycler)
-    recycle.setLayoutManager(new LinearLayoutManager(this))
-    recycle.setAdapter(adapter)
-
-    recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
-
-      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
-        super.onScrollStateChanged(recycler, state)
-        (recycler.getLayoutManager, state) match {
-          case (linear: LinearLayoutManager, RecyclerView.SCROLL_STATE_IDLE) =>
-            (progress2.getTag, linear.findLastVisibleItemPosition()) match {
-              case (url: String, pos: Int) if !url.isEmpty && pos >= adapter.data.size - 2 => query(url)
-              case _ =>
-            }
-          case _ =>
-        }
-      }
-    })
-    busy = false
-    busy2 = false
-    query(article.link, content = true)
-  }
 }
