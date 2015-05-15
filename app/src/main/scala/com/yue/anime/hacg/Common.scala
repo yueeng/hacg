@@ -32,6 +32,16 @@ object Common {
     } finally {
       closeable.close()
     }
+
+  implicit class ReduceMap[T](list: List[T]) {
+    def reduceMap(func: T => List[T]): List[T] = {
+      list match {
+        case Nil => Nil
+        case head :: tail => head :: func(head).reduceMap(func) ::: tail.reduceMap(func)
+      }
+    }
+  }
+
 }
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {

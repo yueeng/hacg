@@ -60,6 +60,7 @@ class InfoActivity extends AppCompatActivity {
       val item = data(position)
       holder.text1.setText(item.user)
       holder.text2.setText(item.content)
+      holder.view.setPadding(100 * item.deep, 0, 0, 0)
       if (item.face.isEmpty) {
         holder.image.setImageResource(R.mipmap.ic_launcher)
       } else {
@@ -99,7 +100,7 @@ class InfoActivity extends AppCompatActivity {
             case Some(a) => a.attr("abs:href")
             case _ => null
           },
-          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList
+          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList.reduceMap(_.children)
         )
       }
 
@@ -129,8 +130,6 @@ class InfoActivity extends AppCompatActivity {
     recycle.setAdapter(adapter)
 
     recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
-      override def onScrolled(recycler: RecyclerView, dx: Int, dy: Int): Unit =
-        super.onScrolled(recycler, dx, dy)
 
       override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
         super.onScrollStateChanged(recycler, state)
