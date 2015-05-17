@@ -2,7 +2,7 @@ package com.yue.anime.hacg
 
 import android.content.Intent
 import android.net.Uri
-import android.os.{Parcelable, Bundle}
+import android.os.{Bundle, Parcelable}
 import android.support.v4.app.{Fragment, FragmentManager, FragmentStatePagerAdapter}
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
@@ -131,7 +131,10 @@ class MainActivity extends AppCompatActivity {
         val item = data(position)
         holder.view.setTag(item)
         holder.text1.setText(item.content)
-        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.ic_launcher).into(holder.image1)
+        if (item.img())
+          Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.placeholder).into(holder.image1)
+        else
+          Picasso.`with`(holder.context).load(R.mipmap.placeholder).into(holder.image1)
       }
 
       override def onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =

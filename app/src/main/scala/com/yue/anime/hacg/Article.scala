@@ -52,6 +52,7 @@ case class Article(title: String,
                    author: Option[Tag],
                    category: Option[Tag],
                    tags: List[Tag]) extends Parcelable {
+  def img() = !image.contains("ac2668bb905471cd47934f7627983958")
 
   def this(e: Element) = {
     this(e.select("header a").text().trim,

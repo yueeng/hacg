@@ -50,7 +50,7 @@ class InfoActivity extends AppCompatActivity {
     setTitle(article.title)
 
     val recycle: RecyclerView = findViewById(R.id.recycler)
-    recycle.setLayoutManager(new MyLinearLayoutManager(this,LinearLayoutManager.VERTICAL,false))
+    recycle.setLayoutManager(new LinearLayoutManager(this))
     recycle.setAdapter(adapter)
 
     recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
@@ -79,7 +79,7 @@ class InfoActivity extends AppCompatActivity {
     val image: ImageView = view.findViewById(R.id.image1)
     val recycle: RecyclerView = view.findViewById(R.id.recycler)
     val adapter = new CommentAdapter
-    recycle.setLayoutManager(new MyLinearLayoutManager(context,LinearLayoutManager.VERTICAL,false))
+    recycle.setLayoutManager(new UnScrolledLinearLayoutManager(context))
     recycle.setAdapter(adapter)
   }
 
@@ -98,7 +98,7 @@ class InfoActivity extends AppCompatActivity {
       if (item.face.isEmpty) {
         holder.image.setImageResource(R.mipmap.ic_launcher)
       } else {
-        Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
+        Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.placeholder).into(holder.image)
       }
     }
 
