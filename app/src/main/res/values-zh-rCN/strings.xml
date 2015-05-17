@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="comment_author">姓名</string>
+    <string name="comment_email">电子邮件</string>
+    <string name="app_name">琉璃神社</string>
+    <string name="comment_content">评论内容</string>
+    <string name="comment_submit">提交</string>
+    <string name="app_cancel">取消</string>
+    <string name="comment_title">评论</string>
+    <string name="comment_succeeded">提交成功</string>
+</resources>

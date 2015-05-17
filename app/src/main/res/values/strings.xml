@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">HAcg</string>
-
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="comment_author">Author</string>
+    <string name="comment_email">EMail</string>
+    <string name="comment_content">Content</string>
+    <string name="comment_submit">Submit</string>
+    <string name="app_cancel">Cancel</string>
+    <string name="comment_title">Comment</string>
+    <string name="comment_succeeded">Submit succeeded</string>
 </resources>

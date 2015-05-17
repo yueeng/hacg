@@ -1,12 +1,14 @@
 package com.yue.anime.hacg
 
 import android.os.Bundle
+import android.support.v4.view.MenuItemCompat
+import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
-import android.view.{LayoutInflater, View, ViewGroup}
+import android.view._
 import android.webkit.WebView
-import android.widget.{ImageView, ProgressBar, TextView}
-import com.squareup.okhttp.{OkHttpClient, Request}
+import android.widget._
+import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
 import org.jsoup.Jsoup
@@ -19,39 +21,21 @@ import scala.collection.mutable.ArrayBuffer
  * Created by Rain on 2015/5/12.
  */
 class InfoActivity extends AppCompatActivity {
-  lazy val article = getIntent.getParcelableExtra[Article]("article")
-  lazy val progress: ProgressBar = findViewById(R.id.progress1)
-  lazy val progress2: ProgressBar = findViewById(R.id.progress2)
-  lazy val adapter = new CommentAdapter
-
-  var _busy = false
-  var _busy2 = false
-
-  def busy = _busy
-
-  def busy_=(b: Boolean) {
-    _busy = b
-    progress.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
-    progress.setIndeterminate(b)
-  }
-
-  def busy2 = _busy2
-
-  def busy2_=(b: Boolean) {
-    _busy2 = b
-    progress2.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
-    progress2.setIndeterminate(b)
-  }
+  lazy val _article = getIntent.getParcelableExtra[Article]("article")
+  lazy val _progress: ProgressBar = findViewById(R.id.progress1)
+  lazy val _progress2: ProgressBar = findViewById(R.id.progress2)
+  lazy val _adapter = new CommentAdapter
+  val _post = new scala.collection.mutable.HashMap[String, String]
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_info)
     setSupportActionBar(findViewById(R.id.toolbar))
-    setTitle(article.title)
+    setTitle(_article.title)
 
     val recycle: RecyclerView = findViewById(R.id.recycler)
     recycle.setLayoutManager(new LinearLayoutManager(this))
-    recycle.setAdapter(adapter)
+    recycle.setAdapter(_adapter)
 
     recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
 
@@ -59,17 +43,65 @@ class InfoActivity extends AppCompatActivity {
         super.onScrollStateChanged(recycler, state)
         (recycler.getLayoutManager, state) match {
           case (linear: LinearLayoutManager, RecyclerView.SCROLL_STATE_IDLE) =>
-            (progress2.getTag, linear.findLastVisibleItemPosition()) match {
-              case (url: String, pos: Int) if !url.isEmpty && pos >= adapter.data.size - 2 => query(url)
+            (_progress2.getTag, linear.findLastVisibleItemPosition()) match {
+              case (url: String, pos: Int) if !url.isEmpty && pos >= _adapter.data.size - 2 => query(url)
               case _ =>
             }
           case _ =>
         }
       }
     })
-    busy = false
-    busy2 = false
-    query(article.link, content = true)
+    _progress.busy = false
+    _progress2.busy = false
+    query(_article.link, content = true)
+  }
+
+  val MENU_COMMENT = 0x1001
+
+  override def onCreateOptionsMenu(menu: Menu): Boolean = {
+    MenuItemCompat.setShowAsAction(menu.add(Menu.NONE, MENU_COMMENT, Menu.NONE, R.string.comment_title), MenuItemCompat.SHOW_AS_ACTION_ALWAYS)
+    super.onCreateOptionsMenu(menu)
+  }
+
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case MENU_COMMENT =>
+        val input = LayoutInflater.from(this).inflate(R.layout.comment_post, null)
+        val author: EditText = input.findViewById(R.id.edit1)
+        val email: EditText = input.findViewById(R.id.edit2)
+        val content: EditText = input.findViewById(R.id.edit3)
+        def fill = _post +=("author" -> author.getText.toString, "email" -> email.getText.toString, "comment" -> content.getText.toString)
+        val alert = new Builder(this)
+          .setTitle(R.string.comment_title)
+          .setView(input)
+          .setPositiveButton(R.string.comment_submit,
+            dialogClick {
+              (d, w) =>
+                fill
+                val data = (new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build()
+                val http = new OkHttpClient()
+                val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
+                val response = http.newCall(post).execute()
+                val html = response.body().string()
+                val dom = Jsoup.parse(html, response.request().urlString())
+                Toast.makeText(this, dom.select("#error-page").headOption match {
+                  case Some(e) => e.text()
+                  case _ => getString(R.string.comment_succeeded)
+                }, Toast.LENGTH_LONG).show()
+            })
+          .setNegativeButton(R.string.app_cancel, null)
+          .setOnDismissListener(
+            dialogDismiss {
+              d => fill
+            }
+          )
+          .create()
+        alert.show()
+        true
+      case _ =>
+        super.onOptionsItemSelected(item)
+    }
   }
 
   class CommentHolder(val view: View) extends RecyclerView.ViewHolder(view) {
@@ -107,22 +139,22 @@ class InfoActivity extends AppCompatActivity {
   }
 
   def query(url: String, content: Boolean = false): Unit = {
-    if (busy || busy2) {
+    if (_progress.busy || _progress2.busy) {
       return
     }
-    busy = content
-    busy2 = true
-    new ScalaTask[Void, Void, (String, String, List[Comment])] {
-      override def background(params: Void*): (String, String, List[Comment]) = {
+    _progress.busy = content
+    _progress2.busy = true
+    new ScalaTask[Void, Void, (String, String, List[Comment], Map[String, String])] {
+      override def background(params: Void*): (String, String, List[Comment], Map[String, String]) = {
         val http = new OkHttpClient()
         val request = new Request.Builder().get().url(url).build()
         val response = http.newCall(request).execute()
         val html = response.body().string()
         val dom = Jsoup.parse(html, url)
 
-        Tuple3(
+        Tuple4(
           if (content) using(io.Source.fromInputStream(getResources.openRawResource(R.raw.template))) {
-            reader => reader.mkString.replace("{{title}}", article.title).replace("{{body}}",
+            reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}",
               dom.select(".entry-content").html().replaceAll( """\s{0,1}style=".*?"""", "")
                 .replaceAll( """\s{0,1}class=".*?"""", "")
                 .replaceAll( """<a href="#">.*?</a>""", "")
@@ -133,21 +165,23 @@ class InfoActivity extends AppCompatActivity {
             case Some(a) => a.attr("abs:href")
             case _ => null
           },
-          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList
+          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
+          dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
         )
       }
 
-      override def post(result: (String, String, List[Comment])): Unit = {
+      override def post(result: (String, String, List[Comment], Map[String, String])): Unit = {
         if (content) {
           val web: WebView = findViewById(R.id.webview)
           web.loadDataWithBaseURL(url, result._1, "text/html", "utf-8", null)
         }
-        progress2.setTag(result._2)
+        _post ++= result._4
+        _progress2.setTag(result._2)
 
-        adapter.data.append(result._3: _*)
-        adapter.notifyItemRangeInserted(adapter.data.size - result._3.size, result._3.size)
-        busy = false
-        busy2 = false
+        _adapter.data.append(result._3: _*)
+        _adapter.notifyItemRangeInserted(_adapter.data.size - result._3.size, result._3.size)
+        _progress.busy = false
+        _progress2.busy = false
       }
     }.execute()
   }

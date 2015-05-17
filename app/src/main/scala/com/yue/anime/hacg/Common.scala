@@ -3,13 +3,28 @@ package com.yue.anime.hacg
 import java.text.{ParseException, SimpleDateFormat}
 import java.util.Date
 
+import android.content.DialogInterface
+import android.content.DialogInterface.OnDismissListener
 import android.os.AsyncTask
 import android.view.View
+import android.widget.ProgressBar
 
 import scala.language.{implicitConversions, reflectiveCalls}
 
 object Common {
   implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
+
+  implicit def viewClick(func: View => Unit): View.OnClickListener = new View.OnClickListener {
+    override def onClick(view: View): Unit = func(view)
+  }
+
+  implicit def dialogClick(func: (DialogInterface, Int) => Unit): DialogInterface.OnClickListener = new DialogInterface.OnClickListener {
+    override def onClick(dialog: DialogInterface, which: Int): Unit = func(dialog, which)
+  }
+
+  implicit def dialogDismiss(func: DialogInterface => Unit): DialogInterface.OnDismissListener = new OnDismissListener {
+    override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
+  }
 
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
 
@@ -39,6 +54,18 @@ object Common {
         case Nil => Nil
         case head :: tail => head :: func(head).reduceMap(func) ::: tail.reduceMap(func)
       }
+    }
+  }
+
+  implicit class progressBusy(progress: ProgressBar) {
+    var _busy = false
+
+    def busy = _busy
+
+    def busy_=(b: Boolean): Unit = {
+      _busy = b
+      progress.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
+      progress.setIndeterminate(b)
     }
   }
 

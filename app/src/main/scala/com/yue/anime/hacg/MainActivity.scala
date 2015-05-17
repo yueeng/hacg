@@ -31,19 +31,6 @@ class MainActivity extends AppCompatActivity {
     tabs.setViewPager(pager)
   }
 
-  override def onCreateOptionsMenu(menu: Menu): Boolean = {
-    getMenuInflater.inflate(R.menu.menu_main, menu)
-    true
-  }
-
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    val id: Int = item.getItemId
-    if (id == R.id.action_settings) {
-      return true
-    }
-    super.onOptionsItemSelected(item)
-  }
-
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
     val data = List("/wordpress", "/wordpress/anime.html", "/wordpress/comic.html", "/wordpress/erogame.html", "/wordpress/age.html", "/wordpress/op.html")
     val title = List("最新投稿", "动画", "漫画", "游戏", "文章", "音乐")
