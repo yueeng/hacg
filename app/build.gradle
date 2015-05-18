@@ -49,6 +49,7 @@ dependencies {
     compile 'com.squareup.okhttp:okhttp:2.2.0'
     compile 'com.squareup.picasso:picasso:2.5.0'
     compile 'org.jsoup:jsoup:1.8.1'
+    androidTestCompile "com.android.support:multidex-instrumentation:1.0.1", { exclude module: "multidex" }
 }
 
 tasks.withType(ScalaCompile) {
