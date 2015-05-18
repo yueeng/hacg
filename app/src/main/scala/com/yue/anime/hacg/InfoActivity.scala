@@ -8,7 +8,7 @@ import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
 import android.webkit.WebView
 import android.widget._
-import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
+import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request, RequestBody}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
 import org.jsoup.Jsoup
@@ -71,6 +71,9 @@ class InfoActivity extends AppCompatActivity {
         val author: EditText = input.findViewById(R.id.edit1)
         val email: EditText = input.findViewById(R.id.edit2)
         val content: EditText = input.findViewById(R.id.edit3)
+        author.setText(_post("author"))
+        email.setText(_post("email"))
+        content.setText(_post("comment"))
         def fill = _post +=("author" -> author.getText.toString, "email" -> email.getText.toString, "comment" -> content.getText.toString)
         val alert = new Builder(this)
           .setTitle(R.string.comment_title)
@@ -79,16 +82,26 @@ class InfoActivity extends AppCompatActivity {
             dialogClick {
               (d, w) =>
                 fill
-                val data = (new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build()
-                val http = new OkHttpClient()
-                val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
-                val response = http.newCall(post).execute()
-                val html = response.body().string()
-                val dom = Jsoup.parse(html, response.request().urlString())
-                Toast.makeText(this, dom.select("#error-page").headOption match {
-                  case Some(e) => e.text()
-                  case _ => getString(R.string.comment_succeeded)
-                }, Toast.LENGTH_LONG).show()
+                _progress2.busy = true
+                new ScalaTask[RequestBody, Void, String] {
+                  override def background(params: RequestBody*): String = {
+                    val data = params.head
+                    val http = new OkHttpClient()
+                    val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
+                    val response = http.newCall(post).execute()
+                    val html = response.body().string()
+                    val dom = Jsoup.parse(html, response.request().urlString())
+                    dom.select("#error-page").headOption match {
+                      case Some(e) => e.text()
+                      case _ => getString(R.string.comment_succeeded)
+                    }
+                  }
+
+                  override def post(result: String): Unit = {
+                    _progress2.busy = false
+                    Toast.makeText(InfoActivity.this, result, Toast.LENGTH_LONG).show()
+                  }
+                }.execute((new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build())
             })
           .setNegativeButton(R.string.app_cancel, null)
           .setOnDismissListener(
