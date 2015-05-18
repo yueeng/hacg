@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.support.v4.view.MenuItemCompat
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
 import android.webkit.WebView
 import android.widget._
@@ -33,24 +32,20 @@ class InfoActivity extends AppCompatActivity {
     setSupportActionBar(findViewById(R.id.toolbar))
     setTitle(_article.title)
 
-    val recycle: RecyclerView = findViewById(R.id.recycler)
-    recycle.setLayoutManager(new LinearLayoutManager(this))
-    recycle.setAdapter(_adapter)
+    val list: ListView = findViewById(R.id.list1)
+    list.setAdapter(_adapter)
 
-    recycle.setOnScrollListener(new RecyclerView.OnScrollListener {
+    list.setOnScrollListener(new AbsListView.OnScrollListener {
+      override def onScrollStateChanged(view: AbsListView, scrollState: Int): Unit = {}
 
-      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
-        super.onScrollStateChanged(recycler, state)
-        (recycler.getLayoutManager, state) match {
-          case (linear: LinearLayoutManager, RecyclerView.SCROLL_STATE_IDLE) =>
-            (_progress2.getTag, linear.findLastVisibleItemPosition()) match {
-              case (url: String, pos: Int) if !url.isEmpty && pos >= _adapter.data.size - 2 => query(url)
-              case _ =>
-            }
+      override def onScroll(view: AbsListView, first: Int, visible: Int, total: Int): Unit = {
+        (first + visible >= total, _progress2.getTag) match {
+          case (true, url: String) if !url.isEmpty => query(url)
           case _ =>
         }
       }
     })
+
     _progress.busy = false
     _progress2.busy = false
     query(_article.link, content = true)
@@ -62,7 +57,6 @@ class InfoActivity extends AppCompatActivity {
     MenuItemCompat.setShowAsAction(menu.add(Menu.NONE, MENU_COMMENT, Menu.NONE, R.string.comment_title), MenuItemCompat.SHOW_AS_ACTION_ALWAYS)
     super.onCreateOptionsMenu(menu)
   }
-
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
@@ -117,38 +111,52 @@ class InfoActivity extends AppCompatActivity {
     }
   }
 
-  class CommentHolder(val view: View) extends RecyclerView.ViewHolder(view) {
-    val context = view.getContext
-    val text1: TextView = view.findViewById(R.id.text1)
-    val text2: TextView = view.findViewById(R.id.text2)
-    val image: ImageView = view.findViewById(R.id.image1)
-    val recycle: RecyclerView = view.findViewById(R.id.recycler)
-    val adapter = new CommentAdapter
-    recycle.setLayoutManager(new UnScrolledLinearLayoutManager(context))
-    recycle.setAdapter(adapter)
-  }
-
-  class CommentAdapter extends RecyclerView.Adapter[CommentHolder] {
+  class CommentAdapter extends BaseAdapter {
     val data = new ArrayBuffer[Comment]()
 
-    override def getItemCount: Int = data.size
+    override def getItemId(position: Int): Long = position
 
-    override def onBindViewHolder(holder: CommentHolder, position: Int): Unit = {
-      val item = data(position)
-      holder.text1.setText(item.user)
-      holder.text2.setText(item.content)
-      holder.adapter.data.clear()
-      holder.adapter.data.append(item.children: _*)
-      holder.adapter.notifyDataSetChanged()
-      if (item.face.isEmpty) {
-        holder.image.setImageResource(R.mipmap.ic_launcher)
-      } else {
-        Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.placeholder).into(holder.image)
+    override def getCount: Int = data.size
+
+    override def getItem(position: Int): AnyRef = data(position)
+
+    override def getView(position: Int, convert: View, parent: ViewGroup): View = {
+
+      val view = convert match {
+        case null => LayoutInflater.from(parent.getContext).inflate(R.layout.comment_item, parent, false)
+        case _ => convert
       }
-    }
 
-    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentHolder =
-      new CommentHolder(LayoutInflater.from(parent.getContext).inflate(R.layout.comment_item, parent, false))
+      val text1: TextView = view.findViewById(R.id.text1)
+      val text2: TextView = view.findViewById(R.id.text2)
+      val image: ImageView = view.findViewById(R.id.image1)
+      val recycle: ListView = view.findViewById(R.id.list1)
+
+      val adapter = recycle.getAdapter match {
+        case adapter: CommentAdapter => adapter
+        case _ =>
+          val adapter = new CommentAdapter
+          recycle.setAdapter(adapter)
+          adapter
+      }
+
+
+      val item = data(position)
+      text1.setText(item.user)
+      text2.setText(item.content)
+
+      adapter.data.clear()
+      adapter.data.append(item.children: _*)
+      adapter.notifyDataSetChanged()
+
+      if (item.face.isEmpty) {
+        image.setImageResource(R.mipmap.ic_launcher)
+      } else {
+        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.placeholder).into(image)
+      }
+
+      view
+    }
   }
 
   def query(url: String, content: Boolean = false): Unit = {
@@ -192,7 +200,7 @@ class InfoActivity extends AppCompatActivity {
         _progress2.setTag(result._2)
 
         _adapter.data.append(result._3: _*)
-        _adapter.notifyItemRangeInserted(_adapter.data.size - result._3.size, result._3.size)
+        _adapter.notifyDataSetChanged()
         _progress.busy = false
         _progress2.busy = false
       }

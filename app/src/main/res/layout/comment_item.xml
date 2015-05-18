@@ -34,10 +34,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <android.support.v7.widget.RecyclerView
-                android:id="@+id/recycler"
+            <com.yue.anime.hacg.UnScrollListView
+                android:id="@+id/list1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <!--<android.support.v7.widget.RecyclerView-->
+            <!--android:id="@+id/recycler"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content" />-->
         </LinearLayout>
 
     </LinearLayout>

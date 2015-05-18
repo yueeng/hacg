@@ -3,7 +3,21 @@ package com.yue.anime.hacg
 import android.content.Context
 import android.support.v7.widget.RecyclerView.State
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
+import android.util.AttributeSet
+import android.view.View.MeasureSpec
 import android.view.{View, ViewGroup}
+import android.widget.ListView
+
+class UnScrollListView(context: Context, attrs: AttributeSet, defStyle: Int) extends ListView(context, attrs, defStyle) {
+  def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
+
+  def this(context: Context) = this(context, null)
+
+  override def onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int): Unit = {
+    val expandSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, MeasureSpec.AT_MOST)
+    super.onMeasure(widthMeasureSpec, expandSpec)
+  }
+}
 
 /**
  * UnScrolledLinearLayoutManager
