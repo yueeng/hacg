@@ -7,4 +7,5 @@
     <string name="app_cancel">Cancel</string>
     <string name="comment_title">Comment</string>
     <string name="comment_succeeded">Submit succeeded</string>
+    <string name="comment_review">Review: %1$s</string>
 </resources>

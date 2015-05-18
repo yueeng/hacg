@@ -7,7 +7,7 @@ import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
 import android.os.AsyncTask
 import android.view.View
-import android.widget.ProgressBar
+import android.widget.{AbsListView, ProgressBar}
 
 import scala.language.{implicitConversions, reflectiveCalls}
 

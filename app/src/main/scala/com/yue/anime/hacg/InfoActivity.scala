@@ -1,11 +1,13 @@
 package com.yue.anime.hacg
 
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.support.v4.view.MenuItemCompat
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
 import android.view._
 import android.webkit.WebView
+import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request, RequestBody}
 import com.squareup.picasso.Picasso
@@ -26,6 +28,69 @@ class InfoActivity extends AppCompatActivity {
   lazy val _adapter = new CommentAdapter
   val _post = new scala.collection.mutable.HashMap[String, String]
 
+  val commentClick = new OnItemClickListener {
+    override def onItemClick(parent: AdapterView[_], view: View, position: Int, id: Long): Unit = {
+      parent.getAdapter match {
+        case adapter: CommentAdapter =>
+          val item = adapter.getItem(position)
+          comment(item.id, getString(R.string.comment_review, item.user))
+        case _ =>
+      }
+    }
+  }
+
+  def comment(id: Int, title: String = null) = {
+    val input = LayoutInflater.from(this).inflate(R.layout.comment_post, null)
+    val author: EditText = input.findViewById(R.id.edit1)
+    val email: EditText = input.findViewById(R.id.edit2)
+    val content: EditText = input.findViewById(R.id.edit3)
+    author.setText(_post("author"))
+    email.setText(_post("email"))
+    content.setText(_post("comment"))
+    _post += ("comment_parent" -> id.toString)
+    def fill = {
+      _post +=("author" -> author.getText.toString, "email" -> email.getText.toString, "comment" -> content.getText.toString)
+      val preference = PreferenceManager.getDefaultSharedPreferences(this)
+      preference.edit().putString("author", _post("author")).putString("email", _post("email")).commit()
+    }
+    val alert = new Builder(this)
+      .setTitle(if (title != null) title else getString(R.string.comment_title))
+      .setView(input)
+      .setPositiveButton(R.string.comment_submit,
+        dialogClick {
+          (d, w) =>
+            fill
+            _progress2.busy = true
+            new ScalaTask[RequestBody, Void, String] {
+              override def background(params: RequestBody*): String = {
+                val data = params.head
+                val http = new OkHttpClient()
+                val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
+                val response = http.newCall(post).execute()
+                val html = response.body().string()
+                val dom = Jsoup.parse(html, response.request().urlString())
+                dom.select("#error-page").headOption match {
+                  case Some(e) => e.text()
+                  case _ => getString(R.string.comment_succeeded)
+                }
+              }
+
+              override def post(result: String): Unit = {
+                _progress2.busy = false
+                Toast.makeText(InfoActivity.this, result, Toast.LENGTH_LONG).show()
+              }
+            }.execute((new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build())
+        })
+      .setNegativeButton(R.string.app_cancel, null)
+      .setOnDismissListener(
+        dialogDismiss {
+          d => fill
+        }
+      )
+      .create()
+    alert.show()
+  }
+
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_info)
@@ -34,7 +99,7 @@ class InfoActivity extends AppCompatActivity {
 
     val list: ListView = findViewById(R.id.list1)
     list.setAdapter(_adapter)
-
+    list.setOnItemClickListener(commentClick)
     list.setOnScrollListener(new AbsListView.OnScrollListener {
       override def onScrollStateChanged(view: AbsListView, scrollState: Int): Unit = {}
 
@@ -45,6 +110,9 @@ class InfoActivity extends AppCompatActivity {
         }
       }
     })
+
+    val preference = PreferenceManager.getDefaultSharedPreferences(this)
+    _post +=("author" -> preference.getString("author", ""), "email" -> preference.getString("email", ""))
 
     _progress.busy = false
     _progress2.busy = false
@@ -61,50 +129,7 @@ class InfoActivity extends AppCompatActivity {
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
       case MENU_COMMENT =>
-        val input = LayoutInflater.from(this).inflate(R.layout.comment_post, null)
-        val author: EditText = input.findViewById(R.id.edit1)
-        val email: EditText = input.findViewById(R.id.edit2)
-        val content: EditText = input.findViewById(R.id.edit3)
-        author.setText(_post("author"))
-        email.setText(_post("email"))
-        content.setText(_post("comment"))
-        def fill = _post +=("author" -> author.getText.toString, "email" -> email.getText.toString, "comment" -> content.getText.toString)
-        val alert = new Builder(this)
-          .setTitle(R.string.comment_title)
-          .setView(input)
-          .setPositiveButton(R.string.comment_submit,
-            dialogClick {
-              (d, w) =>
-                fill
-                _progress2.busy = true
-                new ScalaTask[RequestBody, Void, String] {
-                  override def background(params: RequestBody*): String = {
-                    val data = params.head
-                    val http = new OkHttpClient()
-                    val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
-                    val response = http.newCall(post).execute()
-                    val html = response.body().string()
-                    val dom = Jsoup.parse(html, response.request().urlString())
-                    dom.select("#error-page").headOption match {
-                      case Some(e) => e.text()
-                      case _ => getString(R.string.comment_succeeded)
-                    }
-                  }
-
-                  override def post(result: String): Unit = {
-                    _progress2.busy = false
-                    Toast.makeText(InfoActivity.this, result, Toast.LENGTH_LONG).show()
-                  }
-                }.execute((new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build())
-            })
-          .setNegativeButton(R.string.app_cancel, null)
-          .setOnDismissListener(
-            dialogDismiss {
-              d => fill
-            }
-          )
-          .create()
-        alert.show()
+        comment(0)
         true
       case _ =>
         super.onOptionsItemSelected(item)
@@ -118,7 +143,7 @@ class InfoActivity extends AppCompatActivity {
 
     override def getCount: Int = data.size
 
-    override def getItem(position: Int): AnyRef = data(position)
+    override def getItem(position: Int): Comment = data(position)
 
     override def getView(position: Int, convert: View, parent: ViewGroup): View = {
 
@@ -130,18 +155,19 @@ class InfoActivity extends AppCompatActivity {
       val text1: TextView = view.findViewById(R.id.text1)
       val text2: TextView = view.findViewById(R.id.text2)
       val image: ImageView = view.findViewById(R.id.image1)
-      val recycle: ListView = view.findViewById(R.id.list1)
+      val list: ListView = view.findViewById(R.id.list1)
 
-      val adapter = recycle.getAdapter match {
+      val adapter = list.getAdapter match {
         case adapter: CommentAdapter => adapter
         case _ =>
+          list.setOnItemClickListener(commentClick)
           val adapter = new CommentAdapter
-          recycle.setAdapter(adapter)
+          list.setAdapter(adapter)
           adapter
       }
 
 
-      val item = data(position)
+      val item = getItem(position)
       text1.setText(item.user)
       text2.setText(item.content)
 

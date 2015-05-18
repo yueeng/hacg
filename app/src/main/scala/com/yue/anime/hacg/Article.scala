@@ -22,19 +22,25 @@ case class Tag(name: String, url: String) extends Parcelable {
   }
 }
 
-case class Comment(deep: Int, content: String, user: String, face: String, time: Option[Date], children: List[Comment]) extends Parcelable {
-  def this(e: Element, deep: Int = 0) = {
-    this(deep, e.select(">article .comment-content").text(),
+case class Comment(id: Int, content: String, user: String, face: String, time: Option[Date], children: List[Comment]) extends Parcelable {
+  def this(e: Element) = {
+    this(
+      Comment.ID.findPrefixMatchOf(e.select(">article").attr("id")) match {
+        case Some(i) => i.group(1).toInt
+        case _ => 0
+      },
+      e.select(">article .comment-content").text(),
       e.select(">article .fn").text(),
       e.select(">article .avatar").attr("abs:src"),
       e.select(">article time").attr("datetime"),
-      e.select(">.children>li").map(e => new Comment(e, deep + 1)).toList
+      e.select(">.children>li").map(e => new Comment(e)).toList
     )
   }
 
   override def describeContents() = 0
 
   override def writeToParcel(dest: Parcel, flags: Int) {
+    dest.writeInt(id)
     dest.writeString(content)
     dest.writeString(user)
     dest.writeString(face)
@@ -98,7 +104,7 @@ object Tag {
 }
 
 object Comment {
-
+  val ID = """comment-(\d+)""".r
   val CREATOR: Parcelable.Creator[Comment] = new Parcelable.Creator[Comment] {
     override def createFromParcel(source: Parcel): Comment = new Comment(
       source.readInt(),

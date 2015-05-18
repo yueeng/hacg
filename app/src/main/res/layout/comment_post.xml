@@ -28,5 +28,8 @@
         android:gravity="top"
         android:hint="@string/comment_content"
         android:inputType="textMultiLine"
-        android:minLines="4" />
+        android:minLines="4">
+
+        <requestFocus />
+    </EditText>
 </LinearLayout>
