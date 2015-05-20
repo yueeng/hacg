@@ -58,25 +58,47 @@ object Common {
     }
   }
 
-  implicit class progressBusy(progress: ProgressBar) {
-    var _busy = false
-
-    def busy = _busy
-
-    def busy_=(b: Boolean): Unit = {
-      _busy = b
-      progress.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
-      progress.setIndeterminate(b)
-    }
-  }
-
   implicit class digest2string(s: String) {
     def md5 = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
 
     def sha1 = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
 
+  trait Busy {
+    private var _busy = false
+
+    def busy = _busy
+
+    def busy_=(b: Boolean): Unit = {
+      _busy = b
+      refresh()
+    }
+
+    private var _progress: ProgressBar = null
+
+    def progress = _progress
+
+    def progress_=(p: ProgressBar): Unit = {
+      _progress = p
+      refresh()
+    }
+
+    private def refresh(): Unit = {
+      if (_progress != null) {
+        _progress.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
+        _progress.setIndeterminate(busy)
+      }
+    }
+  }
+
+  class ProgressBusy(p: ProgressBar) extends Busy {
+    progress = p
+  }
+
+  implicit def ProgressToBusy(p: ProgressBar): ProgressBusy = new ProgressBusy(p)
+
 }
+
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {
   final override def doInBackground(params: A*): R = background(params: _*)

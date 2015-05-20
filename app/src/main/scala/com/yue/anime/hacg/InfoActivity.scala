@@ -23,8 +23,8 @@ import scala.collection.mutable.ArrayBuffer
  */
 class InfoActivity extends AppCompatActivity {
   lazy val _article = getIntent.getParcelableExtra[Article]("article")
-  lazy val _progress: ProgressBar = findViewById(R.id.progress1)
-  lazy val _progress2: ProgressBar = findViewById(R.id.progress2)
+  lazy val _progress: ProgressBusy = findViewById(R.id.progress1)
+  lazy val _progress2: ProgressBusy = findViewById(R.id.progress2)
   lazy val _adapter = new CommentAdapter
   val _post = new scala.collection.mutable.HashMap[String, String]
 
@@ -104,7 +104,7 @@ class InfoActivity extends AppCompatActivity {
       override def onScrollStateChanged(view: AbsListView, scrollState: Int): Unit = {}
 
       override def onScroll(view: AbsListView, first: Int, visible: Int, total: Int): Unit = {
-        (first + visible >= total, _progress2.getTag) match {
+        (first + visible >= total, _progress2.progress.getTag) match {
           case (true, url: String) if !url.isEmpty => query(url)
           case _ =>
         }
@@ -224,7 +224,7 @@ class InfoActivity extends AppCompatActivity {
           web.loadDataWithBaseURL(url, result._1, "text/html", "utf-8", null)
         }
         _post ++= result._4
-        _progress2.setTag(result._2)
+        _progress2.progress.setTag(result._2)
 
         _adapter.data.append(result._3: _*)
         _adapter.notifyDataSetChanged()
