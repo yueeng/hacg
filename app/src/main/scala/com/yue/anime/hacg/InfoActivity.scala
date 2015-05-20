@@ -205,8 +205,9 @@ class InfoActivity extends AppCompatActivity {
               dom.select(".entry-content").html().replaceAll( """\s{0,1}style=".*?"""", "")
                 .replaceAll( """\s{0,1}class=".*?"""", "")
                 .replaceAll( """<a href="#">.*?</a>""", "")
-                .replaceAll( """</?embed.*?>""", ""))
-            //          .replaceAll( """(?<!\w+=['"]?)(?:https?://|magnet:\?xt=)[^\s\"\'\<]+""", """<a href="$0">$0</a>""")
+                .replaceAll( """</?embed.*?>""", "")
+                .replaceAll( """(?<!magnet:\?xt=urn:btih:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
+                .replaceAll( """(?<!\w{0,8}=['"]?)(?:magnet:\?xt=urn:btih:)[^\s\"\'\<]+""", """<a href="$0">$0</a>"""))
           } else null,
           dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
             case Some(a) => a.attr("abs:href")

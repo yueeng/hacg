@@ -1,5 +1,6 @@
 package com.yue.anime.hacg
 
+import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
 import java.util.Date
 
@@ -7,7 +8,7 @@ import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
 import android.os.AsyncTask
 import android.view.View
-import android.widget.{AbsListView, ProgressBar}
+import android.widget.ProgressBar
 
 import scala.language.{implicitConversions, reflectiveCalls}
 
@@ -67,6 +68,12 @@ object Common {
       progress.setVisibility(if (b) View.VISIBLE else View.INVISIBLE)
       progress.setIndeterminate(b)
     }
+  }
+
+  implicit class digest2string(s: String) {
+    def md5 = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
+
+    def sha1 = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
 
 }
