@@ -1,62 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+
+<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
-        android:minHeight="?attr/actionBarSize"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
-    <android.support.v4.widget.DrawerLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-
-        <FrameLayout
+        <WebView
+            android:id="@+id/webview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent" />
 
-            <WebView
-                android:id="@+id/webview"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+        <ProgressBar
+            android:id="@+id/progress1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+    </FrameLayout>
 
-            <ProgressBar
-                android:id="@+id/progress1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="invisible" />
-        </FrameLayout>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:background="?attr/android:colorBackground">
 
-        <FrameLayout
+        <ListView
+            android:id="@+id/list1"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:background="?attr/android:colorBackground">
+            android:layout_height="match_parent" />
+        <!--<android.support.v7.widget.RecyclerView-->
+        <!--android:id="@+id/recycler"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent" />-->
 
-            <ListView
-                android:id="@+id/list1"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-            <!--<android.support.v7.widget.RecyclerView-->
-            <!--android:id="@+id/recycler"-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="match_parent" />-->
-
-            <ProgressBar
-                android:id="@+id/progress2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="invisible" />
-        </FrameLayout>
-    </android.support.v4.widget.DrawerLayout>
-</LinearLayout>
+        <ProgressBar
+            android:id="@+id/progress2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="invisible" />
+    </FrameLayout>
+</android.support.v4.widget.DrawerLayout>

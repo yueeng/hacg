@@ -27,6 +27,12 @@ object Common {
     override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
   }
 
+  implicit class stringUtil(s: String) {
+    def isNullOrEmpty = s == null || s.isEmpty
+
+    def isNonEmpty = !isNullOrEmpty
+  }
+
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
 
   implicit def string2date(str: String): Option[Date] = {
@@ -91,14 +97,7 @@ object Common {
     }
   }
 
-  class ProgressBusy(p: ProgressBar) extends Busy {
-    progress = p
-  }
-
-  implicit def ProgressToBusy(p: ProgressBar): ProgressBusy = new ProgressBusy(p)
-
 }
-
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {
   final override def doInBackground(params: A*): R = background(params: _*)
