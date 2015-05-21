@@ -219,7 +219,7 @@ class InfoFragment extends Fragment {
         _post ++= result._4
         commentUrl = result._2
 
-        _adapter.data.append(result._3: _*)
+        _adapter.data ++= result._3
         _adapter.notifyDataSetChanged()
         _progress.busy = false
         _progress2.busy = false
@@ -263,7 +263,7 @@ class InfoFragment extends Fragment {
       text2.setText(item.content)
 
       adapter.data.clear()
-      adapter.data.append(item.children: _*)
+      adapter.data ++= item.children
       adapter.notifyDataSetChanged()
 
       if (item.face.isEmpty) {

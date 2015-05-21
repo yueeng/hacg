@@ -6,7 +6,7 @@ import android.os.{Bundle, Parcelable}
 import android.support.v4.app.{Fragment, FragmentManager, FragmentStatePagerAdapter}
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
+import android.support.v7.widget.{RecyclerView, StaggeredGridLayoutManager}
 import android.view.View.OnClickListener
 import android.view._
 import android.widget.{ImageView, TextView}
@@ -54,9 +54,19 @@ class ArticleFragment extends Fragment with Busy {
   lazy val adapter = new ArticleAdapter()
   lazy val uri = getArguments.getString("uri")
 
-  override def onCreate(savedInstanceState: Bundle): Unit = {
-    super.onCreate(savedInstanceState)
+  override def onCreate(saved: Bundle): Unit = {
+    super.onCreate(saved)
     setRetainInstance(true)
+
+    if (saved != null) {
+      val data = saved.getParcelableArray("data")
+      if (data != null && data.nonEmpty) {
+        adapter.data ++= data.map(_.asInstanceOf[Article])
+        adapter.notifyDataSetChanged()
+        return
+      }
+    }
+
     busy = true
     new ScalaTask[String, Void, List[Article]]() {
       override def background(params: String*): List[Article] = {
@@ -70,19 +80,26 @@ class ArticleFragment extends Fragment with Busy {
       }
 
       override def post(result: List[Article]): Unit = {
-        adapter.data.append(result: _*)
+        adapter.data ++= result
         adapter.notifyDataSetChanged()
         busy = false
       }
     }.execute(uri)
   }
 
+  override def onSaveInstanceState(out: Bundle): Unit = {
+    out.putParcelableArray("data", adapter.data.toArray)
+  }
+
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_list, container, false)
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
-    val layout = new LinearLayoutManager(container.getContext)
+    val layout = new StaggeredGridLayoutManager(getResources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
     recycler.setLayoutManager(layout)
     recycler.setAdapter(adapter)
+
+
+
     root
   }
 

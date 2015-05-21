@@ -27,7 +27,7 @@ object Common {
     override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
   }
 
-  implicit class stringUtil(s: String) {
+  implicit class StringUtil(s: String) {
     def isNullOrEmpty = s == null || s.isEmpty
 
     def isNonEmpty = !isNullOrEmpty
