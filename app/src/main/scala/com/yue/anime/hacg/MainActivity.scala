@@ -6,6 +6,7 @@ import android.os.{Bundle, Parcelable}
 import android.support.v4.app.{Fragment, FragmentManager, FragmentStatePagerAdapter}
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, StaggeredGridLayoutManager}
 import android.view.View.OnClickListener
 import android.view._
@@ -13,7 +14,7 @@ import android.widget.{ImageView, TextView}
 import com.astuetz.PagerSlidingTabStrip
 import com.squareup.okhttp.{OkHttpClient, Request}
 import com.squareup.picasso.Picasso
-import com.yue.anime.hacg.Common.{Busy, viewTo}
+import com.yue.anime.hacg.Common._
 import org.jsoup.Jsoup
 
 import scala.collection.JavaConversions._
@@ -52,7 +53,7 @@ class MainActivity extends AppCompatActivity {
 
 class ArticleFragment extends Fragment with Busy {
   lazy val adapter = new ArticleAdapter()
-  lazy val uri = getArguments.getString("uri")
+  var url: String = null
 
   override def onCreate(saved: Bundle): Unit = {
     super.onCreate(saved)
@@ -67,24 +68,7 @@ class ArticleFragment extends Fragment with Busy {
       }
     }
 
-    busy = true
-    new ScalaTask[String, Void, List[Article]]() {
-      override def background(params: String*): List[Article] = {
-        val uri = params.head
-        val http = new OkHttpClient()
-        val request = new Request.Builder().get().url(uri).build()
-        val response = http.newCall(request).execute()
-        val html = response.body().string()
-        val dom = Jsoup.parse(html)
-        dom.select("article").map(o => new Article(o)).toList
-      }
-
-      override def post(result: List[Article]): Unit = {
-        adapter.data ++= result
-        adapter.notifyDataSetChanged()
-        busy = false
-      }
-    }.execute(uri)
+    query(getArguments.getString("uri"))
   }
 
   override def onSaveInstanceState(out: Bundle): Unit = {
@@ -98,9 +82,45 @@ class ArticleFragment extends Fragment with Busy {
     recycler.setLayoutManager(layout)
     recycler.setAdapter(adapter)
 
-
+    recycler.setOnScrollListener(new OnScrollListener {
+      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
+        (state, url, recycler.getLayoutManager) match {
+          case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.data.size - 1 =>
+            query(url)
+          case _ =>
+        }
+      }
+    })
 
     root
+  }
+
+  def query(uri: String): Unit = {
+    if (busy) return
+    busy = true
+    new ScalaTask[String, Void, (List[Article], String)]() {
+      override def background(params: String*): (List[Article], String) = {
+        val uri = params.head
+        val http = new OkHttpClient()
+        val request = new Request.Builder().get().url(uri).build()
+        val response = http.newCall(request).execute()
+        val html = response.body().string()
+        val dom = Jsoup.parse(html)
+
+        (dom.select("article").map(o => new Article(o)).toList,
+          dom.select("#wp_page_numbers a").lastOption match {
+            case Some(n) if ">" == n.text() => n.attr("abs:href")
+            case _ => null
+          })
+      }
+
+      override def post(result: (List[Article], String)): Unit = {
+        url = result._2
+        adapter.data ++= result._1
+        adapter.notifyDataSetChanged()
+        busy = false
+      }
+    }.execute(uri)
   }
 
   override def onViewCreated(view: View, savedInstanceState: Bundle): Unit = {
