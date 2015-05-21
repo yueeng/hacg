@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.ProgressBar
 
 import scala.language.{implicitConversions, reflectiveCalls}
+import scala.util.Random
 
 object Common {
   implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
@@ -97,6 +98,9 @@ object Common {
     }
   }
 
+  val random = new Random(System.currentTimeMillis())
+
+  def randomColor = android.graphics.Color.HSVToColor(Array[Float](random.nextInt(360), 1, 0.5F))
 }
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {

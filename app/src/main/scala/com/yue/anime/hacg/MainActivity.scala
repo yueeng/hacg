@@ -8,6 +8,9 @@ import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, StaggeredGridLayoutManager}
+import android.text.method.LinkMovementMethod
+import android.text.style.{BackgroundColorSpan, ForegroundColorSpan, URLSpan}
+import android.text.{SpannableStringBuilder, Spanned}
 import android.view.View.OnClickListener
 import android.view._
 import android.widget.{ImageView, TextView}
@@ -138,7 +141,13 @@ class ArticleFragment extends Fragment with Busy {
     view.setOnClickListener(click)
     val context = view.getContext
     val text1: TextView = view.findViewById(R.id.text1)
+    val text2: TextView = view.findViewById(R.id.text2)
     val image1: ImageView = view.findViewById(R.id.image1)
+
+    text2.setMovementMethod(LinkMovementMethod.getInstance())
+
+    text2.setShadowLayer(20, 0, 0, 0)
+    text2.setPadding(20, 20, 20, 20)
   }
 
   class ArticleAdapter extends RecyclerView.Adapter[ArticleHolder] {
@@ -150,6 +159,21 @@ class ArticleFragment extends Fragment with Busy {
       val item = data(position)
       holder.view.setTag(item)
       holder.text1.setText(item.content)
+
+      val tags = item.tags.map(_.name).mkString(" ")
+      val span = new SpannableStringBuilder(tags)
+      for (tag <- item.tags) {
+        tags.indexOf(tag.name) match {
+          case -1 =>
+          case p =>
+            span.setSpan(new URLSpan(tag.url), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            span.setSpan(new BackgroundColorSpan(Common.randomColor), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            span.setSpan(new ForegroundColorSpan(0xffffffff), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+      }
+      holder.text2.setText(span)
+      holder.text2.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
+
       if (item.img())
         Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.placeholder).into(holder.image1)
       else

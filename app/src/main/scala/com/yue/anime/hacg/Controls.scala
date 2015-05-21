@@ -1,8 +1,10 @@
 package com.yue.anime.hacg
 
 import android.content.Context
+import android.graphics.{Canvas, Paint, Rect}
 import android.support.v7.widget.RecyclerView.State
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
+import android.text.style.LineBackgroundSpan
 import android.util.AttributeSet
 import android.view.View.MeasureSpec
 import android.view.{View, ViewGroup}
@@ -79,5 +81,33 @@ class UnScrolledLinearLayoutManager(context: Context) extends LinearLayoutManage
       measuredDimension(1) = view.getMeasuredHeight + p.bottomMargin + p.topMargin
       recycler.recycleView(view)
     }
+  }
+}
+object PaddingBackgroundColorSpan{
+  val TOP: String = "top"
+  val LEFT: String = "left"
+  val BOTTOM: String = "bottom"
+  val RIGHT: String = "right"
+}
+class PaddingBackgroundColorSpan(val backgroundColor: Int) extends LineBackgroundSpan {
+  private val _padding = scala.collection.mutable.Map(PaddingBackgroundColorSpan.TOP -> 0, PaddingBackgroundColorSpan.LEFT -> 0, PaddingBackgroundColorSpan.BOTTOM -> 0, PaddingBackgroundColorSpan.RIGHT -> 0)
+  private val _rect = new Rect()
+
+  def padding(m: Map[String, Int]): PaddingBackgroundColorSpan = {
+    _padding ++= m
+    this
+  }
+
+  override def drawBackground(c: Canvas, p: Paint, left: Int, right: Int, top: Int, baseline: Int, bottom: Int, text: CharSequence, start: Int, end: Int, lnum: Int): Unit = {
+    val textWidth = Math.round(p.measureText(text, start, end))
+    val paintColor = p.getColor
+    // Draw the background
+    _rect.set(left - _padding(PaddingBackgroundColorSpan.LEFT),
+      top - (if (lnum == 0) _padding(PaddingBackgroundColorSpan.TOP) / 2 else -(_padding(PaddingBackgroundColorSpan.TOP) / 2)),
+      left + textWidth + _padding(PaddingBackgroundColorSpan.RIGHT),
+      bottom + _padding(PaddingBackgroundColorSpan.BOTTOM) / 2)
+    p.setColor(backgroundColor)
+    c.drawRect(_rect, p)
+    p.setColor(paintColor)
   }
 }
