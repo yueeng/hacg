@@ -188,11 +188,24 @@ class InfoFragment extends Fragment {
         val response = http.newCall(request).execute()
         val html = response.body().string()
         val dom = Jsoup.parse(html, url)
+        dom.select("script,#polls-15-loading").remove()
+        dom.select("#polls-15").headOption match {
+          case Some(div) =>
+            val node = if (div.parent.attr("class") != "entry-content") div.parent else div
+            val name = div.select("strong").headOption match {
+              case Some(strong) => strong.text()
+              case _ => "去原贴投票"
+            }
+            node.after( s"""<a href="$url">$name</a>""")
+            node.remove()
+          case _ =>
+        }
 
         Tuple4(
           if (content) using(io.Source.fromInputStream(getResources.openRawResource(R.raw.template))) {
             reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}",
-              dom.select(".entry-content").html().replaceAll( """\s{0,1}style=".*?"""", "")
+              dom.select(".entry-content").html()
+                .replaceAll( """\s{0,1}style=".*?"""", "")
                 .replaceAll( """\s{0,1}class=".*?"""", "")
                 .replaceAll( """<a href="#">.*?</a>""", "")
                 .replaceAll( """</?embed.*?>""", "")
