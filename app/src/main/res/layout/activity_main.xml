@@ -19,7 +19,7 @@
         android:id="@+id/tab"
         android:layout_width="match_parent"
         android:layout_height="48dip"
-        android:background="@color/colorPrimary"
+        android:background="@color/primary"
         android:textColor="#fff"
         app:pstsIndicatorColor="?attr/colorAccent" />
 

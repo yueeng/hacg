@@ -3,7 +3,7 @@ package com.yue.anime.hacg
 import android.content.Intent
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
-import android.support.v4.app.{Fragment, FragmentManager, FragmentStatePagerAdapter}
+import android.support.v4.app._
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
@@ -62,6 +62,7 @@ class ListActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_fragment)
     setSupportActionBar(findViewById(R.id.toolbar))
+    getSupportActionBar.setDisplayHomeAsUpEnabled(true)
     setTitle(name)
 
     val transaction = getSupportFragmentManager.beginTransaction()
@@ -79,6 +80,23 @@ class ListActivity extends AppCompatActivity {
     transaction.replace(R.id.container, fragment)
 
     transaction.commit()
+  }
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case R.id.home =>
+        val upIntent = NavUtils.getParentActivityIntent(this)
+        if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
+          TaskStackBuilder.create(this)
+            .addNextIntentWithParentStack(upIntent)
+            .startActivities()
+        } else {
+          NavUtils.navigateUpTo(this, upIntent)
+        }
+        true
+      case _ => super.onOptionsItemSelected(item)
+    }
+
   }
 }
 

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorAccent">#45A700</color>
-    <color name="colorPrimary">#1D1D1D</color>
-    <color name="colorPrimaryDark">#000000</color>
+    <color name="primary">#1D1D1D</color>
+    <color name="primary_pressed">#FFF</color>
+    <color name="primary_dark">#000000</color>
+    <color name="ripple">#F06292</color>
+    <color name="accent">#45A700</color>
+    <color name="accent_pressed">#C2185B</color>
 </resources>

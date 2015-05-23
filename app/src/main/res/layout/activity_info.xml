@@ -2,6 +2,8 @@
 
 
 <android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:auto="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -21,6 +23,29 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:visibility="invisible" />
+
+        <com.github.clans.fab.FloatingActionMenu
+            android:id="@+id/menu1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <com.github.clans.fab.FloatingActionButton
+                android:id="@+id/button1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chrome"
+                auto:fab_label="@string/app_chrome"
+                auto:fab_size="mini" />
+
+            <com.github.clans.fab.FloatingActionButton
+                android:id="@+id/button2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chat"
+                auto:fab_label="@string/comment_title"
+                auto:fab_size="mini" />
+
+        </com.github.clans.fab.FloatingActionMenu>
     </FrameLayout>
 
     <FrameLayout
@@ -44,5 +69,14 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:visibility="invisible" />
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:src="@drawable/ic_chat"
+            auto:fab_label="@string/comment_title"
+            auto:fab_size="mini" />
     </FrameLayout>
 </android.support.v4.widget.DrawerLayout>

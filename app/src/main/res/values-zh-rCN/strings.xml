@@ -9,4 +9,5 @@
     <string name="comment_title">评论</string>
     <string name="comment_succeeded">提交成功</string>
     <string name="comment_review">回复: %1$s</string>
+    <string name="app_chrome">使用浏览器打开</string>
 </resources>

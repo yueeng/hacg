@@ -1,15 +1,19 @@
 package com.yue.anime.hacg
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.support.v4.app.Fragment
-import android.support.v4.view.MenuItemCompat
+import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
+import android.support.v4.view.GravityCompat
+import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
 import android.view._
 import android.webkit.WebView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
+import com.github.clans.fab.FloatingActionMenu
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request, RequestBody}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
@@ -30,6 +34,7 @@ class InfoActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_fragment)
     setSupportActionBar(findViewById(R.id.toolbar))
+    getSupportActionBar.setDisplayHomeAsUpEnabled(true)
     setTitle(_article.title)
 
     val transaction = getSupportFragmentManager.beginTransaction()
@@ -47,6 +52,23 @@ class InfoActivity extends AppCompatActivity {
     transaction.replace(R.id.container, fragment)
 
     transaction.commit()
+  }
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case R.id.home =>
+        val upIntent = NavUtils.getParentActivityIntent(this)
+        if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
+          TaskStackBuilder.create(this)
+            .addNextIntentWithParentStack(upIntent)
+            .startActivities()
+        } else {
+          NavUtils.navigateUpTo(this, upIntent)
+        }
+        true
+      case _ => super.onOptionsItemSelected(item)
+    }
+
   }
 }
 
@@ -69,6 +91,14 @@ class InfoFragment extends Fragment {
     }
   }
 
+  override def onCreate(savedInstanceState: Bundle): Unit = {
+    super.onCreate(savedInstanceState)
+    setHasOptionsMenu(true)
+    setRetainInstance(true)
+    val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
+    _post +=("author" -> preference.getString("author", ""), "email" -> preference.getString("email", ""))
+    query(_article.link, content = true)
+  }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.activity_info, container, false)
@@ -86,6 +116,8 @@ class InfoFragment extends Fragment {
       }
     })
 
+    List(R.id.button1, R.id.button2, R.id.button3).map(root.findViewById).foreach(_.setOnClickListener(click))
+
     _progress.progress = root.findViewById(R.id.progress1)
     _progress2.progress = root.findViewById(R.id.progress2)
 
@@ -96,30 +128,13 @@ class InfoFragment extends Fragment {
     root
   }
 
-  override def onCreate(savedInstanceState: Bundle): Unit = {
-    super.onCreate(savedInstanceState)
-    setHasOptionsMenu(true)
-    setRetainInstance(true)
-    val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-    _post +=("author" -> preference.getString("author", ""), "email" -> preference.getString("email", ""))
-    query(_article.link, content = true)
-  }
-
-  val MENU_COMMENT = 0x1001
-
-  override def onCreateOptionsMenu(menu: Menu, inflater: MenuInflater): Unit = {
-    MenuItemCompat.setShowAsAction(menu.add(Menu.NONE, MENU_COMMENT, Menu.NONE, R.string.comment_title), MenuItemCompat.SHOW_AS_ACTION_ALWAYS)
-    super.onCreateOptionsMenu(menu, inflater)
-  }
-
-  override def onOptionsItemSelected(item: MenuItem): Boolean = {
-    item.getItemId match {
-      case MENU_COMMENT =>
-        comment(0)
-        true
-      case _ =>
-        super.onOptionsItemSelected(item)
+  lazy val click = viewClick { v =>
+    v.getId match {
+      case R.id.button1 => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(_article.link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      case R.id.button2 => getView.findViewById(R.id.drawer).asInstanceOf[DrawerLayout].openDrawer(GravityCompat.END)
+      case R.id.button3 => comment(0)
     }
+    getView.findViewById(R.id.menu1).asInstanceOf[FloatingActionMenu].close(true)
   }
 
   def comment(id: Int, title: String = null) = {
