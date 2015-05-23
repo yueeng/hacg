@@ -1,13 +1,15 @@
 package com.yue.anime.hacg
 
-import android.content.Intent
+import android.app.SearchManager
+import android.content.{ComponentName, Context, Intent, SearchRecentSuggestionsProvider}
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
+import android.provider.SearchRecentSuggestions
 import android.support.v4.app._
-import android.support.v4.view.ViewPager
+import android.support.v4.view.{MenuItemCompat, ViewPager}
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
-import android.support.v7.widget.{RecyclerView, StaggeredGridLayoutManager}
+import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
 import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
@@ -52,17 +54,48 @@ class MainActivity extends AppCompatActivity {
     override def getPageTitle(position: Int): CharSequence = title(position)
   }
 
+
+  override def onCreateOptionsMenu(menu: Menu): Boolean = {
+    getMenuInflater.inflate(R.menu.search, menu)
+    val search = MenuItemCompat.getActionView(menu.findItem(R.id.search)).asInstanceOf[SearchView]
+    val manager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
+    val info = manager.getSearchableInfo(new ComponentName(this, classOf[ListActivity]))
+    search.setSearchableInfo(info)
+    super.onCreateOptionsMenu(menu)
+  }
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case R.id.search_clear =>
+        val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+        suggestions.clearHistory()
+        true
+      case _ => super.onOptionsItemSelected(item)
+    }
+  }
 }
 
 class ListActivity extends AppCompatActivity {
-  lazy val url = getIntent.getStringExtra("url")
-  lazy val name = getIntent.getStringExtra("name")
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_fragment)
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setDisplayHomeAsUpEnabled(true)
+
+    val (url, name) = getIntent match {
+      case i if i.hasExtra("url") => (i.getStringExtra("url"), i.getStringExtra("name"))
+      case i if i.hasExtra(SearchManager.QUERY) =>
+        val key = i.getStringExtra(SearchManager.QUERY)
+        val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+        suggestions.saveRecentQuery(key, null)
+        ( s"""http://www.hacg.be/wordpress/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
+      case _ => null
+    }
+    if (url == null) {
+      finish()
+      return
+    }
     setTitle(name)
 
     val transaction = getSupportFragmentManager.beginTransaction()
@@ -98,6 +131,15 @@ class ListActivity extends AppCompatActivity {
     }
 
   }
+}
+
+class SearchHistoryProvider extends SearchRecentSuggestionsProvider() {
+  setupSuggestions(SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+}
+
+object SearchHistoryProvider {
+  val AUTHORITY: String = "com.yue.anime.hacg.SuggestionProvider"
+  val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
 }
 
 class ArticleFragment extends Fragment with Busy {
