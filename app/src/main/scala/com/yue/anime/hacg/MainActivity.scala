@@ -9,8 +9,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
-import android.text.style.{BackgroundColorSpan, ForegroundColorSpan, URLSpan}
-import android.text.{SpannableStringBuilder, Spanned}
+import android.text.style.{BackgroundColorSpan, ClickableSpan}
+import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
 import android.widget.{ImageView, TextView}
@@ -42,7 +42,7 @@ class MainActivity extends AppCompatActivity {
     override def getItem(position: Int): Fragment = {
       val fragment = new ArticleFragment()
       val args = new Bundle()
-      args.putString("uri", "http://www.hacg.be" + data(position))
+      args.putString("url", "http://www.hacg.be" + data(position))
       fragment.setArguments(args)
       fragment
     }
@@ -52,6 +52,34 @@ class MainActivity extends AppCompatActivity {
     override def getPageTitle(position: Int): CharSequence = title(position)
   }
 
+}
+
+class ListActivity extends AppCompatActivity {
+  lazy val url = getIntent.getStringExtra("url")
+  lazy val name = getIntent.getStringExtra("name")
+
+  override def onCreate(savedInstanceState: Bundle): Unit = {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_fragment)
+    setSupportActionBar(findViewById(R.id.toolbar))
+    setTitle(name)
+
+    val transaction = getSupportFragmentManager.beginTransaction()
+
+    val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
+      case fragment: InfoFragment => fragment
+      case _ =>
+        val fragment = new ArticleFragment
+        val extra = new Bundle()
+        extra.putString("url", url)
+        fragment.setArguments(extra)
+        fragment
+    }
+
+    transaction.replace(R.id.container, fragment)
+
+    transaction.commit()
+  }
 }
 
 class ArticleFragment extends Fragment with Busy {
@@ -71,7 +99,7 @@ class ArticleFragment extends Fragment with Busy {
       }
     }
 
-    query(getArguments.getString("uri"))
+    query(getArguments.getString("url"))
   }
 
   override def onSaveInstanceState(out: Bundle): Unit = {
@@ -145,9 +173,17 @@ class ArticleFragment extends Fragment with Busy {
     val image1: ImageView = view.findViewById(R.id.image1)
 
     text2.setMovementMethod(LinkMovementMethod.getInstance())
+  }
 
-    text2.setShadowLayer(20, 0, 0, 0)
-    text2.setPadding(20, 20, 20, 20)
+  class TagClickableSpan(tag: Tag) extends ClickableSpan {
+    override def onClick(widget: View): Unit = {
+      startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name))
+    }
+
+    override def updateDrawState(ds: TextPaint): Unit = {
+      ds.setColor(0xFFFFFFFF)
+      ds.setUnderlineText(false)
+    }
   }
 
   class ArticleAdapter extends RecyclerView.Adapter[ArticleHolder] {
@@ -160,16 +196,16 @@ class ArticleFragment extends Fragment with Busy {
       holder.view.setTag(item)
       holder.text1.setText(item.content)
 
-      val tags = item.tags.map(_.name).mkString(" ")
+      val tags = item.tags.map(o => s" ${o.name} ").mkString(" ")
       val span = new SpannableStringBuilder(tags)
-      for (tag <- item.tags) {
-        tags.indexOf(tag.name) match {
-          case -1 =>
-          case p =>
-            span.setSpan(new URLSpan(tag.url), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            span.setSpan(new BackgroundColorSpan(Common.randomColor), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            span.setSpan(new ForegroundColorSpan(0xffffffff), p, p + tag.name.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
+      for {tag <- item.tags
+           p = tags.indexOf(tag.name)
+           e = p + tag.name.length
+           p2 = tags.indexOf(s" ${tag.name} ")
+           e2 = p2 + s" ${tag.name} ".length} {
+        span.setSpan(new TagClickableSpan(tag), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), p2, e2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        //        span.setSpan(new ForegroundColorSpan(0xffffffff), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
       }
       holder.text2.setText(span)
       holder.text2.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)

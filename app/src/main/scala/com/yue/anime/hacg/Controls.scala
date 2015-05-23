@@ -1,7 +1,7 @@
 package com.yue.anime.hacg
 
 import android.content.Context
-import android.graphics.{Canvas, Paint, Rect}
+import android.graphics.{Canvas, Paint, RectF}
 import android.support.v7.widget.RecyclerView.State
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.text.style.LineBackgroundSpan
@@ -83,31 +83,38 @@ class UnScrolledLinearLayoutManager(context: Context) extends LinearLayoutManage
     }
   }
 }
-object PaddingBackgroundColorSpan{
-  val TOP: String = "top"
-  val LEFT: String = "left"
-  val BOTTOM: String = "bottom"
-  val RIGHT: String = "right"
-}
-class PaddingBackgroundColorSpan(val backgroundColor: Int) extends LineBackgroundSpan {
-  private val _padding = scala.collection.mutable.Map(PaddingBackgroundColorSpan.TOP -> 0, PaddingBackgroundColorSpan.LEFT -> 0, PaddingBackgroundColorSpan.BOTTOM -> 0, PaddingBackgroundColorSpan.RIGHT -> 0)
-  private val _rect = new Rect()
 
-  def padding(m: Map[String, Int]): PaddingBackgroundColorSpan = {
-    _padding ++= m
+class RectBackgroundColorSpan(val backgroundColor: Int) extends LineBackgroundSpan {
+
+  private val TOP: String = "top"
+  private val LEFT: String = "left"
+  private val BOTTOM: String = "bottom"
+  private val RIGHT: String = "right"
+  private val RADIUS_X: String = "radius-x"
+  private val RADIUS_Y: String = "radius-y"
+
+  private val _map = scala.collection.mutable.Map(TOP -> 0, LEFT -> 0, BOTTOM -> 0, RIGHT -> 0, RADIUS_X -> 0, RADIUS_Y -> 0)
+  private val _rect = new RectF()
+
+  def padding(left: Int, top: Int, right: Int, bottom: Int) = {
+    _map ++= Map(LEFT -> left, TOP -> top, RIGHT -> right, BOTTOM -> bottom)
+    this
+  }
+
+  def radius(x: Int, y: Int) = {
+    _map ++= Map(RADIUS_X -> x, RADIUS_Y -> y)
     this
   }
 
   override def drawBackground(c: Canvas, p: Paint, left: Int, right: Int, top: Int, baseline: Int, bottom: Int, text: CharSequence, start: Int, end: Int, lnum: Int): Unit = {
     val textWidth = Math.round(p.measureText(text, start, end))
     val paintColor = p.getColor
-    // Draw the background
-    _rect.set(left - _padding(PaddingBackgroundColorSpan.LEFT),
-      top - (if (lnum == 0) _padding(PaddingBackgroundColorSpan.TOP) / 2 else -(_padding(PaddingBackgroundColorSpan.TOP) / 2)),
-      left + textWidth + _padding(PaddingBackgroundColorSpan.RIGHT),
-      bottom + _padding(PaddingBackgroundColorSpan.BOTTOM) / 2)
+    _rect.set(left - _map(LEFT),
+      top - (if (lnum == 0) _map(TOP) / 2 else -(_map(TOP) / 2)),
+      left + textWidth + _map(RIGHT),
+      bottom + _map(BOTTOM) / 2)
     p.setColor(backgroundColor)
-    c.drawRect(_rect, p)
+    c.drawRoundRect(_rect, _map(RADIUS_X), _map(RADIUS_Y), p)
     p.setColor(paintColor)
   }
 }

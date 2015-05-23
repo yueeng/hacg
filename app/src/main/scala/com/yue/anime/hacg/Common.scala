@@ -100,7 +100,7 @@ object Common {
 
   val random = new Random(System.currentTimeMillis())
 
-  def randomColor = android.graphics.Color.HSVToColor(Array[Float](random.nextInt(360), 1, 0.5F))
+  def randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, Array[Float](random.nextInt(360), 1, 0.5F))
 }
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {
