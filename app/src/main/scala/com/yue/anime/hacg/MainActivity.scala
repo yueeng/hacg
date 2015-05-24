@@ -273,9 +273,9 @@ class ArticleFragment extends Fragment with Busy {
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
       if (item.img())
-        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.placeholder).into(holder.image1)
+        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.drawable.loading).into(holder.image1)
       else
-        Picasso.`with`(holder.context).load(R.mipmap.placeholder).into(holder.image1)
+        Picasso.`with`(holder.context).load(R.drawable.placeholder).into(holder.image1)
     }
 
     override def onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =

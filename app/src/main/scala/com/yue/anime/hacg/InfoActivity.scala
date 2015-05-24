@@ -297,7 +297,7 @@ class InfoFragment extends Fragment {
       if (item.face.isEmpty) {
         image.setImageResource(R.mipmap.ic_launcher)
       } else {
-        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.placeholder).into(image)
+        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.drawable.loading).into(image)
       }
 
       view
