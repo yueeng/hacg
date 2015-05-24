@@ -228,11 +228,12 @@ class ArticleFragment extends Fragment with Busy {
   class ArticleHolder(val view: View) extends RecyclerView.ViewHolder(view) {
     view.setOnClickListener(click)
     val context = view.getContext
-    val text1: TextView = view.findViewById(R.id.text1)
+    val text1: MagicTextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
+    val text3: TextView = view.findViewById(R.id.text3)
     val image1: ImageView = view.findViewById(R.id.image1)
 
-    text2.setMovementMethod(LinkMovementMethod.getInstance())
+    text3.setMovementMethod(LinkMovementMethod.getInstance())
   }
 
   class TagClickableSpan(tag: Tag) extends ClickableSpan {
@@ -254,8 +255,9 @@ class ArticleFragment extends Fragment with Busy {
     override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
       val item = data(position)
       holder.view.setTag(item)
-      holder.text1.setText(item.content)
-
+      holder.text1.setText(item.title)
+      holder.text1.setStroke(Common.randomColor(0xBF))
+      holder.text2.setText(item.content)
       val tags = item.tags.map(o => s" ${o.name} ").mkString(" ")
       val span = new SpannableStringBuilder(tags)
       for {tag <- item.tags
@@ -267,8 +269,8 @@ class ArticleFragment extends Fragment with Busy {
         span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), p2, e2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         //        span.setSpan(new ForegroundColorSpan(0xffffffff), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
       }
-      holder.text2.setText(span)
-      holder.text2.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
+      holder.text3.setText(span)
+      holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
       if (item.img())
         Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.mipmap.placeholder).into(holder.image1)
