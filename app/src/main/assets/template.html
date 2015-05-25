@@ -9,7 +9,6 @@
         * {
             font-size: 1em;
             line-height: 1.5em;
-            font-family: 'Microsoft YaHei';
             font-weight: lighter;
             word-wrap: break-word;
         }
@@ -33,6 +32,13 @@
             width: 100%;
         }
     </style>
+    <script src="file:///android_asset/jquery-1.11.2.min.js"></script>
+    <script src="file:///android_asset/jquery.lazyload.min.js"></script>
+    <script>
+    $(function(){
+        $("img.lazy").lazyload();
+    });
+    </script>
 </head>
 <body>
     <h1>{{title}}</h1>

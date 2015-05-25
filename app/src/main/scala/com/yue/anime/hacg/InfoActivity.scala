@@ -9,8 +9,9 @@ import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view._
-import android.webkit.WebView
+import android.webkit.{ConsoleMessage, WebChromeClient, WebView}
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.github.clans.fab.FloatingActionMenu
@@ -75,9 +76,14 @@ class InfoFragment extends Fragment {
   lazy val _adapter = new CommentAdapter
   val _progress: Busy = new Busy {}
   val _progress2: Busy = new Busy {}
+  val _web = new ViewEx[(String, String), WebView] {
+    override def refresh(): Unit = {
+      view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
+    }
+  }
   val _post = new scala.collection.mutable.HashMap[String, String]
   var commentUrl: String = null
-  var html: String = null
+  //  var html: String = null
   val commentClick = new OnItemClickListener {
     override def onItemClick(parent: AdapterView[_], view: View, position: Int, id: Long): Unit = {
       parent.getAdapter match {
@@ -88,6 +94,7 @@ class InfoFragment extends Fragment {
       }
     }
   }
+
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
@@ -119,10 +126,17 @@ class InfoFragment extends Fragment {
     _progress.progress = root.findViewById(R.id.progress1)
     _progress2.progress = root.findViewById(R.id.progress2)
 
-    if (html.isNonEmpty) {
-      val web: WebView = root.findViewById(R.id.webview)
-      web.loadDataWithBaseURL(_article.link, html, "text/html", "utf-8", null)
-    }
+    val web: WebView = root.findViewById(R.id.webview)
+    web.getSettings.setJavaScriptEnabled(true)
+    web.setWebChromeClient(new WebChromeClient {
+      override def onConsoleMessage(cm: ConsoleMessage): Boolean = {
+        Log.d("HAcg", cm.message() + " -- From line "
+          + cm.lineNumber() + " of "
+          + cm.sourceId())
+        true
+      }
+    })
+    _web.view = web
     root
   }
 
@@ -193,27 +207,33 @@ class InfoFragment extends Fragment {
     new ScalaTask[Void, Void, (String, String, List[Comment], Map[String, String])] {
       override def background(params: Void*): (String, String, List[Comment], Map[String, String]) = {
         val dom = url.httpGet.jsoup
-        dom.select("script,#polls-15-loading").remove()
-        dom.select("#polls-15").headOption match {
+        val entry = dom.select(".entry-content")
+        entry.select("script,#polls-15-loading").remove()
+        entry.select("#polls-15").headOption match {
           case Some(div) =>
             val node = if (div.parent.attr("class") != "entry-content") div.parent else div
             val name = div.select("strong").headOption match {
               case Some(strong) => strong.text()
-              case _ => "去原贴投票"
+              case _ => "投票推荐"
             }
             node.after( s"""<a href="$url">$name</a>""")
             node.remove()
           case _ =>
         }
-
-        Tuple4(
-          if (content) using(io.Source.fromInputStream(getResources.openRawResource(R.raw.template))) {
+        entry.select("*").removeAttr("class").removeAttr("style")
+        entry.select("a[href=#]").remove()
+        entry.select("embed").unwrap()
+        entry.select("img").foreach(i => {
+          i.attr("data-original", i.attr("src"))
+            .addClass("lazy")
+            .removeAttr("src")
+            .removeAttr("width")
+            .removeAttr("height")
+        })
+        (
+          if (content) using(io.Source.fromInputStream(getActivity.getAssets.open("template.html"))) {
             reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}",
-              dom.select(".entry-content").html()
-                .replaceAll( """\s{0,1}style=".*?"""", "")
-                .replaceAll( """\s{0,1}class=".*?"""", "")
-                .replaceAll( """<a href="#">.*?</a>""", "")
-                .replaceAll( """</?embed.*?>""", "")
+              entry.html()
                 .replaceAll( """(?<!magnet:\?xt=urn:btih:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
                 .replaceAll( """(?<!\w{0,8}=['"]?)(?:magnet:\?xt=urn:btih:)[^\s\"\'\<]+""", """<a href="$0">$0</a>"""))
           } else null,
@@ -223,16 +243,12 @@ class InfoFragment extends Fragment {
           },
           dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
           dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
-        )
+          )
       }
 
       override def post(result: (String, String, List[Comment], Map[String, String])): Unit = {
-        if (html.isNullOrEmpty) {
-          html = result._1
-          if (getView != null) {
-            val web: WebView = getView.findViewById(R.id.webview)
-            web.loadDataWithBaseURL(url, html, "text/html", "utf-8", null)
-          }
+        if (_web.value == null) {
+          _web.value = (result._1, url)
         }
         _post ++= result._4
         commentUrl = result._2

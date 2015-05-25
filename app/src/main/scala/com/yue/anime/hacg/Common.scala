@@ -97,6 +97,38 @@ object Common {
     def jsoup = Jsoup.parse(html._1, html._2)
   }
 
+  trait ViewEx[T, V <: View] {
+    var _value: T = _
+
+    def value = _value
+
+    def value_=(v: T) = {
+      _value = v
+      _refresh()
+    }
+
+    var _view: V = _
+
+    def view = _view
+
+    def view_=(v: V) = {
+      _view = v
+      _refresh()
+    }
+
+    private def _refresh(): Unit = {
+      if (view == null)
+        return
+      value match {
+        case v: AnyRef if v != null =>
+          refresh()
+        case _ =>
+      }
+    }
+
+    def refresh(): Unit
+  }
+
   trait Busy {
     private var _busy = false
 
