@@ -9,9 +9,8 @@ import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.view._
-import android.webkit.{ConsoleMessage, WebChromeClient, WebView}
+import android.webkit.{WebView, WebViewClient}
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.github.clans.fab.FloatingActionMenu
@@ -128,11 +127,10 @@ class InfoFragment extends Fragment {
 
     val web: WebView = root.findViewById(R.id.webview)
     web.getSettings.setJavaScriptEnabled(true)
-    web.setWebChromeClient(new WebChromeClient {
-      override def onConsoleMessage(cm: ConsoleMessage): Boolean = {
-        Log.d("HAcg", cm.message() + " -- From line "
-          + cm.lineNumber() + " of "
-          + cm.sourceId())
+    web.setWebViewClient(new WebViewClient {
+      override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
+        val uri = Uri.parse(url)
+        startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.getScheme))
         true
       }
     })
@@ -222,6 +220,7 @@ class InfoFragment extends Fragment {
         }
         entry.select("*").removeAttr("class").removeAttr("style")
         entry.select("a[href=#]").remove()
+        entry.select("a[href$=#]").foreach(i=>i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
         entry.select("embed").unwrap()
         entry.select("img").foreach(i => {
           i.attr("data-original", i.attr("src"))
