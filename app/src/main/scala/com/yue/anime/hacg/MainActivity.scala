@@ -252,16 +252,15 @@ class ArticleFragment extends Fragment with Busy {
       holder.text1.setText(item.title)
       holder.text1.setStroke(Common.randomColor(0xBF))
       holder.text2.setText(item.content)
-      val tags = item.tags.map(o => s" ${o.name} ").mkString(" ")
+      val tags = item.expend.map(o => s" ${o.name} ").mkString(" ")
       val span = new SpannableStringBuilder(tags)
-      for {tag <- item.tags
+      for {tag <- item.expend
            p = tags.indexOf(tag.name)
            e = p + tag.name.length
            p2 = tags.indexOf(s" ${tag.name} ")
            e2 = p2 + s" ${tag.name} ".length} {
         span.setSpan(new TagClickableSpan(tag), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), p2, e2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        //        span.setSpan(new ForegroundColorSpan(0xffffffff), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
       }
       holder.text3.setText(span)
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
