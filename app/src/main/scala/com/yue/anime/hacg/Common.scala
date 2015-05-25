@@ -3,12 +3,15 @@ package com.yue.anime.hacg
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
 import java.util.Date
+import java.util.concurrent.TimeUnit
 
 import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
 import android.os.AsyncTask
 import android.view.View
 import android.widget.ProgressBar
+import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
+import org.jsoup.Jsoup
 
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.Random
@@ -69,6 +72,29 @@ object Common {
     def md5 = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
 
     def sha1 = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
+  }
+
+  implicit class httpex(url: String) {
+    def httpGet = {
+      val http = new OkHttpClient()
+      http.setConnectTimeout(30, TimeUnit.SECONDS)
+      val request = new Request.Builder().get().url(url).build()
+      val response = http.newCall(request).execute()
+      (response.body().string(), response.request().urlString())
+    }
+
+    def httpPost(post: Map[String, String]) = {
+      val http = new OkHttpClient()
+      http.setConnectTimeout(30, TimeUnit.SECONDS)
+      val data = (new FormEncodingBuilder /: post)((b, o) => b.add(o._1, o._2)).build()
+      val request = new Request.Builder().url(url).post(data).build()
+      val response = http.newCall(request).execute()
+      (response.body().string(), response.request().urlString())
+    }
+  }
+
+  implicit class jsoupex(html: (String, String)) {
+    def jsoup = Jsoup.parse(html._1, html._2)
   }
 
   trait Busy {

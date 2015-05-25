@@ -14,10 +14,8 @@ import android.webkit.WebView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.github.clans.fab.FloatingActionMenu
-import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request, RequestBody}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
-import org.jsoup.Jsoup
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -159,14 +157,10 @@ class InfoFragment extends Fragment {
           (d, w) =>
             fill
             _progress2.busy = true
-            new ScalaTask[RequestBody, Void, String] {
-              override def background(params: RequestBody*): String = {
+            new ScalaTask[Map[String, String], Void, String] {
+              override def background(params: Map[String, String]*): String = {
                 val data = params.head
-                val http = new OkHttpClient()
-                val post = new Request.Builder().url("http://www.hacg.be/wordpress/wp-comments-post.php").post(data).build()
-                val response = http.newCall(post).execute()
-                val html = response.body().string()
-                val dom = Jsoup.parse(html, response.request().urlString())
+                val dom = "http://www.hacg.be/wordpress/wp-comments-post.php".httpPost(data).jsoup
                 dom.select("#error-page").headOption match {
                   case Some(e) => e.text()
                   case _ => getString(R.string.comment_succeeded)
@@ -177,7 +171,7 @@ class InfoFragment extends Fragment {
                 _progress2.busy = false
                 Toast.makeText(getActivity, result, Toast.LENGTH_LONG).show()
               }
-            }.execute((new FormEncodingBuilder /: _post)((b, o) => b.add(o._1, o._2)).build())
+            }.execute(_post.toMap)
         })
       .setNegativeButton(R.string.app_cancel, null)
       .setOnDismissListener(
@@ -198,11 +192,7 @@ class InfoFragment extends Fragment {
     _progress2.busy = true
     new ScalaTask[Void, Void, (String, String, List[Comment], Map[String, String])] {
       override def background(params: Void*): (String, String, List[Comment], Map[String, String]) = {
-        val http = new OkHttpClient()
-        val request = new Request.Builder().get().url(url).build()
-        val response = http.newCall(request).execute()
-        val html = response.body().string()
-        val dom = Jsoup.parse(html, url)
+        val dom = url.httpGet.jsoup
         dom.select("script,#polls-15-loading").remove()
         dom.select("#polls-15").headOption match {
           case Some(div) =>

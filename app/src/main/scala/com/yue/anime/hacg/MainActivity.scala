@@ -17,7 +17,6 @@ import android.view.View.OnClickListener
 import android.view._
 import android.widget.{ImageView, TextView}
 import com.astuetz.PagerSlidingTabStrip
-import com.squareup.okhttp.{OkHttpClient, Request}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
 import org.jsoup.Jsoup
@@ -191,12 +190,7 @@ class ArticleFragment extends Fragment with Busy {
     busy = true
     new ScalaTask[String, Void, (List[Article], String)]() {
       override def background(params: String*): (List[Article], String) = {
-        val uri = params.head
-        val http = new OkHttpClient()
-        val request = new Request.Builder().get().url(uri).build()
-        val response = http.newCall(request).execute()
-        val html = response.body().string()
-        val dom = Jsoup.parse(html)
+        val dom =  params.head.httpGet.jsoup
 
         (dom.select("article").map(o => new Article(o)).toList,
           dom.select("#wp_page_numbers a").lastOption match {
