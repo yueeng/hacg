@@ -19,7 +19,6 @@ import android.widget.{ImageView, TextView}
 import com.astuetz.PagerSlidingTabStrip
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
-import org.jsoup.Jsoup
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -188,21 +187,29 @@ class ArticleFragment extends Fragment with Busy {
   def query(uri: String): Unit = {
     if (busy) return
     busy = true
-    new ScalaTask[String, Void, (List[Article], String)]() {
-      override def background(params: String*): (List[Article], String) = {
-        val dom =  params.head.httpGet.jsoup
+    type R = Option[(List[Article], String)]
+    new ScalaTask[String, Void, R]() {
+      override def background(params: String*): R = {
+        params.head.httpGet.jsoup match {
+          case Some(dom) =>
+            Option(dom.select("article").map(o => new Article(o)).toList,
+              dom.select("#wp_page_numbers a").lastOption match {
+                case Some(n) if ">" == n.text() => n.attr("abs:href")
+                case _ => null
+              })
+          case _ => None
+        }
 
-        (dom.select("article").map(o => new Article(o)).toList,
-          dom.select("#wp_page_numbers a").lastOption match {
-            case Some(n) if ">" == n.text() => n.attr("abs:href")
-            case _ => null
-          })
       }
 
-      override def post(result: (List[Article], String)): Unit = {
-        url = result._2
-        adapter.data ++= result._1
-        adapter.notifyDataSetChanged()
+      override def post(result: R): Unit = {
+        result match {
+          case Some(r) =>
+            url = r._2
+            adapter.data ++= r._1
+            adapter.notifyDataSetChanged()
+          case _ =>
+        }
         busy = false
       }
     }.execute(uri)

@@ -12,4 +12,5 @@
     <string name="app_chrome">使用浏览器打开</string>
     <string name="app_search">搜索</string>
     <string name="app_search_clear">清除搜索记录</string>
+    <string name="comment_failed">提交失败</string>
 </resources>

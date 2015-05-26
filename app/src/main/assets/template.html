@@ -36,7 +36,10 @@
     <script src="file:///android_asset/jquery.lazyload.min.js"></script>
     <script>
     $(function(){
-        $("img.lazy").lazyload();
+        $("img.lazy").lazyload({
+            effect: "fadeIn",
+            placeholder: "file:///android_res/drawable/loading.jpg"
+        });
     });
     </script>
 </head>

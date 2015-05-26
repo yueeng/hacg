@@ -76,25 +76,36 @@ object Common {
 
   implicit class httpex(url: String) {
     def httpGet = {
-      val http = new OkHttpClient()
-      http.setConnectTimeout(30, TimeUnit.SECONDS)
-      val request = new Request.Builder().get().url(url).build()
-      val response = http.newCall(request).execute()
-      (response.body().string(), response.request().urlString())
+      try {
+        val http = new OkHttpClient()
+        http.setConnectTimeout(30, TimeUnit.SECONDS)
+        val request = new Request.Builder().get().url(url).build()
+        val response = http.newCall(request).execute()
+        Option(response.body().string(), response.request().urlString())
+      } catch {
+        case _: Exception => None
+      }
     }
 
     def httpPost(post: Map[String, String]) = {
-      val http = new OkHttpClient()
-      http.setConnectTimeout(30, TimeUnit.SECONDS)
-      val data = (new FormEncodingBuilder /: post)((b, o) => b.add(o._1, o._2)).build()
-      val request = new Request.Builder().url(url).post(data).build()
-      val response = http.newCall(request).execute()
-      (response.body().string(), response.request().urlString())
+      try {
+        val http = new OkHttpClient()
+        http.setConnectTimeout(30, TimeUnit.SECONDS)
+        val data = (new FormEncodingBuilder /: post)((b, o) => b.add(o._1, o._2)).build()
+        val request = new Request.Builder().url(url).post(data).build()
+        val response = http.newCall(request).execute()
+        Option(response.body().string(), response.request().urlString())
+      } catch {
+        case _: Exception => None
+      }
     }
   }
 
-  implicit class jsoupex(html: (String, String)) {
-    def jsoup = Jsoup.parse(html._1, html._2)
+  implicit class jsoupex(html: Option[(String, String)]) {
+    def jsoup = html match {
+      case Some(h) => Option(Jsoup.parse(h._1, h._2))
+      case _ => None
+    }
   }
 
   trait ViewEx[T, V <: View] {

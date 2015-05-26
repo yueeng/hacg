@@ -172,10 +172,13 @@ class InfoFragment extends Fragment {
             new ScalaTask[Map[String, String], Void, String] {
               override def background(params: Map[String, String]*): String = {
                 val data = params.head
-                val dom = "http://www.hacg.be/wordpress/wp-comments-post.php".httpPost(data).jsoup
-                dom.select("#error-page").headOption match {
-                  case Some(e) => e.text()
-                  case _ => getString(R.string.comment_succeeded)
+                "http://www.hacg.be/wordpress/wp-comments-post.php".httpPost(data).jsoup match {
+                  case Some(dom) =>
+                    dom.select("#error-page").headOption match {
+                      case Some(e) => e.text()
+                      case _ => getString(R.string.comment_succeeded)
+                    }
+                  case _ => getString(R.string.comment_failed)
                 }
               }
 
@@ -202,58 +205,62 @@ class InfoFragment extends Fragment {
     }
     _progress.busy = content
     _progress2.busy = true
-    new ScalaTask[Void, Void, (String, String, List[Comment], Map[String, String])] {
-      override def background(params: Void*): (String, String, List[Comment], Map[String, String]) = {
-        val dom = url.httpGet.jsoup
-        val entry = dom.select(".entry-content")
-        entry.select("script,#polls-15-loading").remove()
-        entry.select("#polls-15").headOption match {
-          case Some(div) =>
-            val node = if (div.parent.attr("class") != "entry-content") div.parent else div
-            val name = div.select("strong").headOption match {
-              case Some(strong) => strong.text()
-              case _ => "投票推荐"
-            }
-            node.after( s"""<a href="$url">$name</a>""")
-            node.remove()
-          case _ =>
+    type R = Option[(String, String, List[Comment], Map[String, String])]
+    new ScalaTask[Void, Void, R] {
+      override def background(params: Void*): R = {
+        url.httpGet.jsoup match {
+          case Some(dom) =>
+            val entry = dom.select(".entry-content")
+            entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
+            entry.select("script,.wp-polls-loading").remove()
+            entry.select(".wp-polls").foreach(div => {
+              val node = if (div.parent.attr("class") != "entry-content") div.parent else div
+              val name = div.select("strong").headOption match {
+                case Some(strong) => strong.text()
+                case _ => "投票推荐"
+              }
+              node.after( s"""<a href="$url">$name</a>""")
+              node.remove()
+            })
+            entry.select("*").removeAttr("class").removeAttr("style")
+            entry.select("a[href=#]").remove()
+            entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
+            entry.select("embed").unwrap()
+            entry.select("img").foreach(i => {
+              i.attr("data-original", i.attr("src"))
+                .addClass("lazy")
+                .removeAttr("src")
+                .removeAttr("width")
+                .removeAttr("height")
+            })
+            Option(
+              if (content) using(io.Source.fromInputStream(getActivity.getAssets.open("template.html"))) {
+                reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
+              } else null,
+              dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
+                case Some(a) => a.attr("abs:href")
+                case _ => null
+              },
+              dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
+              dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
+            )
+          case _ => None
         }
-        entry.select("*").removeAttr("class").removeAttr("style")
-        entry.select("a[href=#]").remove()
-        entry.select("a[href$=#]").foreach(i=>i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
-        entry.select("embed").unwrap()
-        entry.select("img").foreach(i => {
-          i.attr("data-original", i.attr("src"))
-            .addClass("lazy")
-            .removeAttr("src")
-            .removeAttr("width")
-            .removeAttr("height")
-        })
-        (
-          if (content) using(io.Source.fromInputStream(getActivity.getAssets.open("template.html"))) {
-            reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}",
-              entry.html()
-                .replaceAll( """(?<!magnet:\?xt=urn:btih:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
-                .replaceAll( """(?<!\w{0,8}=['"]?)(?:magnet:\?xt=urn:btih:)[^\s\"\'\<]+""", """<a href="$0">$0</a>"""))
-          } else null,
-          dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
-            case Some(a) => a.attr("abs:href")
-            case _ => null
-          },
-          dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
-          dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
-          )
       }
 
-      override def post(result: (String, String, List[Comment], Map[String, String])): Unit = {
-        if (_web.value == null) {
-          _web.value = (result._1, url)
-        }
-        _post ++= result._4
-        commentUrl = result._2
+      override def post(result: R): Unit = {
+        result match {
+          case Some(data) =>
+            if (_web.value == null) {
+              _web.value = (data._1, url)
+            }
+            _post ++= data._4
+            commentUrl = data._2
 
-        _adapter.data ++= result._3
-        _adapter.notifyDataSetChanged()
+            _adapter.data ++= data._3
+            _adapter.notifyDataSetChanged()
+          case _ =>
+        }
         _progress.busy = false
         _progress2.busy = false
       }
@@ -302,7 +309,7 @@ class InfoFragment extends Fragment {
       if (item.face.isEmpty) {
         image.setImageResource(R.mipmap.ic_launcher)
       } else {
-        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.drawable.loading).into(image)
+        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.ic_launcher).into(image)
       }
 
       view
