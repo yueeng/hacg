@@ -60,6 +60,8 @@ case class Article(title: String,
                    tags: List[Tag]) extends Parcelable {
   def img() = !image.contains("ac2668bb905471cd47934f7627983958")
 
+  lazy val expend = tags ++ category ++ author
+
   def this(e: Element) = {
     this(e.select("header a").text().trim,
       e.select("header a").attr("abs:href"),
