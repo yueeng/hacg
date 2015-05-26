@@ -32,9 +32,10 @@ class InfoActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_fragment)
     setSupportActionBar(findViewById(R.id.toolbar))
+    getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     getSupportActionBar.setDisplayHomeAsUpEnabled(true)
     setTitle(_article.title)
-
+    //    ViewCompat.setTransitionName(findViewById(R.id.toolbar), "article")
     val transaction = getSupportFragmentManager.beginTransaction()
 
     val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
@@ -222,12 +223,24 @@ class InfoFragment extends Fragment {
               node.after( s"""<a href="$url">$name</a>""")
               node.remove()
             })
+            val img = List(".jpg", ".png", ".webp")
             entry.select("*").removeAttr("class").removeAttr("style")
             entry.select("a[href=#]").remove()
             entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
             entry.select("embed").unwrap()
             entry.select("img").foreach(i => {
-              i.attr("data-original", i.attr("src"))
+              val src = i.attr("src")
+              i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
+                case Some(a) =>
+                  a.attr("href") match {
+                    case href if src.equals(href) =>
+                    case href if img.exists(href.toLowerCase.endsWith) =>
+                      a.attr("href", src).after( s"""<a href="$href"><img data-original="$href" class="lazy" /></a>""")
+                    case _ =>
+                  }
+                case _ => i.wrap( s"""<a href="$src"></a>""")
+              }
+              i.attr("data-original", src)
                 .addClass("lazy")
                 .removeAttr("src")
                 .removeAttr("width")

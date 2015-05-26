@@ -28,6 +28,7 @@ class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
     setSupportActionBar(findViewById(R.id.toolbar))
+    getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     val pager: ViewPager = findViewById(R.id.container)
     val tabs: PagerSlidingTabStrip = findViewById(R.id.tab)
     pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
@@ -78,6 +79,7 @@ class ListActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_fragment)
     setSupportActionBar(findViewById(R.id.toolbar))
+    getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     getSupportActionBar.setDisplayHomeAsUpEnabled(true)
 
     val (url, name) = getIntent match {
@@ -94,7 +96,7 @@ class ListActivity extends AppCompatActivity {
       return
     }
     setTitle(name)
-
+    //    ViewCompat.setTransitionName(findViewById(R.id.toolbar), "tag")
     val transaction = getSupportFragmentManager.beginTransaction()
 
     val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
@@ -203,7 +205,7 @@ class ArticleFragment extends Fragment with Busy {
           case Some(r) =>
             url = r._2
             adapter.data ++= r._1
-            adapter.notifyDataSetChanged()
+            adapter.notifyItemRangeInserted(adapter.data.size - r._1.size, r._1.size)
           case _ =>
         }
         busy = false
@@ -219,6 +221,9 @@ class ArticleFragment extends Fragment with Busy {
     override def onClick(v: View): Unit = {
       val article = v.getTag.asInstanceOf[Article]
       startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
+      //      ActivityCompat.startActivity(getActivity,
+      //        new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]),
+      //        ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, v, "article").toBundle)
     }
   }
 
@@ -236,6 +241,9 @@ class ArticleFragment extends Fragment with Busy {
   class TagClickableSpan(tag: Tag) extends ClickableSpan {
     override def onClick(widget: View): Unit = {
       startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name))
+      //      ActivityCompat.startActivity(getActivity,
+      //        new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name),
+      //        ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, widget, "tag").toBundle)
     }
 
     override def updateDrawState(ds: TextPaint): Unit = {
