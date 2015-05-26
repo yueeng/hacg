@@ -208,8 +208,8 @@ class InfoFragment extends Fragment {
     type R = Option[(String, String, List[Comment], Map[String, String])]
     new ScalaTask[Void, Void, R] {
       override def background(params: Void*): R = {
-        url.httpGet.jsoup match {
-          case Some(dom) =>
+        url.httpGet.jsoup {
+          dom =>
             val entry = dom.select(".entry-content")
             entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
             entry.select("script,.wp-polls-loading").remove()
@@ -233,7 +233,7 @@ class InfoFragment extends Fragment {
                 .removeAttr("width")
                 .removeAttr("height")
             })
-            Option(
+            (
               if (content) using(io.Source.fromInputStream(getActivity.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
               } else null,
@@ -243,8 +243,7 @@ class InfoFragment extends Fragment {
               },
               dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
               dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
-            )
-          case _ => None
+              )
         }
       }
 

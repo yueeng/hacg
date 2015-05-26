@@ -189,16 +189,13 @@ class ArticleFragment extends Fragment with Busy {
     type R = Option[(List[Article], String)]
     new ScalaTask[String, Void, R]() {
       override def background(params: String*): R = {
-        params.head.httpGet.jsoup match {
-          case Some(dom) =>
-            Option(dom.select("article").map(o => new Article(o)).toList,
-              dom.select("#wp_page_numbers a").lastOption match {
-                case Some(n) if ">" == n.text() => n.attr("abs:href")
-                case _ => null
-              })
-          case _ => None
+        params.head.httpGet.jsoup {
+          dom => (dom.select("article").map(o => new Article(o)).toList,
+            dom.select("#wp_page_numbers a").lastOption match {
+              case Some(n) if ">" == n.text() => n.attr("abs:href")
+              case _ => null
+            })
         }
-
       }
 
       override def post(result: R): Unit = {

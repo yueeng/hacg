@@ -12,14 +12,17 @@ import android.view.View
 import android.widget.ProgressBar
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.Random
-object HAcg{
+
+object HAcg {
   val HOST = "hacg.be"
   val WEB = s"http://www.$HOST"
   val WORDPRESS = s"$WEB/wordpress"
 }
+
 object Common {
   implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
 
@@ -109,6 +112,13 @@ object Common {
     def jsoup = html match {
       case Some(h) => Option(Jsoup.parse(h._1, h._2))
       case _ => None
+    }
+
+    def jsoup[T](f: Document => T): Option[T] = {
+      html.jsoup match {
+        case Some(h) => Option(f(h))
+        case _ => None
+      }
     }
   }
 
