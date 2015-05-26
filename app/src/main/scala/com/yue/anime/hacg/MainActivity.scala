@@ -24,7 +24,6 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 class MainActivity extends AppCompatActivity {
-
   protected override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
@@ -36,13 +35,13 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    val data = List("/wordpress", "/wordpress/anime.html", "/wordpress/comic.html", "/wordpress/erogame.html", "/wordpress/age.html", "/wordpress/op.html")
-    val title = List("最新投稿", "动画", "漫画", "游戏", "文章", "音乐")
+    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html")
+    lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment = {
       val fragment = new ArticleFragment()
       val args = new Bundle()
-      args.putString("url", "http://www.hacg.be" + data(position))
+      args.putString("url", s"${HAcg.WORDPRESS}${data(position)}")
       fragment.setArguments(args)
       fragment
     }
@@ -87,7 +86,7 @@ class ListActivity extends AppCompatActivity {
         val key = i.getStringExtra(SearchManager.QUERY)
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.saveRecentQuery(key, null)
-        ( s"""http://www.hacg.be/wordpress/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
+        ( s"""${HAcg.WORDPRESS}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
       case _ => null
     }
     if (url == null) {
@@ -273,7 +272,7 @@ class ArticleFragment extends Fragment with Busy {
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
       if (item.img())
-        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.drawable.loading).into(holder.image1)
+        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
       else
         Picasso.`with`(holder.context).load(R.drawable.placeholder).into(holder.image1)
     }

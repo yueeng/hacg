@@ -172,7 +172,7 @@ class InfoFragment extends Fragment {
             new ScalaTask[Map[String, String], Void, String] {
               override def background(params: Map[String, String]*): String = {
                 val data = params.head
-                "http://www.hacg.be/wordpress/wp-comments-post.php".httpPost(data).jsoup match {
+                s"${HAcg.WEB}/wp-comments-post.php".httpPost(data).jsoup match {
                   case Some(dom) =>
                     dom.select("#error-page").headOption match {
                       case Some(e) => e.text()

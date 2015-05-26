@@ -15,7 +15,11 @@ import org.jsoup.Jsoup
 
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.Random
-
+object HAcg{
+  val HOST = "hacg.be"
+  val WEB = s"http://www.$HOST"
+  val WORDPRESS = s"$WEB/wordpress"
+}
 object Common {
   implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
 

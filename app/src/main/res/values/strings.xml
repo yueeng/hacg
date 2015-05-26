@@ -6,10 +6,18 @@
     <string name="comment_submit">Submit</string>
     <string name="app_cancel">Cancel</string>
     <string name="comment_title">Comment</string>
-    <string name="comment_succeeded" translatable="false">Submit succeeded</string>
+    <string name="comment_succeeded">Submit succeeded</string>
     <string name="comment_review">Review: %1$s</string>
     <string name="app_chrome">Open with browser</string>
     <string name="app_search">Search</string>
     <string name="app_search_clear">Clear search history</string>
     <string name="comment_failed">Submit failed</string>
+    <string-array name="article_categories">
+        <item>NEWS</item>
+        <item>ANIME</item>
+        <item>COMIC</item>
+        <item>GAMES</item>
+        <item>ARTICLE</item>
+        <item>MUSIC</item>
+    </string-array>
 </resources>
