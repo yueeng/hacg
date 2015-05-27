@@ -90,6 +90,7 @@ object Common {
       try {
         val http = new OkHttpClient()
         http.setConnectTimeout(30, TimeUnit.SECONDS)
+        http.setReadTimeout(30, TimeUnit.SECONDS)
         val request = new Request.Builder().get().url(url).build()
         val response = http.newCall(request).execute()
         Option(response.body().string(), response.request().urlString())
@@ -101,7 +102,9 @@ object Common {
     def httpPost(post: Map[String, String]) = {
       try {
         val http = new OkHttpClient()
-        http.setConnectTimeout(30, TimeUnit.SECONDS)
+        http.setConnectTimeout(15, TimeUnit.SECONDS)
+        http.setWriteTimeout(30, TimeUnit.SECONDS)
+        http.setReadTimeout(30, TimeUnit.SECONDS)
         val data = (new FormEncodingBuilder /: post)((b, o) => b.add(o._1, o._2)).build()
         val request = new Request.Builder().url(url).post(data).build()
         val response = http.newCall(request).execute()
@@ -162,22 +165,35 @@ object Common {
 
     def busy = value
 
-    def busy_=(b: Boolean): Unit = {
-      value = b
-    }
+    def busy_=(b: Boolean): Unit = value = b
 
     def progress = view
 
-    def progress_=(p: ProgressBar): Unit = {
-      view = p
-    }
+    def progress_=(p: ProgressBar): Unit = view = p
 
     override def refresh(): Unit = {
-      if (view != null) {
-        view.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
-        view.setIndeterminate(busy)
-      }
+      view.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
+      view.setIndeterminate(busy)
     }
+  }
+
+  trait Error extends ViewEx[Boolean, View] {
+    def error = value
+
+    def error_=(b: Boolean): Unit = value = b
+
+    def image = view
+
+    def image_=(p: View): Unit = {
+      view = p
+      view.setOnClickListener(click)
+    }
+
+    def retry(): Unit
+
+    val click = viewClick(v => retry())
+
+    override def refresh(): Unit = view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
   }
 
   val random = new Random(System.currentTimeMillis())

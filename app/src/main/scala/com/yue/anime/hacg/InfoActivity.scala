@@ -81,6 +81,9 @@ class InfoFragment extends Fragment {
       view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
     }
   }
+  val error = new Error {
+    override def retry(): Unit = query(_article.link)
+  }
   val _post = new scala.collection.mutable.HashMap[String, String]
   var commentUrl: String = null
   //  var html: String = null
@@ -102,11 +105,12 @@ class InfoFragment extends Fragment {
     setRetainInstance(true)
     val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
     _post +=("author" -> preference.getString("author", ""), "email" -> preference.getString("email", ""))
-    query(_article.link, content = true)
+    query(_article.link)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.activity_info, container, false)
+    error.image = root.findViewById(R.id.image1)
     val list: ListView = root.findViewById(R.id.list1)
     list.setAdapter(_adapter)
     list.setOnItemClickListener(commentClick)
@@ -199,11 +203,12 @@ class InfoFragment extends Fragment {
     alert.show()
   }
 
-
-  def query(url: String, content: Boolean = false): Unit = {
+  def query(url: String): Unit = {
     if (_progress.busy || _progress2.busy) {
       return
     }
+    error.error = false
+    val content = _web.value == null
     _progress.busy = content
     _progress2.busy = true
     type R = Option[(String, String, List[Comment], Map[String, String])]
@@ -271,7 +276,7 @@ class InfoFragment extends Fragment {
 
             _adapter.data ++= data._3
             _adapter.notifyDataSetChanged()
-          case _ =>
+          case _ => error.error = _web.value == null
         }
         _progress.busy = false
         _progress2.busy = false

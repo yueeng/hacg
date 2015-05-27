@@ -9,6 +9,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <ImageView
+        android:id="@+id/image1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:adjustViewBounds="true"
+        android:src="@drawable/error" />
+
     <ProgressBar
         android:id="@+id/progress1"
         android:layout_width="wrap_content"

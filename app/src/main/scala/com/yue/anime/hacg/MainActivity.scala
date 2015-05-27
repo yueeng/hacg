@@ -144,6 +144,9 @@ object SearchHistoryProvider {
 class ArticleFragment extends Fragment with Busy {
   lazy val adapter = new ArticleAdapter()
   var url: String = null
+  val error = new Error {
+    override def retry(): Unit = query(url)
+  }
 
   override def onCreate(saved: Bundle): Unit = {
     super.onCreate(saved)
@@ -157,8 +160,8 @@ class ArticleFragment extends Fragment with Busy {
         return
       }
     }
-
-    query(getArguments.getString("url"))
+    url = getArguments.getString("url")
+    query(url)
   }
 
   override def onSaveInstanceState(out: Bundle): Unit = {
@@ -167,6 +170,8 @@ class ArticleFragment extends Fragment with Busy {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_list, container, false)
+    progress = root.findViewById(R.id.progress1)
+    error.image = root.findViewById(R.id.image1)
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
     val layout = new StaggeredGridLayoutManager(getResources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
     recycler.setLayoutManager(layout)
@@ -188,6 +193,7 @@ class ArticleFragment extends Fragment with Busy {
   def query(uri: String): Unit = {
     if (busy) return
     busy = true
+    error.error = false
     type R = Option[(List[Article], String)]
     new ScalaTask[String, Void, R]() {
       override def background(params: String*): R = {
@@ -207,14 +213,11 @@ class ArticleFragment extends Fragment with Busy {
             adapter.data ++= r._1
             adapter.notifyItemRangeInserted(adapter.data.size - r._1.size, r._1.size)
           case _ =>
+            error.error = adapter.data.isEmpty
         }
         busy = false
       }
     }.execute(uri)
-  }
-
-  override def onViewCreated(view: View, savedInstanceState: Bundle): Unit = {
-    progress = view.findViewById(R.id.progress1)
   }
 
   val click = new OnClickListener {
