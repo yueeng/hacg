@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:auto="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="5dp"
@@ -27,30 +26,32 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|top"
                 android:gravity="end"
-                android:padding="@dimen/article_item_text_tag_padding" />
-
-            <com.yue.anime.hacg.MagicTextView
-                android:id="@+id/text1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|start"
-                android:ellipsize="end"
-                android:maxLines="2"
+                android:padding="5dp"
                 android:text="@string/app_name"
-                auto:innerShadowColor="#FFF"
-                auto:innerShadowDy="2sp"
-                auto:innerShadowRadius="2dp"
-                auto:strokeColor="#FFF"
-                auto:strokeJoinStyle="miter"
-                auto:strokeWidth="3dp" />
+                android:textSize="@dimen/text_size_title" />
+
         </FrameLayout>
+
+        <TextView
+            android:id="@+id/text1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="@string/app_name"
+            android:textColor="@color/text_color_title"
+            android:textSize="@dimen/text_size_large" />
 
         <TextView
             android:id="@+id/text2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="4" />
+            android:maxLines="4"
+            android:text="@string/app_name"
+            android:textColor="@color/text_color_content"
+            android:textSize="@dimen/text_size_content" />
 
     </LinearLayout>
 </android.support.v7.widget.CardView>

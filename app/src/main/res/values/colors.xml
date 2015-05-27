@@ -6,4 +6,8 @@
     <color name="ripple">#F06292</color>
     <color name="accent">#45A700</color>
     <color name="accent_pressed">#C2185B</color>
+
+    <color name="text_color_title">#222</color>
+    <color name="text_color_content">#555</color>
+    <color name="text_color_summary">#888</color>
 </resources>

@@ -233,7 +233,7 @@ class ArticleFragment extends Fragment with Busy {
   class ArticleHolder(val view: View) extends RecyclerView.ViewHolder(view) {
     view.setOnClickListener(click)
     val context = view.getContext
-    val text1: MagicTextView = view.findViewById(R.id.text1)
+    val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
     val text3: TextView = view.findViewById(R.id.text3)
     val image1: ImageView = view.findViewById(R.id.image1)
@@ -264,7 +264,7 @@ class ArticleFragment extends Fragment with Busy {
       val item = data(position)
       holder.view.setTag(item)
       holder.text1.setText(item.title)
-      holder.text1.setStroke(Common.randomColor(0xBF))
+      holder.text1.setTextColor(Common.randomColor(0xBF))
       holder.text2.setText(item.content)
       val tags = item.expend.map(o => s" ${o.name} ").mkString(" ")
       val span = new SpannableStringBuilder(tags)

@@ -35,7 +35,8 @@
         <com.github.clans.fab.FloatingActionMenu
             android:id="@+id/menu1"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_margin="10dp">
 
             <com.github.clans.fab.FloatingActionButton
                 android:id="@+id/button1"
@@ -64,10 +65,10 @@
 
         <ListView
             android:id="@+id/list1"
-            android:dividerHeight="0dp"
-            android:divider="@null"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp" />
         <!--<android.support.v7.widget.RecyclerView-->
         <!--android:id="@+id/recycler"-->
         <!--android:layout_width="match_parent"-->
@@ -85,6 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
+            android:layout_margin="10dp"
             android:src="@drawable/ic_chat"
             auto:fab_label="@string/comment_title"
             auto:fab_size="mini" />

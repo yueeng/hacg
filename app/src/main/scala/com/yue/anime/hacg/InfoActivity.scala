@@ -1,5 +1,7 @@
 package com.yue.anime.hacg
 
+import java.text.SimpleDateFormat
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -13,7 +15,7 @@ import android.view._
 import android.webkit.{WebView, WebViewClient}
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
-import com.github.clans.fab.FloatingActionMenu
+import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
 
@@ -125,7 +127,17 @@ class InfoFragment extends Fragment {
       }
     })
 
-    List(R.id.button1, R.id.button2, R.id.button3).map(root.findViewById).foreach(_.setOnClickListener(click))
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.menu1).map(root.findViewById).foreach {
+      case m: FloatingActionMenu =>
+        m.setMenuButtonColorNormal(randomColor())
+        m.setMenuButtonColorPressed(randomColor())
+        m.setMenuButtonColorRipple(randomColor())
+      case b: FloatingActionButton =>
+        b.setColorNormal(randomColor())
+        b.setColorPressed(randomColor())
+        b.setColorRipple(randomColor())
+        b.setOnClickListener(click)
+    }
 
     _progress.progress = root.findViewById(R.id.progress1)
     _progress2.progress = root.findViewById(R.id.progress2)
@@ -283,6 +295,17 @@ class InfoFragment extends Fragment {
       }
     }.execute()
   }
+val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
+  class CommentHolder(view: View) {
+    val text1: TextView = view.findViewById(R.id.text1)
+    val text2: TextView = view.findViewById(R.id.text2)
+    val text3: TextView = view.findViewById(R.id.text3)
+    val image: ImageView = view.findViewById(R.id.image1)
+    val list: ListView = view.findViewById(R.id.list1)
+    val adapter = new CommentAdapter
+    list.setAdapter(adapter)
+    list.setOnItemClickListener(commentClick)
+  }
 
   class CommentAdapter extends BaseAdapter {
     val data = new ArrayBuffer[Comment]()
@@ -300,33 +323,26 @@ class InfoFragment extends Fragment {
         case _ => convert
       }
 
-      val text1: TextView = view.findViewById(R.id.text1)
-      val text2: TextView = view.findViewById(R.id.text2)
-      val image: ImageView = view.findViewById(R.id.image1)
-      val list: ListView = view.findViewById(R.id.list1)
-
-      val adapter = list.getAdapter match {
-        case adapter: CommentAdapter => adapter
+      val holder: CommentHolder = view.getTag match {
+        case holder: CommentHolder => holder
         case _ =>
-          list.setOnItemClickListener(commentClick)
-          val adapter = new CommentAdapter
-          list.setAdapter(adapter)
-          adapter
+          view.setTag(new CommentHolder(view))
+          view.getTag.asInstanceOf[CommentHolder]
       }
 
-
       val item = getItem(position)
-      text1.setText(item.user)
-      text2.setText(item.content)
-
-      adapter.data.clear()
-      adapter.data ++= item.children
-      adapter.notifyDataSetChanged()
+      holder.text1.setText(item.user)
+      holder.text2.setText(item.content)
+      holder.text3.setText(item.time.map(datafmt.format(_)).orNull)
+      holder.text3.setVisibility(if (item.time.nonEmpty) View.VISIBLE else View.GONE)
+      holder.adapter.data.clear()
+      holder.adapter.data ++= item.children
+      holder.adapter.notifyDataSetChanged()
 
       if (item.face.isEmpty) {
-        image.setImageResource(R.mipmap.ic_launcher)
+        holder.image.setImageResource(R.mipmap.ic_launcher)
       } else {
-        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.ic_launcher).into(image)
+        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
       }
 
       view
