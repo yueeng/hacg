@@ -81,7 +81,11 @@ object Common {
     def sha1 = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
 
+  private val img = List(".jpg", ".png", ".webp")
+
   implicit class httpex(url: String) {
+    def isImg = img.exists(url.toLowerCase.endsWith)
+
     def httpGet = {
       try {
         val http = new OkHttpClient()
@@ -154,29 +158,24 @@ object Common {
     def refresh(): Unit
   }
 
-  trait Busy {
-    private var _busy = false
+  trait Busy extends ViewEx[Boolean, ProgressBar] {
 
-    def busy = _busy
+    def busy = value
 
     def busy_=(b: Boolean): Unit = {
-      _busy = b
-      refresh()
+      value = b
     }
 
-    private var _progress: ProgressBar = null
-
-    def progress = _progress
+    def progress = view
 
     def progress_=(p: ProgressBar): Unit = {
-      _progress = p
-      refresh()
+      view = p
     }
 
-    private def refresh(): Unit = {
-      if (_progress != null) {
-        _progress.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
-        _progress.setIndeterminate(busy)
+    override def refresh(): Unit = {
+      if (view != null) {
+        view.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
+        view.setIndeterminate(busy)
       }
     }
   }

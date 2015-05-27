@@ -223,7 +223,7 @@ class InfoFragment extends Fragment {
               node.after( s"""<a href="$url">$name</a>""")
               node.remove()
             })
-            val img = List(".jpg", ".png", ".webp")
+
             entry.select("*").removeAttr("class").removeAttr("style")
             entry.select("a[href=#]").remove()
             entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
@@ -234,7 +234,7 @@ class InfoFragment extends Fragment {
                 case Some(a) =>
                   a.attr("href") match {
                     case href if src.equals(href) =>
-                    case href if img.exists(href.toLowerCase.endsWith) =>
+                    case href if href.isImg =>
                       a.attr("href", src).after( s"""<a href="$href"><img data-original="$href" class="lazy" /></a>""")
                     case _ =>
                   }
