@@ -264,7 +264,7 @@ class ArticleFragment extends Fragment with Busy {
       val item = data(position)
       holder.view.setTag(item)
       holder.text1.setText(item.title)
-      holder.text1.setTextColor(Common.randomColor(0xBF))
+      holder.text1.setTextColor(Common.randomColor())
       holder.text2.setText(item.content)
       val tags = item.expend.map(o => s" ${o.name} ").mkString(" ")
       val span = new SpannableStringBuilder(tags)

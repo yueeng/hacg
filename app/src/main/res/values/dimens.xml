@@ -1,9 +1,9 @@
 <resources>
 
-    <dimen name="text_size_large">24sp</dimen>
-    <dimen name="text_size_title">20sp</dimen>
-    <dimen name="text_size_content">16sp</dimen>
-    <dimen name="text_size_summary">14sp</dimen>
-    <dimen name="text_size_small">12sp</dimen>
+    <dimen name="text_size_large">20sp</dimen>
+    <dimen name="text_size_title">16sp</dimen>
+    <dimen name="text_size_content">14sp</dimen>
+    <dimen name="text_size_summary">12sp</dimen>
+    <dimen name="text_size_small">10sp</dimen>
     <integer name="main_list_column">1</integer>
 </resources>

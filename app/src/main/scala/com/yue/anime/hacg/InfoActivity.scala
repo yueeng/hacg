@@ -83,51 +83,54 @@ class InfoFragment extends Fragment {
       view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
     }
   }
-  val error = new Error {
+  val _error = new Error {
     override def retry(): Unit = query(_article.link)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
-  var commentUrl: String = null
+  var _url: String = null
   //  var html: String = null
-  val commentClick = new OnItemClickListener {
+  val _click = new OnItemClickListener {
     override def onItemClick(parent: AdapterView[_], view: View, position: Int, id: Long): Unit = {
       parent.getAdapter match {
         case adapter: CommentAdapter =>
           val item = adapter.getItem(position)
-          comment(item.id, getString(R.string.comment_review, item.user))
+          comment(item)
         case _ =>
       }
     }
   }
 
+  val AUTHOR = "author"
+  val EMAIL = "email"
+  val COMMENT = "comment"
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setHasOptionsMenu(true)
     setRetainInstance(true)
     val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-    _post +=("author" -> preference.getString("author", ""), "email" -> preference.getString("email", ""))
+    _post +=(AUTHOR -> preference.getString(AUTHOR, ""), EMAIL -> preference.getString(EMAIL, ""))
     query(_article.link)
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.activity_info, container, false)
-    error.image = root.findViewById(R.id.image1)
+    _error.image = root.findViewById(R.id.image1)
     val list: ListView = root.findViewById(R.id.list1)
     list.setAdapter(_adapter)
-    list.setOnItemClickListener(commentClick)
+    list.setOnItemClickListener(_click)
     list.setOnScrollListener(new AbsListView.OnScrollListener {
       override def onScrollStateChanged(view: AbsListView, scrollState: Int): Unit = {}
 
       override def onScroll(view: AbsListView, first: Int, visible: Int, total: Int): Unit = {
-        (first + visible >= total, commentUrl) match {
+        (first + visible >= total, _url) match {
           case (true, url) if url != null && !url.isEmpty => query(url)
           case _ =>
         }
       }
     })
 
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.menu1).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.menu1).map(root.findViewById).foreach {
       case m: FloatingActionMenu =>
         m.setMenuButtonColorNormal(randomColor())
         m.setMenuButtonColorPressed(randomColor())
@@ -159,51 +162,67 @@ class InfoFragment extends Fragment {
     v.getId match {
       case R.id.button1 => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(_article.link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
       case R.id.button2 => getView.findViewById(R.id.drawer).asInstanceOf[DrawerLayout].openDrawer(GravityCompat.END)
-      case R.id.button3 => comment(0)
+      case R.id.button3 => comment(null)
+      case R.id.button4 =>
+        _url = null
+        _adapter.data.clear()
+        _adapter.notifyDataSetChanged()
+        query(_article.link)
     }
     getView.findViewById(R.id.menu1).asInstanceOf[FloatingActionMenu].close(true)
   }
 
-  def comment(id: Int, title: String = null) = {
+  def comment(c: Comment) = {
     val input = LayoutInflater.from(getActivity).inflate(R.layout.comment_post, null)
     val author: EditText = input.findViewById(R.id.edit1)
     val email: EditText = input.findViewById(R.id.edit2)
     val content: EditText = input.findViewById(R.id.edit3)
-    author.setText(_post("author"))
-    email.setText(_post("email"))
-    content.setText(_post("comment"))
-    _post += ("comment_parent" -> id.toString)
+    author.setText(_post(AUTHOR))
+    email.setText(_post(EMAIL))
+    content.setText(_post.getOrElse(COMMENT, ""))
+    _post += ("comment_parent" -> (if (c != null) c.id.toString else "0"))
     def fill = {
-      _post +=("author" -> author.getText.toString, "email" -> email.getText.toString, "comment" -> content.getText.toString)
+      _post +=(AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-      preference.edit().putString("author", _post("author")).putString("email", _post("email")).commit()
+      preference.edit().putString(AUTHOR, _post(AUTHOR)).putString(EMAIL, _post(EMAIL)).commit()
     }
     val alert = new Builder(getActivity)
-      .setTitle(if (title != null) title else getString(R.string.comment_title))
+      .setTitle(if (c != null) getString(R.string.comment_review, c.user) else getString(R.string.comment_title))
       .setView(input)
       .setPositiveButton(R.string.comment_submit,
-        dialogClick {
-          (d, w) =>
-            fill
+        dialogClick { (d, w) =>
+          fill
+          if (List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
+            Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
+          } else {
             _progress2.busy = true
-            new ScalaTask[Map[String, String], Void, String] {
-              override def background(params: Map[String, String]*): String = {
+            type R = (Boolean, String)
+            new ScalaTask[Map[String, String], Void, R] {
+              override def background(params: Map[String, String]*): R = {
                 val data = params.head
-                s"${HAcg.WEB}/wp-comments-post.php".httpPost(data).jsoup match {
+                s"${HAcg.WORDPRESS}/wp-comments-post.php".httpPost(data).jsoup match {
                   case Some(dom) =>
                     dom.select("#error-page").headOption match {
-                      case Some(e) => e.text()
-                      case _ => getString(R.string.comment_succeeded)
+                      case Some(e) => (false, e.text())
+                      case _ => (true, getString(R.string.comment_succeeded))
                     }
-                  case _ => getString(R.string.comment_failed)
+                  case _ => (false, getString(R.string.comment_failed))
                 }
               }
 
-              override def post(result: String): Unit = {
+              override def post(result: R): Unit = {
                 _progress2.busy = false
-                Toast.makeText(getActivity, result, Toast.LENGTH_LONG).show()
+                if (result._1) {
+                  _post(COMMENT) = ""
+                  //                  _url = null
+                  //                  _adapter.data.clear()
+                  //                  _adapter.notifyDataSetChanged()
+                  //                  query(_article.link)
+                }
+                Toast.makeText(getActivity, result._2, Toast.LENGTH_LONG).show()
               }
             }.execute(_post.toMap)
+          }
         })
       .setNegativeButton(R.string.app_cancel, null)
       .setOnDismissListener(
@@ -219,7 +238,7 @@ class InfoFragment extends Fragment {
     if (_progress.busy || _progress2.busy) {
       return
     }
-    error.error = false
+    _error.error = false
     val content = _web.value == null
     _progress.busy = content
     _progress2.busy = true
@@ -283,19 +302,22 @@ class InfoFragment extends Fragment {
             if (_web.value == null) {
               _web.value = (data._1, url)
             }
-            _post ++= data._4
-            commentUrl = data._2
+            val filter = List(AUTHOR, EMAIL, COMMENT)
+            _post ++= data._4.filter(o => !filter.contains(o._1))
+            _url = data._2
 
             _adapter.data ++= data._3
             _adapter.notifyDataSetChanged()
-          case _ => error.error = _web.value == null
+          case _ => _error.error = _web.value == null
         }
         _progress.busy = false
         _progress2.busy = false
       }
     }.execute()
   }
-val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
+
+  val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
+
   class CommentHolder(view: View) {
     val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
@@ -304,7 +326,7 @@ val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
     val list: ListView = view.findViewById(R.id.list1)
     val adapter = new CommentAdapter
     list.setAdapter(adapter)
-    list.setOnItemClickListener(commentClick)
+    list.setOnItemClickListener(_click)
   }
 
   class CommentAdapter extends BaseAdapter {
@@ -333,7 +355,7 @@ val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
       val item = getItem(position)
       holder.text1.setText(item.user)
       holder.text2.setText(item.content)
-      holder.text3.setText(item.time.map(datafmt.format(_)).orNull)
+      holder.text3.setText(item.time.map(datafmt.format).orNull)
       holder.text3.setVisibility(if (item.time.nonEmpty) View.VISIBLE else View.GONE)
       holder.adapter.data.clear()
       holder.adapter.data ++= item.children
