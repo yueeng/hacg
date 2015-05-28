@@ -55,6 +55,13 @@ class InfoActivity extends AppCompatActivity {
     transaction.commit()
   }
 
+  override def onBackPressed(): Unit = {
+    getSupportFragmentManager.findFragmentById(R.id.container) match {
+      case fragment: InfoFragment if fragment.onBackPressed =>
+      case _ => super.onBackPressed()
+    }
+  }
+
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
       case R.id.home =>
@@ -170,6 +177,15 @@ class InfoFragment extends Fragment {
         query(_article.link)
     }
     getView.findViewById(R.id.menu1).asInstanceOf[FloatingActionMenu].close(true)
+  }
+
+  def onBackPressed: Boolean = {
+    getView.findViewById(R.id.drawer) match {
+      case menu: DrawerLayout if menu.isDrawerOpen(GravityCompat.END) =>
+        menu.closeDrawer(GravityCompat.END)
+        true
+      case _ => false
+    }
   }
 
   def comment(c: Comment) = {
