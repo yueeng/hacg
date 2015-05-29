@@ -74,11 +74,10 @@ object Common {
 
   implicit def string2date(str: String): Option[Date] = {
     try {
-      return Option(datefmt.parse(str))
+      Option(datefmt.parse(str))
     } catch {
-      case _: ParseException =>
+      case _: ParseException => None
     }
-    None
   }
 
   implicit def date2long(date: Date): Long = date.getTime
