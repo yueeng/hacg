@@ -7,6 +7,8 @@ import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
 import android.support.v4.app._
 import android.support.v4.view.{MenuItemCompat, ViewPager}
+import android.support.v4.widget.SwipeRefreshLayout
+import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
@@ -19,6 +21,7 @@ import android.widget.{ImageView, TextView}
 import com.astuetz.PagerSlidingTabStrip
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
+import com.yue.anime.hacg.ViewEx.ViewEx
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -141,10 +144,10 @@ object SearchHistoryProvider {
   val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
 }
 
-class ArticleFragment extends Fragment with Busy {
+class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayout] {
   lazy val adapter = new ArticleAdapter()
   var url: String = null
-  val error = new Error {
+  val error = new ViewEx.Error {
     override def retry(): Unit = query(url)
   }
 
@@ -159,6 +162,7 @@ class ArticleFragment extends Fragment with Busy {
         adapter.notifyDataSetChanged()
         return
       }
+      error.error = saved.getBoolean("error", false)
     }
     url = getArguments.getString("url")
     query(url)
@@ -166,12 +170,23 @@ class ArticleFragment extends Fragment with Busy {
 
   override def onSaveInstanceState(out: Bundle): Unit = {
     out.putParcelableArray("data", adapter.data.toArray)
+    out.putBoolean("error", error.error)
   }
+
+  override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_list, container, false)
-    progress = root.findViewById(R.id.progress1)
     error.image = root.findViewById(R.id.image1)
+    view = root.findViewById(R.id.swipe)
+    view.setOnRefreshListener(new OnRefreshListener {
+      override def onRefresh(): Unit = {
+        url = getArguments.getString("url")
+        adapter.data.clear()
+        adapter.notifyDataSetChanged()
+        query(url)
+      }
+    })
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
     val layout = new StaggeredGridLayoutManager(getResources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
     recycler.setLayoutManager(layout)
@@ -191,8 +206,8 @@ class ArticleFragment extends Fragment with Busy {
   }
 
   def query(uri: String): Unit = {
-    if (busy) return
-    busy = true
+    if (value) return
+    value = true
     error.error = false
     type R = Option[(List[Article], String)]
     new ScalaTask[String, Void, R]() {
@@ -215,7 +230,7 @@ class ArticleFragment extends Fragment with Busy {
           case _ =>
             error.error = adapter.data.isEmpty
         }
-        busy = false
+        value = false
       }
     }.execute(uri)
   }

@@ -83,14 +83,14 @@ class InfoActivity extends AppCompatActivity {
 class InfoFragment extends Fragment {
   lazy val _article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
-  val _progress: Busy = new Busy {}
-  val _progress2: Busy = new Busy {}
-  val _web = new ViewEx[(String, String), WebView] {
+  val _progress = new ViewEx.Busy {}
+  val _progress2 = new ViewEx.Busy {}
+  val _web = new ViewEx.ViewEx[(String, String), WebView] {
     override def refresh(): Unit = {
       view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
     }
   }
-  val _error = new Error {
+  val _error = new ViewEx.Error {
     override def retry(): Unit = query(_article.link)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]

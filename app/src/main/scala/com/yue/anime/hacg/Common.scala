@@ -9,7 +9,6 @@ import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
 import android.os.AsyncTask
 import android.view.View
-import android.widget.ProgressBar
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -36,6 +35,10 @@ object Common {
 
   implicit def dialogDismiss(func: DialogInterface => Unit): DialogInterface.OnDismissListener = new OnDismissListener {
     override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
+  }
+
+  implicit def runnable(func: () => Unit): Runnable = new Runnable {
+    override def run(): Unit = func()
   }
 
   implicit class StringUtil(s: String) {
@@ -127,73 +130,6 @@ object Common {
         case _ => None
       }
     }
-  }
-
-  trait ViewEx[T, V <: View] {
-    var _value: T = _
-
-    def value = _value
-
-    def value_=(v: T) = {
-      _value = v
-      _refresh()
-    }
-
-    var _view: V = _
-
-    def view = _view
-
-    def view_=(v: V) = {
-      _view = v
-      _refresh()
-    }
-
-    private def _refresh(): Unit = {
-      if (view == null)
-        return
-      value match {
-        case v: AnyRef if v != null =>
-          refresh()
-        case _ =>
-      }
-    }
-
-    def refresh(): Unit
-  }
-
-  trait Busy extends ViewEx[Boolean, ProgressBar] {
-
-    def busy = value
-
-    def busy_=(b: Boolean): Unit = value = b
-
-    def progress = view
-
-    def progress_=(p: ProgressBar): Unit = view = p
-
-    override def refresh(): Unit = {
-      view.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
-      view.setIndeterminate(busy)
-    }
-  }
-
-  trait Error extends ViewEx[Boolean, View] {
-    def error = value
-
-    def error_=(b: Boolean): Unit = value = b
-
-    def image = view
-
-    def image_=(p: View): Unit = {
-      view = p
-      view.setOnClickListener(click)
-    }
-
-    def retry(): Unit
-
-    val click = viewClick(v => retry())
-
-    override def refresh(): Unit = view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
   }
 
   val random = new Random(System.currentTimeMillis())

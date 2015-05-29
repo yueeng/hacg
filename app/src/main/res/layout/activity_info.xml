@@ -85,6 +85,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
+            android:layout_margin="10dp"
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
@@ -92,7 +93,6 @@
                 android:id="@+id/button4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="10dp"
                 android:src="@drawable/ic_refresh"
                 auto:fab_label="@string/comment_refresh"
                 auto:fab_size="mini" />
@@ -101,7 +101,6 @@
                 android:id="@+id/button3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="10dp"
                 android:src="@drawable/ic_chat"
                 auto:fab_label="@string/comment_title" />
         </LinearLayout>
