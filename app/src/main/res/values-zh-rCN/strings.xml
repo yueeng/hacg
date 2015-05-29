@@ -23,4 +23,10 @@
     </string-array>
     <string name="comment_refresh">刷新</string>
     <string name="comment_verify">部分字段为空。</string>
+    <string name="app_settings">设置</string>
+    <string name="app_ok">确定</string>
+    <string name="settings_host">备用域名</string>
+    <string name="settings_host_more">更多</string>
+    <string name="settings_host_sample">域名类似“hacg.be”</string>
+    <string name="settings_host_reset">重置所有</string>
 </resources>

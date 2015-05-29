@@ -5,21 +5,44 @@ import java.text.{ParseException, SimpleDateFormat}
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-import android.content.DialogInterface
 import android.content.DialogInterface.OnDismissListener
+import android.content.{Context, DialogInterface}
 import android.os.AsyncTask
+import android.preference.PreferenceManager
+import android.support.multidex.MultiDexApplication
 import android.view.View
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
+import scala.collection.JavaConversions._
 import scala.language.{implicitConversions, reflectiveCalls}
 import scala.util.Random
 
 object HAcg {
-  val HOST = "hacg.be"
-  val WEB = s"http://www.$HOST"
-  val WORDPRESS = s"$WEB/wordpress"
+  val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.context)
+
+  def HOST = config.getString("system.host", "hacg.be")
+
+  def HOST_=(host: String) = config.edit().putString("system.host", host).commit()
+
+  def WEB = s"http://www.$HOST"
+
+  def WORDPRESS = s"$WEB/wordpress"
+
+  def HOSTS = config.getStringSet("system.hosts", DEFAULT_HOSTS)
+
+  def HOSTS_=(hosts: Set[String]) = config.edit().putStringSet("system.hosts", hosts).commit()
+
+  val DEFAULT_HOSTS = Set("hacg.be", "hacg.me")
+}
+
+object HAcgApplication {
+  implicit var context: Context = _
+}
+
+class HAcgApplication extends MultiDexApplication {
+  HAcgApplication.context = this
 }
 
 object Common {

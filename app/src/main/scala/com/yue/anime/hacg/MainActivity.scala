@@ -1,7 +1,7 @@
 package com.yue.anime.hacg
 
 import android.app.SearchManager
-import android.content.{ComponentName, Context, Intent, SearchRecentSuggestionsProvider}
+import android.content._
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
@@ -9,7 +9,8 @@ import android.support.v4.app._
 import android.support.v4.view.{MenuItemCompat, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
-import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AlertDialog.Builder
+import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
@@ -17,7 +18,7 @@ import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
-import android.widget.{ImageView, TextView}
+import android.widget.{EditText, ImageView, TextView, Toast}
 import com.astuetz.PagerSlidingTabStrip
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
@@ -70,8 +71,43 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
+      case R.id.settings => setHost()
+        true
       case _ => super.onOptionsItemSelected(item)
     }
+  }
+
+  def setHosts(): Unit = {
+    val edit = new EditText(this)
+    edit.setHint(R.string.settings_host_sample)
+    new Builder(this)
+      .setTitle(R.string.settings_host)
+      .setView(edit)
+      .setNegativeButton(R.string.app_cancel, null)
+      .setOnDismissListener(dialogDismiss { d => setHost() })
+      .setNeutralButton(R.string.settings_host_reset,
+        dialogClick { (d, w) => HAcg.HOSTS = HAcg.DEFAULT_HOSTS })
+      .setPositiveButton(R.string.app_ok,
+        dialogClick { (d, w) =>
+          val host = edit.getText.toString
+          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$""")) {
+            HAcg.HOSTS = (HAcg.HOSTS + edit.getText.toString).toSet
+          } else {
+            Toast.makeText(MainActivity.this, R.string.settings_host_sample, Toast.LENGTH_SHORT).show()
+          }
+        })
+      .create().show()
+  }
+
+  def setHost(): Unit = {
+    val hosts = HAcg.HOSTS.map(_.asInstanceOf[CharSequence]).toArray
+    new Builder(this)
+      .setTitle(R.string.settings_host)
+      .setSingleChoiceItems(hosts, hosts.indexOf(HAcg.HOST), null)
+      .setNegativeButton(R.string.app_cancel, null)
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts() })
+      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => HAcg.HOST = hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString })
+      .create().show()
   }
 }
 

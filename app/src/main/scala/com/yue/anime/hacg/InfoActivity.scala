@@ -109,6 +109,8 @@ class InfoFragment extends Fragment {
 
   val AUTHOR = "author"
   val EMAIL = "email"
+  val CONFIG_AUTHOR = "config.author"
+  val CONFIG_EMAIL = "config.email"
   val COMMENT = "comment"
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
@@ -116,7 +118,7 @@ class InfoFragment extends Fragment {
     setHasOptionsMenu(true)
     setRetainInstance(true)
     val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-    _post +=(AUTHOR -> preference.getString(AUTHOR, ""), EMAIL -> preference.getString(EMAIL, ""))
+    _post +=(AUTHOR -> preference.getString(CONFIG_AUTHOR, ""), EMAIL -> preference.getString(CONFIG_EMAIL, ""))
     query(_article.link)
   }
 
@@ -200,7 +202,7 @@ class InfoFragment extends Fragment {
     def fill = {
       _post +=(AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-      preference.edit().putString(AUTHOR, _post(AUTHOR)).putString(EMAIL, _post(EMAIL)).commit()
+      preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).commit()
     }
     val alert = new Builder(getActivity)
       .setTitle(if (c != null) getString(R.string.comment_review, c.user) else getString(R.string.comment_title))

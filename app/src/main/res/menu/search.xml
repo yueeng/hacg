@@ -4,11 +4,15 @@
     <item
         android:id="@+id/search"
         android:title="@string/app_search"
-        app:showAsAction="ifRoom"
-        app:actionViewClass="android.support.v7.widget.SearchView" />
+        app:actionViewClass="android.support.v7.widget.SearchView"
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/search_clear"
-        android:title="@string/app_search_clear"
         android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        android:title="@string/app_search_clear"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/settings"
+        android:title="@string/app_settings"
         app:showAsAction="never" />
 </menu>

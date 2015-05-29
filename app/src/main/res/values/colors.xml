@@ -7,6 +7,8 @@
     <color name="accent">#45A700</color>
     <color name="accent_pressed">#C2185B</color>
 
+    <color name="comment_list_selector_color">#10000000</color>
+
     <color name="text_color_title">#222</color>
     <color name="text_color_content">#555</color>
     <color name="text_color_summary">#888</color>
