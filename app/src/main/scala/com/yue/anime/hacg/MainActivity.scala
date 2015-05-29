@@ -21,7 +21,6 @@ import android.widget.{ImageView, TextView}
 import com.astuetz.PagerSlidingTabStrip
 import com.squareup.picasso.Picasso
 import com.yue.anime.hacg.Common._
-import com.yue.anime.hacg.ViewEx.ViewEx
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer

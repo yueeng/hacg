@@ -1,7 +1,9 @@
 .gradle
 .idea
 *.iml
+*.apk
 /local.properties
 /build
 /captures
+/googleplay
 */build
