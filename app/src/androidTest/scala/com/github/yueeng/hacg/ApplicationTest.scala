@@ -1,4 +1,4 @@
-package com.yue.anime.hacg
+package com.github.yueeng.hacg
 
 import android.app.Application
 import android.test.ApplicationTestCase

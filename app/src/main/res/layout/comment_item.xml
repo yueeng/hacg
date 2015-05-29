@@ -67,7 +67,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <com.yue.anime.hacg.UnScrollListView
+            <com.github.yueeng.hacg.UnScrollListView
                 android:id="@+id/list1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

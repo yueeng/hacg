@@ -6,7 +6,7 @@ android {
     buildToolsVersion "22.0.1"
 
     defaultConfig {
-        applicationId "com.yue.anime.hacg"
+        applicationId "com.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 22
         testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"

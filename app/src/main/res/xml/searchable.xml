@@ -4,8 +4,8 @@
     android:label="@string/app_name"
     android:hint="@string/app_name"
     android:includeInGlobalSearch="false"
-    android:searchSuggestIntentAction="com.yue.anime.hacg.SEARCH"
-    android:searchSuggestAuthority="com.yue.anime.hacg.SuggestionProvider"
+    android:searchSuggestIntentAction="com.github.yueeng.hacg.SEARCH"
+    android:searchSuggestAuthority="com.github.yueeng.hacg.SuggestionProvider"
     android:searchSuggestSelection=" ? "
     android:searchSettingsDescription="@string/app_name">
 

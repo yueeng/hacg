@@ -1,4 +1,4 @@
-package com.yue.anime.hacg
+package com.github.yueeng.hacg
 
 import android.app.SearchManager
 import android.content._
@@ -20,8 +20,8 @@ import android.view.View.OnClickListener
 import android.view._
 import android.widget.{EditText, ImageView, TextView, Toast}
 import com.astuetz.PagerSlidingTabStrip
+import com.github.yueeng.hacg.Common._
 import com.squareup.picasso.Picasso
-import com.yue.anime.hacg.Common._
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -175,7 +175,7 @@ class SearchHistoryProvider extends SearchRecentSuggestionsProvider() {
 }
 
 object SearchHistoryProvider {
-  val AUTHORITY: String = "com.yue.anime.hacg.SuggestionProvider"
+  val AUTHORITY = s"${getClass.getPackage.getName}.SuggestionProvider"
   val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
 }
 

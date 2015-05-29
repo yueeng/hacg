@@ -1,4 +1,4 @@
-package com.yue.anime.hacg
+package com.github.yueeng.hacg
 
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}

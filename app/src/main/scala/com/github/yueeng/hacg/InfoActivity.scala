@@ -1,4 +1,4 @@
-package com.yue.anime.hacg
+package com.github.yueeng.hacg
 
 import java.text.SimpleDateFormat
 
@@ -16,8 +16,8 @@ import android.webkit.{WebView, WebViewClient}
 import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
+import com.github.yueeng.hacg.Common._
 import com.squareup.picasso.Picasso
-import com.yue.anime.hacg.Common._
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -301,7 +301,7 @@ class InfoFragment extends Fragment {
                 .removeAttr("height")
             })
             (
-              if (content) using(io.Source.fromInputStream(getActivity.getAssets.open("template.html"))) {
+              if (content) using(io.Source.fromInputStream(HAcgApplication.context.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
               } else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
