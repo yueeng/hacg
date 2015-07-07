@@ -5,6 +5,7 @@ import android.content._
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
+import android.support.design.widget.TabLayout
 import android.support.v4.app._
 import android.support.v4.view.{MenuItemCompat, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
@@ -19,9 +20,8 @@ import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
 import android.widget.{EditText, ImageView, TextView, Toast}
-import com.astuetz.PagerSlidingTabStrip
-import Common._
 import com.squareup.picasso.Picasso
+import io.github.yueeng.hacg.Common._
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -33,9 +33,9 @@ class MainActivity extends AppCompatActivity {
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     val pager: ViewPager = findViewById(R.id.container)
-    val tabs: PagerSlidingTabStrip = findViewById(R.id.tab)
+    val tabs: TabLayout = findViewById(R.id.tab)
     pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
-    tabs.setViewPager(pager)
+    tabs.setupWithViewPager(pager)
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {

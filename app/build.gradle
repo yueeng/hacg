@@ -38,7 +38,6 @@ dependencies {
     compile 'com.android.support:cardview-v7:22.2.0'
     compile 'com.android.support:recyclerview-v7:22.2.0'
     compile 'com.github.clans:fab:1.5.0'
-    compile 'com.astuetz:pagerslidingtabstrip:1.0.1'
     compile "org.scala-lang:scala-library:2.11.7"
     compile "com.squareup.okhttp:okhttp:2.4.0"
     compile "com.squareup.picasso:picasso:2.5.2"
