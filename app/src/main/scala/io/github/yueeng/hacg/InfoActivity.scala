@@ -2,7 +2,7 @@ package io.github.yueeng.hacg
 
 import java.text.SimpleDateFormat
 
-import android.content.Intent
+import android.content.{ClipData, ClipboardManager, Context, Intent}
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -265,14 +265,24 @@ class InfoFragment extends Fragment {
             }.execute(_post.toMap)
           }
         })
+
       .setNegativeButton(R.string.app_cancel, null)
       .setOnDismissListener(
         dialogDismiss {
           d => fill
         }
       )
-      .create()
-    alert.show()
+    if (c != null) {
+      alert.setNeutralButton(R.string.app_copy,
+        dialogClick { (d, w) =>
+          val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+          val clip = ClipData.newPlainText(c.user, c.content)
+          clipboard.setPrimaryClip(clip)
+          Toast.makeText(getActivity, getActivity.getString(R.string.comment_copy, c.content), Toast.LENGTH_SHORT).show()
+        })
+    }
+
+    alert.create().show()
   }
 
   val QUERY_WEB = 1

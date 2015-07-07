@@ -28,4 +28,6 @@
     <string name="settings_host_more">More</string>
     <string name="settings_host_sample">New host like "hacg.be".</string>
     <string name="settings_host_reset">Reset all</string>
+    <string name="app_copy">Copy</string>
+    <string name="comment_copy">Copyed %1$s</string>
 </resources>
