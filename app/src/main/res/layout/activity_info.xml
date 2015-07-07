@@ -12,10 +12,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <WebView
-            android:id="@+id/webview"
+        <android.support.v4.widget.SwipeRefreshLayout
+            android:id="@+id/swipe"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent">
+
+            <WebView
+                android:id="@+id/webview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </android.support.v4.widget.SwipeRefreshLayout>
 
         <ImageView
             android:id="@+id/image1"
@@ -24,13 +30,6 @@
             android:layout_gravity="center_vertical"
             android:adjustViewBounds="true"
             android:src="@drawable/error" />
-
-        <ProgressBar
-            android:id="@+id/progress1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="invisible" />
 
         <com.github.clans.fab.FloatingActionMenu
             android:id="@+id/menu1"
@@ -63,47 +62,24 @@
         android:layout_gravity="end"
         android:background="?attr/android:colorBackground">
 
-        <ListView
-            android:id="@+id/list1"
+        <android.support.v4.widget.SwipeRefreshLayout
+            android:id="@+id/swipe2"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@null"
-            android:dividerHeight="0dp"
-            android:listSelector="@drawable/comment_list_selector" />
-        <!--<android.support.v7.widget.RecyclerView-->
-        <!--android:id="@+id/recycler"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="match_parent" />-->
+            android:layout_height="match_parent">
 
-        <ProgressBar
-            android:id="@+id/progress2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="invisible" />
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/list1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </android.support.v4.widget.SwipeRefreshLayout>
 
-        <LinearLayout
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
             android:layout_margin="10dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <com.github.clans.fab.FloatingActionButton
-                android:id="@+id/button4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_refresh"
-                auto:fab_label="@string/comment_refresh"
-                auto:fab_size="mini" />
-
-            <com.github.clans.fab.FloatingActionButton
-                android:id="@+id/button3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_chat"
-                auto:fab_label="@string/comment_title" />
-        </LinearLayout>
+            android:src="@drawable/ic_chat"
+            auto:fab_label="@string/comment_title" />
     </FrameLayout>
 </android.support.v4.widget.DrawerLayout>

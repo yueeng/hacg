@@ -1,20 +1,61 @@
 package io.github.yueeng.hacg
 
 import android.content.Context
-import android.util.AttributeSet
-import android.view.View
-import android.view.View.MeasureSpec
-import android.widget.{ListView, ProgressBar}
-import Common.viewClick
+import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
+import android.view.{View, ViewGroup}
+import io.github.yueeng.hacg.Common.viewClick
 
-class UnScrollListView(context: Context, attrs: AttributeSet, defStyle: Int) extends ListView(context, attrs, defStyle) {
-  def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
+class FullyLinearLayoutManager(context: Context) extends LinearLayoutManager(context) {
 
-  def this(context: Context) = this(context, null)
+  private val mMeasuredDimension = new Array[Int](2)
 
-  override def onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int): Unit = {
-    val expandSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, MeasureSpec.AT_MOST)
-    super.onMeasure(widthMeasureSpec, expandSpec)
+  override def onMeasure(recycler: RecyclerView#Recycler, state: RecyclerView.State, widthSpec: Int, heightSpec: Int) {
+    val widthMode = View.MeasureSpec.getMode(widthSpec)
+    val heightMode = View.MeasureSpec.getMode(heightSpec)
+    val widthSize = View.MeasureSpec.getSize(widthSpec)
+    val heightSize = View.MeasureSpec.getSize(heightSpec)
+    var width = 0
+    var height = 0
+    for (i <- 0 until getItemCount) {
+      if (getOrientation == LinearLayoutManager.HORIZONTAL) {
+        measureScrapChild(recycler, i, View.MeasureSpec.makeMeasureSpec(i, View.MeasureSpec.UNSPECIFIED), heightSpec, mMeasuredDimension)
+        width += mMeasuredDimension(0)
+        if (i == 0) {
+          height = mMeasuredDimension(1)
+        }
+      } else {
+        measureScrapChild(recycler, i, widthSpec, View.MeasureSpec.makeMeasureSpec(i, View.MeasureSpec.UNSPECIFIED), mMeasuredDimension)
+        height += mMeasuredDimension(1)
+        if (i == 0) {
+          width = mMeasuredDimension(0)
+        }
+      }
+    }
+    widthMode match {
+      case View.MeasureSpec.EXACTLY => width = widthSize
+      case _ =>
+    }
+
+    heightMode match {
+      case View.MeasureSpec.EXACTLY => height = heightSize
+      case _ =>
+    }
+
+    setMeasuredDimension(width, height)
+  }
+
+  private def measureScrapChild(recycler: RecyclerView#Recycler, position: Int, widthSpec: Int, heightSpec: Int, measuredDimension: Array[Int]) {
+    val view = recycler.getViewForPosition(position)
+    recycler.bindViewToPosition(view, position)
+    if (view != null) {
+      val p = view.getLayoutParams.asInstanceOf[RecyclerView.LayoutParams]
+      val childWidthSpec = ViewGroup.getChildMeasureSpec(widthSpec, getPaddingLeft + getPaddingRight, p.width)
+      val childHeightSpec = ViewGroup.getChildMeasureSpec(heightSpec, getPaddingTop + getPaddingBottom, p.height)
+      view.measure(childWidthSpec, childHeightSpec)
+      measuredDimension(0) = view.getMeasuredWidth + p.leftMargin + p.rightMargin
+      measuredDimension(1) = view.getMeasuredHeight + p.bottomMargin + p.topMargin
+      recycler.recycleView(view)
+    }
   }
 }
 
@@ -50,23 +91,6 @@ object ViewEx {
     }
 
     def refresh(): Unit
-  }
-
-  trait Busy extends ViewEx[Boolean, ProgressBar] {
-    busy = false
-
-    def busy = value
-
-    def busy_=(b: Boolean): Unit = value = b
-
-    def progress = view
-
-    def progress_=(p: ProgressBar): Unit = view = p
-
-    override def refresh(): Unit = {
-      view.setVisibility(if (busy) View.VISIBLE else View.INVISIBLE)
-      view.setIndeterminate(busy)
-    }
   }
 
   trait Error extends ViewEx[Boolean, View] {

@@ -8,16 +8,19 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
 import android.support.v4.view.GravityCompat
-import android.support.v4.widget.DrawerLayout
+import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
+import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.RecyclerView.OnScrollListener
+import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
 import android.webkit.{WebView, WebViewClient}
-import android.widget.AdapterView.OnItemClickListener
 import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
-import Common._
 import com.squareup.picasso.Picasso
+import io.github.yueeng.hacg.Common._
+import io.github.yueeng.hacg.ViewEx.ViewEx
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -83,30 +86,22 @@ class InfoActivity extends AppCompatActivity {
 class InfoFragment extends Fragment {
   lazy val _article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
-  val _progress = new ViewEx.Busy {}
-  val _progress2 = new ViewEx.Busy {}
   val _web = new ViewEx.ViewEx[(String, String), WebView] {
-    override def refresh(): Unit = {
+    override def refresh(): Unit =
       view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
-    }
   }
   val _error = new ViewEx.Error {
-    override def retry(): Unit = query(_article.link)
+    override def retry(): Unit = query(_article.link, QUERY_WEB)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
   var _url: String = null
-  //  var html: String = null
-  val _click = new OnItemClickListener {
-    override def onItemClick(parent: AdapterView[_], view: View, position: Int, id: Long): Unit = {
-      parent.getAdapter match {
-        case adapter: CommentAdapter =>
-          val item = adapter.getItem(position)
-          comment(item)
-        case _ =>
-      }
+
+  val _click = viewClick {
+    v => v.getTag match {
+      case c: Comment => comment(c)
+      case _ =>
     }
   }
-
   val AUTHOR = "author"
   val EMAIL = "email"
   val CONFIG_AUTHOR = "config.author"
@@ -119,27 +114,35 @@ class InfoFragment extends Fragment {
     setRetainInstance(true)
     val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
     _post +=(AUTHOR -> preference.getString(CONFIG_AUTHOR, ""), EMAIL -> preference.getString(CONFIG_EMAIL, ""))
-    query(_article.link)
+    query(_article.link, QUERY_ALL)
+  }
+
+  lazy val _progress = new ViewEx[Boolean, SwipeRefreshLayout] {
+    override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
+  }
+  lazy val _progress2 = new ViewEx[Boolean, SwipeRefreshLayout] {
+    override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.activity_info, container, false)
     _error.image = root.findViewById(R.id.image1)
-    val list: ListView = root.findViewById(R.id.list1)
+    val list: RecyclerView = root.findViewById(R.id.list1)
+    list.setLayoutManager(new FullyLinearLayoutManager(getActivity))
     list.setAdapter(_adapter)
-    list.setOnItemClickListener(_click)
-    list.setOnScrollListener(new AbsListView.OnScrollListener {
-      override def onScrollStateChanged(view: AbsListView, scrollState: Int): Unit = {}
 
-      override def onScroll(view: AbsListView, first: Int, visible: Int, total: Int): Unit = {
-        (first + visible >= total, _url) match {
-          case (true, url) if url != null && !url.isEmpty => query(url)
+    list.addOnScrollListener(new OnScrollListener {
+      override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
+        (state, _url, list.getLayoutManager) match {
+          case (RecyclerView.SCROLL_STATE_IDLE, url, staggered: LinearLayoutManager)
+            if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.data.size - 1 =>
+            query(url, QUERY_COMMENT)
           case _ =>
         }
       }
     })
 
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.menu1).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.menu1).map(root.findViewById).foreach {
       case m: FloatingActionMenu =>
         m.setMenuButtonColorNormal(randomColor())
         m.setMenuButtonColorPressed(randomColor())
@@ -151,8 +154,20 @@ class InfoFragment extends Fragment {
         b.setOnClickListener(click)
     }
 
-    _progress.progress = root.findViewById(R.id.progress1)
-    _progress2.progress = root.findViewById(R.id.progress2)
+    _progress.view = root.findViewById(R.id.swipe)
+    _progress2.view = root.findViewById(R.id.swipe2)
+
+    _progress.view.setOnRefreshListener(new OnRefreshListener {
+      override def onRefresh(): Unit = query(_article.link, QUERY_WEB)
+    })
+    _progress2.view.setOnRefreshListener(new OnRefreshListener {
+      override def onRefresh(): Unit = {
+        _url = null
+        _adapter.data.clear()
+        _adapter.notifyDataSetChanged()
+        query(_article.link, QUERY_COMMENT)
+      }
+    })
 
     val web: WebView = root.findViewById(R.id.webview)
     web.getSettings.setJavaScriptEnabled(true)
@@ -172,11 +187,6 @@ class InfoFragment extends Fragment {
       case R.id.button1 => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(_article.link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
       case R.id.button2 => getView.findViewById(R.id.drawer).asInstanceOf[DrawerLayout].openDrawer(GravityCompat.END)
       case R.id.button3 => comment(null)
-      case R.id.button4 =>
-        _url = null
-        _adapter.data.clear()
-        _adapter.notifyDataSetChanged()
-        query(_article.link)
     }
     getView.findViewById(R.id.menu1).asInstanceOf[FloatingActionMenu].close(true)
   }
@@ -213,7 +223,7 @@ class InfoFragment extends Fragment {
           if (List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
-            _progress2.busy = true
+            _progress2.value = true
             type R = (Boolean, String)
             new ScalaTask[Map[String, String], Void, R] {
               override def background(params: Map[String, String]*): R = {
@@ -229,13 +239,9 @@ class InfoFragment extends Fragment {
               }
 
               override def post(result: R): Unit = {
-                _progress2.busy = false
+                _progress2.value = false
                 if (result._1) {
                   _post(COMMENT) = ""
-                  //                  _url = null
-                  //                  _adapter.data.clear()
-                  //                  _adapter.notifyDataSetChanged()
-                  //                  query(_article.link)
                 }
                 Toast.makeText(getActivity, result._2, Toast.LENGTH_LONG).show()
               }
@@ -252,15 +258,20 @@ class InfoFragment extends Fragment {
     alert.show()
   }
 
-  def query(url: String): Unit = {
-    if (_progress.busy || _progress2.busy) {
+  val QUERY_WEB = 1
+  val QUERY_COMMENT = QUERY_WEB << 1
+  val QUERY_ALL = QUERY_WEB | QUERY_COMMENT
+
+  def query(url: String, op: Int): Unit = {
+    if (_progress.value || _progress2.value) {
       return
     }
     _error.error = false
-    val content = _web.value == null
-    _progress.busy = content
-    _progress2.busy = true
-    type R = Option[(String, String, List[Comment], Map[String, String])]
+    val content = (op & QUERY_WEB) == QUERY_WEB
+    val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
+    _progress.value = content
+    _progress2.value = true
+    type R = Option[(String, List[Comment], String, Map[String, String])]
     new ScalaTask[Void, Void, R] {
       override def background(params: Void*): R = {
         url.httpGet.jsoup {
@@ -304,11 +315,11 @@ class InfoFragment extends Fragment {
               if (content) using(scala.io.Source.fromInputStream(HAcgApplication.context.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
               } else null,
+              if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
                 case Some(a) => a.attr("abs:href")
                 case _ => null
               },
-              dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList,
               dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
               )
         }
@@ -317,60 +328,48 @@ class InfoFragment extends Fragment {
       override def post(result: R): Unit = {
         result match {
           case Some(data) =>
-            if (_web.value == null) {
+            if (content) {
               _web.value = (data._1, url)
+            }
+            if (comment) {
+              _adapter.data ++= data._2
+              _adapter.notifyDataSetChanged()
+
+              _url = data._3
             }
             val filter = List(AUTHOR, EMAIL, COMMENT)
             _post ++= data._4.filter(o => !filter.contains(o._1))
-            _url = data._2
-
-            _adapter.data ++= data._3
-            _adapter.notifyDataSetChanged()
           case _ => _error.error = _web.value == null
         }
-        _progress.busy = false
-        _progress2.busy = false
+        _progress.value = false
+        _progress2.value = false
       }
     }.execute()
   }
 
   val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")
 
-  class CommentHolder(view: View) {
+  class CommentHolder(view: View) extends RecyclerView.ViewHolder(view) {
     val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
     val text3: TextView = view.findViewById(R.id.text3)
     val image: ImageView = view.findViewById(R.id.image1)
-    val list: ListView = view.findViewById(R.id.list1)
+    val list: RecyclerView = view.findViewById(R.id.list1)
     val adapter = new CommentAdapter
+    val context = view.getContext
     list.setAdapter(adapter)
-    list.setOnItemClickListener(_click)
+    list.setLayoutManager(new FullyLinearLayoutManager(context))
+    view.setOnClickListener(_click)
   }
 
-  class CommentAdapter extends BaseAdapter {
+  class CommentAdapter extends RecyclerView.Adapter[CommentHolder] {
     val data = new ArrayBuffer[Comment]()
 
-    override def getItemId(position: Int): Long = position
+    override def getItemCount: Int = data.size
 
-    override def getCount: Int = data.size
-
-    override def getItem(position: Int): Comment = data(position)
-
-    override def getView(position: Int, convert: View, parent: ViewGroup): View = {
-
-      val view = convert match {
-        case null => LayoutInflater.from(parent.getContext).inflate(R.layout.comment_item, parent, false)
-        case _ => convert
-      }
-
-      val holder: CommentHolder = view.getTag match {
-        case holder: CommentHolder => holder
-        case _ =>
-          view.setTag(new CommentHolder(view))
-          view.getTag.asInstanceOf[CommentHolder]
-      }
-
-      val item = getItem(position)
+    override def onBindViewHolder(holder: CommentHolder, position: Int): Unit = {
+      val item = data(position)
+      holder.itemView.setTag(item)
       holder.text1.setText(item.user)
       holder.text2.setText(item.content)
       holder.text3.setText(item.time.map(datafmt.format).orNull)
@@ -382,11 +381,13 @@ class InfoFragment extends Fragment {
       if (item.face.isEmpty) {
         holder.image.setImageResource(R.mipmap.ic_launcher)
       } else {
-        Picasso.`with`(parent.getContext).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
+        Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
       }
 
-      view
     }
+
+    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentHolder =
+      new CommentHolder(LayoutInflater.from(parent.getContext).inflate(R.layout.comment_item, parent, false))
   }
 
 }
