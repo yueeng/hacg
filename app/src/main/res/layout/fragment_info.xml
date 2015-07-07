@@ -5,34 +5,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <android.support.design.widget.CoordinatorLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <android.support.design.widget.AppBarLayout
+        <android.support.design.widget.CoordinatorLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent">
 
-            <android.support.v7.widget.Toolbar
-                android:id="@+id/toolbar"
+            <android.support.design.widget.AppBarLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/colorPrimary"
-                android:minHeight="?attr/actionBarSize"
                 android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-                auto:layout_scrollFlags="scroll|enterAlways"
-                auto:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
-        </android.support.design.widget.AppBarLayout>
+                auto:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            auto:layout_behavior="@string/appbar_scrolling_view_behavior">
+                <android.support.design.widget.CollapsingToolbarLayout
+                    android:id="@+id/toolbar_collapsing"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fitsSystemWindows="true"
+                    auto:contentScrim="?attr/colorPrimary"
+                    auto:layout_scrollFlags="scroll|exitUntilCollapsed">
 
-            <android.support.v4.widget.SwipeRefreshLayout
-                android:id="@+id/swipe"
+                    <ImageView
+                        android:id="@+id/toolbar_image"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:adjustViewBounds="true"
+                        android:fitsSystemWindows="true"
+                        android:src="@mipmap/ic_launcher"
+                        auto:layout_collapseMode="parallax" />
+
+                    <android.support.v7.widget.Toolbar
+                        android:id="@+id/toolbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="?attr/actionBarSize"
+                        auto:layout_collapseMode="pin" />
+                </android.support.design.widget.CollapsingToolbarLayout>
+            </android.support.design.widget.AppBarLayout>
+
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                auto:layout_behavior="@string/appbar_scrolling_view_behavior">
 
                 <android.support.v4.widget.NestedScrollView
                     android:layout_width="match_parent"
@@ -44,41 +59,48 @@
                         android:layout_height="match_parent" />
 
                 </android.support.v4.widget.NestedScrollView>
-            </android.support.v4.widget.SwipeRefreshLayout>
 
-            <ImageView
-                android:id="@+id/image1"
-                android:layout_width="match_parent"
+                <ImageView
+                    android:id="@+id/image1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:adjustViewBounds="true"
+                    android:src="@drawable/error" />
+
+                <ProgressBar
+                    android:id="@+id/progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+
+            </FrameLayout>
+        </android.support.design.widget.CoordinatorLayout>
+
+        <com.github.clans.fab.FloatingActionMenu
+            android:id="@+id/menu1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="10dp">
+
+            <com.github.clans.fab.FloatingActionButton
+                android:id="@+id/button1"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:adjustViewBounds="true"
-                android:src="@drawable/error" />
+                android:src="@drawable/ic_chrome"
+                auto:fab_label="@string/app_chrome"
+                auto:fab_size="mini" />
 
-            <com.github.clans.fab.FloatingActionMenu
-                android:id="@+id/menu1"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="10dp">
+            <com.github.clans.fab.FloatingActionButton
+                android:id="@+id/button2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chat"
+                auto:fab_label="@string/comment_title"
+                auto:fab_size="mini" />
 
-                <com.github.clans.fab.FloatingActionButton
-                    android:id="@+id/button1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_chrome"
-                    auto:fab_label="@string/app_chrome"
-                    auto:fab_size="mini" />
-
-                <com.github.clans.fab.FloatingActionButton
-                    android:id="@+id/button2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_chat"
-                    auto:fab_label="@string/comment_title"
-                    auto:fab_size="mini" />
-
-            </com.github.clans.fab.FloatingActionMenu>
-        </FrameLayout>
-    </android.support.design.widget.CoordinatorLayout>
+        </com.github.clans.fab.FloatingActionMenu>
+    </FrameLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -87,7 +109,7 @@
         android:background="?attr/android:colorBackground">
 
         <android.support.v4.widget.SwipeRefreshLayout
-            android:id="@+id/swipe2"
+            android:id="@+id/swipe"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 

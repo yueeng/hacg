@@ -6,8 +6,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
-import android.support.v4.view.GravityCompat
+import android.support.v4.view.{ViewCompat, GravityCompat}
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
@@ -87,7 +88,7 @@ class InfoFragment extends Fragment {
       view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
   }
   val _error = new ViewEx.Error {
-    override def retry(): Unit = query(_article.link, QUERY_WEB)
+    override def retry(): Unit = query(_article.link, QUERY_ALL)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
   var _url: String = null
@@ -113,8 +114,11 @@ class InfoFragment extends Fragment {
     query(_article.link, QUERY_ALL)
   }
 
-  lazy val _progress = new ViewEx[Boolean, SwipeRefreshLayout] {
-    override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
+  lazy val _progress = new ViewEx[Boolean, ProgressBar] {
+    override def refresh(): Unit = {
+      view.setIndeterminate(value)
+      view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
+    }
   }
   lazy val _progress2 = new ViewEx[Boolean, SwipeRefreshLayout] {
     override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
@@ -127,7 +131,17 @@ class InfoFragment extends Fragment {
     activity.setSupportActionBar(root.findViewById(R.id.toolbar))
     activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
-    activity.setTitle(_article.title)
+    root.findViewById(R.id.toolbar_collapsing) match {
+      case c: CollapsingToolbarLayout => c.setTitle(_article.title)
+      case _ => activity.setTitle(_article.title)
+    }
+
+    root.findViewById(R.id.toolbar_image) match {
+      case img: ImageView =>
+        Picasso.`with`(getActivity).load(_article.img).error(R.drawable.placeholder).into(img)
+        ViewCompat.setTransitionName(img, "image")
+      case _ =>
+    }
 
     _error.image = root.findViewById(R.id.image1)
     val list: RecyclerView = root.findViewById(R.id.list1)
@@ -157,12 +171,12 @@ class InfoFragment extends Fragment {
         b.setOnClickListener(click)
     }
 
-    _progress.view = root.findViewById(R.id.swipe)
-    _progress2.view = root.findViewById(R.id.swipe2)
+    _progress.view = root.findViewById(R.id.progress)
+    _progress2.view = root.findViewById(R.id.swipe)
 
-    _progress.view.setOnRefreshListener(new OnRefreshListener {
-      override def onRefresh(): Unit = query(_article.link, QUERY_WEB)
-    })
+    //    _progress.view.setOnRefreshListener(new OnRefreshListener {
+    //      override def onRefresh(): Unit = query(_article.link, QUERY_WEB)
+    //    })
     _progress2.view.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
         _url = null

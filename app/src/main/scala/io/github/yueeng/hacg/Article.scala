@@ -3,7 +3,7 @@ package io.github.yueeng.hacg
 import java.util.Date
 
 import android.os.{Parcel, Parcelable}
-import Common._
+import io.github.yueeng.hacg.Common._
 import org.jsoup.nodes.Element
 
 import scala.collection.JavaConversions._
@@ -58,7 +58,10 @@ case class Article(title: String,
                    author: Option[Tag],
                    category: Option[Tag],
                    tags: List[Tag]) extends Parcelable {
-  def img() = !image.contains("ac2668bb905471cd47934f7627983958")
+  def img = image.contains("ac2668bb905471cd47934f7627983958") match {
+    case true => "file:///android_res/drawable/placeholder.png"
+    case _ => image
+  }
 
   lazy val expend = tags ++ category ++ author
 

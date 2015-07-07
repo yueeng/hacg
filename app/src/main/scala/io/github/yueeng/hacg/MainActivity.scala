@@ -43,11 +43,7 @@ class MainActivity extends AppCompatActivity {
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment = {
-      val fragment = new ArticleFragment()
-      val args = new Bundle()
-      args.putString("url", s"${HAcg.WORDPRESS}${data(position)}")
-      fragment.setArguments(args)
-      fragment
+      new ArticleFragment().arguments(new Bundle().string("url", data(position)))
     }
 
     override def getCount: Int = data.size
@@ -134,17 +130,11 @@ class ListActivity extends AppCompatActivity {
       return
     }
     setTitle(name)
-    //    ViewCompat.setTransitionName(findViewById(R.id.toolbar), "tag")
     val transaction = getSupportFragmentManager.beginTransaction()
 
     val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
       case fragment: InfoFragment => fragment
-      case _ =>
-        val fragment = new ArticleFragment
-        val extra = new Bundle()
-        extra.putString("url", url)
-        fragment.setArguments(extra)
-        fragment
+      case _ => new ArticleFragment().arguments(new Bundle().string("url", url))
     }
 
     transaction.replace(R.id.container, fragment)
@@ -183,7 +173,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
   lazy val adapter = new ArticleAdapter()
   var url: String = null
   val error = new ViewEx.Error {
-    override def retry(): Unit = query(url)
+    override def retry(): Unit = query(defurl)
   }
 
   override def onCreate(saved: Bundle): Unit = {
@@ -199,8 +189,12 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
       }
       error.error = saved.getBoolean("error", false)
     }
-    url = getArguments.getString("url")
-    query(url)
+    query(defurl)
+  }
+
+  def defurl = getArguments.getString("url") match {
+    case uri if uri.startsWith("/") => s"${HAcg.WORDPRESS}$uri"
+    case uri => uri
   }
 
   override def onSaveInstanceState(out: Bundle): Unit = {
@@ -216,10 +210,9 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     view = root.findViewById(R.id.swipe)
     view.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
-        url = getArguments.getString("url")
         adapter.data.clear()
         adapter.notifyDataSetChanged()
-        query(url)
+        query(defurl)
       }
     })
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
@@ -228,13 +221,12 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     recycler.setAdapter(adapter)
 
     recycler.addOnScrollListener(new OnScrollListener {
-      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
+      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit =
         (state, url, recycler.getLayoutManager) match {
           case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.data.size - 1 =>
             query(url)
           case _ =>
         }
-      }
     })
 
     root
@@ -272,11 +264,15 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
 
   val click = new OnClickListener {
     override def onClick(v: View): Unit = {
-      val article = v.getTag.asInstanceOf[Article]
-      startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
-      //      ActivityCompat.startActivity(getActivity,
-      //        new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]),
-      //        ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, v, "article").toBundle)
+      v.getTag match {
+        case h: ArticleHolder =>
+          //          val article = v.getTag.asInstanceOf[Article]
+          //          startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
+          ActivityCompat.startActivity(getActivity,
+            new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
+            ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
+        case _ =>
+      }
     }
   }
 
@@ -287,7 +283,8 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     val text2: TextView = view.findViewById(R.id.text2)
     val text3: TextView = view.findViewById(R.id.text3)
     val image1: ImageView = view.findViewById(R.id.image1)
-
+    var article: Article = _
+    view.setTag(this)
     text3.setMovementMethod(LinkMovementMethod.getInstance())
   }
 
@@ -312,7 +309,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
 
     override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
       val item = data(position)
-      holder.view.setTag(item)
+      holder.article = item
       holder.text1.setText(item.title)
       holder.text1.setTextColor(Common.randomColor())
       holder.text2.setText(item.content)
@@ -329,10 +326,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
       holder.text3.setText(span)
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
-      if (item.img())
-        Picasso.`with`(holder.context).load(Uri.parse(item.image)).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
-      else
-        Picasso.`with`(holder.context).load(R.drawable.placeholder).into(holder.image1)
+      Picasso.`with`(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
     }
 
     override def onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
