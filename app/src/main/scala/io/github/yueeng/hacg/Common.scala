@@ -7,9 +7,10 @@ import java.util.concurrent.TimeUnit
 
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface}
-import android.os.AsyncTask
+import android.os.{Bundle, AsyncTask}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
+import android.support.v4.app.Fragment
 import android.view.View
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import org.jsoup.Jsoup
@@ -22,7 +23,7 @@ import scala.util.Random
 object HAcg {
   val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.context)
 
-  def HOST = config.getString("system.host", "hacg.be")
+  def HOST = config.getString("system.host", "hacg.me")
 
   def HOST_=(host: String) = config.edit().putString("system.host", host).commit()
 
@@ -62,6 +63,23 @@ object Common {
 
   implicit def runnable(func: () => Unit): Runnable = new Runnable {
     override def run(): Unit = func()
+  }
+
+  implicit def pair(p: (View, String)): android.support.v4.util.Pair[View, String] =
+    new android.support.v4.util.Pair[View, String](p._1, p._2)
+
+  implicit class fragmentex(f: Fragment) {
+    def arguments(b: Bundle) = {
+      f.setArguments(b)
+      f
+    }
+  }
+
+  implicit class bundleex(b: Bundle) {
+    def string(key: String, value: String) = {
+      b.putString(key, value)
+      b
+    }
   }
 
   implicit class StringUtil(s: String) {
@@ -114,7 +132,7 @@ object Common {
     def httpGet = {
       try {
         val http = new OkHttpClient()
-        http.setConnectTimeout(30, TimeUnit.SECONDS)
+        http.setConnectTimeout(15, TimeUnit.SECONDS)
         http.setReadTimeout(30, TimeUnit.SECONDS)
         val request = new Request.Builder().get().url(url).build()
         val response = http.newCall(request).execute()

@@ -8,7 +8,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
-import android.support.v4.view.{ViewCompat, GravityCompat}
+import android.support.v4.view.{GravityCompat, ViewCompat}
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
@@ -330,7 +330,10 @@ class InfoFragment extends Fragment {
             })
             (
               if (content) using(scala.io.Source.fromInputStream(HAcgApplication.context.getAssets.open("template.html"))) {
-                reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
+                reader => reader.mkString.replace("{{title}}",
+                  _article.title).replace("{{body}}", entry.html()
+                  .replaceAll( """\b(?<!/|:)[a-zA-Z0-9]{40}\b""", s"""<a href="magnet:?xt=urn:btih:$$0">$$0</a>""")
+                  .replaceAll( """\b([a-zA-Z0-9]{8})\b\s\b([a-zA-Z0-9]{4})\b""", s"""<a href="http://pan.baidu.com/s/$$1">$$1</a>$$ 2"""))
               } else null,
               if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {

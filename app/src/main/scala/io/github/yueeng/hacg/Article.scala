@@ -2,6 +2,7 @@ package io.github.yueeng.hacg
 
 import java.util.Date
 
+import android.content.ContentResolver
 import android.os.{Parcel, Parcelable}
 import io.github.yueeng.hacg.Common._
 import org.jsoup.nodes.Element
@@ -59,7 +60,7 @@ case class Article(title: String,
                    category: Option[Tag],
                    tags: List[Tag]) extends Parcelable {
   def img = image.contains("ac2668bb905471cd47934f7627983958") match {
-    case true => "file:///android_res/drawable/placeholder.png"
+    case true => s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
     case _ => image
   }
 
