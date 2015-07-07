@@ -115,7 +115,7 @@ class ListActivity extends AppCompatActivity {
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_fragment)
+    setContentView(R.layout.activity_list)
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     getSupportActionBar.setDisplayHomeAsUpEnabled(true)

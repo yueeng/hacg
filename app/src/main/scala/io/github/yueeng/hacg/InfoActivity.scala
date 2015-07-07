@@ -35,11 +35,7 @@ class InfoActivity extends AppCompatActivity {
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_fragment)
-    setSupportActionBar(findViewById(R.id.toolbar))
-    getSupportActionBar.setLogo(R.mipmap.ic_launcher)
-    getSupportActionBar.setDisplayHomeAsUpEnabled(true)
-    setTitle(_article.title)
+    setContentView(R.layout.activity_info)
     //    ViewCompat.setTransitionName(findViewById(R.id.toolbar), "article")
     val transaction = getSupportFragmentManager.beginTransaction()
 
@@ -125,7 +121,14 @@ class InfoFragment extends Fragment {
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    val root = inflater.inflate(R.layout.activity_info, container, false)
+    val root = inflater.inflate(R.layout.fragment_info, container, false)
+
+    val activity = getActivity.asInstanceOf[AppCompatActivity]
+    activity.setSupportActionBar(root.findViewById(R.id.toolbar))
+    activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
+    activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
+    activity.setTitle(_article.title)
+
     _error.image = root.findViewById(R.id.image1)
     val list: RecyclerView = root.findViewById(R.id.list1)
     list.setLayoutManager(new FullyLinearLayoutManager(getActivity))
@@ -169,7 +172,7 @@ class InfoFragment extends Fragment {
       }
     })
 
-    val web: WebView = root.findViewById(R.id.webview)
+    val web: WebView = root.findViewById(R.id.web)
     web.getSettings.setJavaScriptEnabled(true)
     web.setWebViewClient(new WebViewClient {
       override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
