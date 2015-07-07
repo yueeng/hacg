@@ -1,4 +1,4 @@
-package com.github.yueeng.hacg
+package io.github.yueeng.hacg
 
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}

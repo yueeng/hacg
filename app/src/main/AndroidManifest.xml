@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.github.yueeng.hacg">
+    package="io.github.yueeng.hacg">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <application
@@ -26,7 +26,7 @@
                 android:value=".MainActivity" />
 
             <intent-filter>
-                <action android:name="com.github.yueeng.hacg.SEARCH" />
+                <action android:name="io.github.yueeng.hacg.SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
@@ -46,7 +46,7 @@
 
         <provider
             android:name=".SearchHistoryProvider"
-            android:authorities="com.github.yueeng.hacg.SuggestionProvider" />
+            android:authorities="io.github.yueeng.hacg.SuggestionProvider" />
     </application>
 
 </manifest>

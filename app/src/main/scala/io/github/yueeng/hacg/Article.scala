@@ -1,9 +1,9 @@
-package com.github.yueeng.hacg
+package io.github.yueeng.hacg
 
 import java.util.Date
 
 import android.os.{Parcel, Parcelable}
-import com.github.yueeng.hacg.Common._
+import Common._
 import org.jsoup.nodes.Element
 
 import scala.collection.JavaConversions._

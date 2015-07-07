@@ -1,4 +1,4 @@
-package com.github.yueeng.hacg
+package io.github.yueeng.hacg
 
 import android.app.SearchManager
 import android.content._
@@ -20,7 +20,7 @@ import android.view.View.OnClickListener
 import android.view._
 import android.widget.{EditText, ImageView, TextView, Toast}
 import com.astuetz.PagerSlidingTabStrip
-import com.github.yueeng.hacg.Common._
+import Common._
 import com.squareup.picasso.Picasso
 
 import scala.collection.JavaConversions._
@@ -227,7 +227,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     recycler.setLayoutManager(layout)
     recycler.setAdapter(adapter)
 
-    recycler.setOnScrollListener(new OnScrollListener {
+    recycler.addOnScrollListener(new OnScrollListener {
       override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit = {
         (state, url, recycler.getLayoutManager) match {
           case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.data.size - 1 =>

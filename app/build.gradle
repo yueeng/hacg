@@ -6,12 +6,13 @@ android {
     buildToolsVersion "22.0.1"
 
     defaultConfig {
-        applicationId "com.github.yueeng.hacg"
+        applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 22
-        testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
+        testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
     }
     buildTypes {
         release {
@@ -20,17 +21,8 @@ android {
         }
     }
     sourceSets {
-        main {
-            scala {
-                srcDir "src/main/scala" // default: "src/main/scala"
-            }
-        }
-
-        androidTest {
-            scala {
-                srcDir "src/androidTest/scala" // default: "src/androidTest/scala"
-            }
-        }
+        main { scala { srcDir "src/main/scala" } }
+        androidTest { scala { srcDir "src/androidTest/scala" } }
     }
     dexOptions {
         preDexLibraries false
@@ -40,31 +32,25 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile "com.android.support:multidex:1.0.0"
-    compile 'com.android.support:appcompat-v7:22.1.1'
-    compile 'com.android.support:cardview-v7:22.0.0'
-    compile 'com.android.support:recyclerview-v7:22.0.0'
+    compile "com.android.support:multidex:1.0.1"
+    compile 'com.android.support:design:22.2.0'
+    compile 'com.android.support:appcompat-v7:22.2.0'
+    compile 'com.android.support:cardview-v7:22.2.0'
+    compile 'com.android.support:recyclerview-v7:22.2.0'
     compile 'com.github.clans:fab:1.5.0'
     compile 'com.astuetz:pagerslidingtabstrip:1.0.1'
-    compile "org.scala-lang:scala-library:2.11.6"
-    compile 'com.squareup.okhttp:okhttp:2.2.0'
-    compile 'com.squareup.picasso:picasso:2.5.0'
-    compile 'org.jsoup:jsoup:1.8.1'
+    compile "org.scala-lang:scala-library:2.11.7"
+    compile "com.squareup.okhttp:okhttp:2.4.0"
+    compile "com.squareup.picasso:picasso:2.5.2"
+    compile 'org.jsoup:jsoup:1.8.2'
     androidTestCompile "com.android.support:multidex-instrumentation:1.0.1", { exclude module: "multidex" }
 }
 
 tasks.withType(ScalaCompile) {
+    // If you want to use scala compile daemon
+    scalaCompileOptions.useCompileDaemon = true
+    // Suppress deprecation warnings
     scalaCompileOptions.deprecation = false
+    // Additional parameters
     scalaCompileOptions.additionalParameters = ["-feature"]
-}
-
-afterEvaluate {
-    tasks.matching {
-        it.name.startsWith("dex")
-    }.each { dx ->
-        dx.additionalParameters = (dx.additionalParameters ?: []) + [
-                "--multi-dex",
-                "--main-dex-list=$rootDir/main-dex-list.txt".toString(),
-        ]
-    }
 }

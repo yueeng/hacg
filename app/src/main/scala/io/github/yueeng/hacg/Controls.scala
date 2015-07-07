@@ -1,11 +1,11 @@
-package com.github.yueeng.hacg
+package io.github.yueeng.hacg
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.view.View.MeasureSpec
 import android.widget.{ListView, ProgressBar}
-import com.github.yueeng.hacg.Common.viewClick
+import Common.viewClick
 
 class UnScrollListView(context: Context, attrs: AttributeSet, defStyle: Int) extends ListView(context, attrs, defStyle) {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
