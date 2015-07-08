@@ -8,7 +8,7 @@
     <string name="app_cancel">取消</string>
     <string name="comment_title">评论</string>
     <string name="comment_succeeded">提交成功</string>
-    <string name="comment_review">回复: %1$s</string>
+    <string name="comment_review">回复</string>
     <string name="app_chrome">使用浏览器打开</string>
     <string name="app_search">搜索</string>
     <string name="app_search_clear">清除搜索记录</string>
@@ -31,4 +31,5 @@
     <string name="settings_host_reset">重置所有</string>
     <string name="app_copy">复制</string>
     <string name="comment_copy">已复制 %1$s</string>
+    <string name="comment_review_to">回复: %1$s</string>
 </resources>

@@ -7,7 +7,7 @@
     <string name="app_cancel">Cancel</string>
     <string name="comment_title">Comment</string>
     <string name="comment_succeeded">Submit succeeded</string>
-    <string name="comment_review">Review: %1$s</string>
+    <string name="comment_review">Review</string>
     <string name="app_chrome">Open with browser</string>
     <string name="app_search">Search</string>
     <string name="app_search_clear">Clear search history</string>
@@ -30,4 +30,5 @@
     <string name="settings_host_reset">Reset all</string>
     <string name="app_copy">Copy</string>
     <string name="comment_copy">Copyed %1$s</string>
+    <string name="comment_review_to">Review: %1$s</string>
 </resources>

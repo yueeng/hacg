@@ -217,7 +217,27 @@ class InfoFragment extends Fragment {
     }
   }
 
-  def comment(c: Comment) = {
+  def comment(c: Comment): Unit = {
+    if (c == null) {
+      commenting(c)
+      return
+    }
+    new Builder(getActivity)
+      .setTitle(c.user)
+      .setMessage(c.content)
+      .setPositiveButton(R.string.comment_review, dialogClick { (d, w) => commenting(c) })
+      .setNegativeButton(R.string.app_cancel, null)
+      .setNeutralButton(R.string.app_copy,
+        dialogClick { (d, w) =>
+          val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+          val clip = ClipData.newPlainText(c.user, c.content)
+          clipboard.setPrimaryClip(clip)
+          Toast.makeText(getActivity, getActivity.getString(R.string.comment_copy, c.content), Toast.LENGTH_SHORT).show()
+        })
+      .create().show()
+  }
+
+  def commenting(c: Comment): Unit = {
     val input = LayoutInflater.from(getActivity).inflate(R.layout.comment_post, null)
     val author: EditText = input.findViewById(R.id.edit1)
     val email: EditText = input.findViewById(R.id.edit2)
@@ -231,8 +251,8 @@ class InfoFragment extends Fragment {
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
       preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).commit()
     }
-    val alert = new Builder(getActivity)
-      .setTitle(if (c != null) getString(R.string.comment_review, c.user) else getString(R.string.comment_title))
+    new Builder(getActivity)
+      .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
       .setView(input)
       .setPositiveButton(R.string.comment_submit,
         dialogClick { (d, w) =>
@@ -265,24 +285,9 @@ class InfoFragment extends Fragment {
             }.execute(_post.toMap)
           }
         })
-
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(
-        dialogDismiss {
-          d => fill
-        }
-      )
-    if (c != null) {
-      alert.setNeutralButton(R.string.app_copy,
-        dialogClick { (d, w) =>
-          val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
-          val clip = ClipData.newPlainText(c.user, c.content)
-          clipboard.setPrimaryClip(clip)
-          Toast.makeText(getActivity, getActivity.getString(R.string.comment_copy, c.content), Toast.LENGTH_SHORT).show()
-        })
-    }
-
-    alert.create().show()
+      .setOnDismissListener(dialogDismiss { d => fill })
+      .create().show()
   }
 
   val QUERY_WEB = 1
@@ -342,8 +347,9 @@ class InfoFragment extends Fragment {
               if (content) using(scala.io.Source.fromInputStream(HAcgApplication.context.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}",
                   _article.title).replace("{{body}}", entry.html()
-                  .replaceAll( """\b(?<!/|:)[a-zA-Z0-9]{40}\b""", s"""<a href="magnet:?xt=urn:btih:$$0">$$0</a>""")
-                  .replaceAll( """\b([a-zA-Z0-9]{8})\b\s\b([a-zA-Z0-9]{4})\b""", s"""<a href="http://pan.baidu.com/s/$$1">$$1</a>$$ 2"""))
+                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
+                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
+                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">$1</a>$2$3"""))
               } else null,
               if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {

@@ -33,6 +33,8 @@
                         android:layout_height="wrap_content"
                         android:adjustViewBounds="true"
                         android:fitsSystemWindows="true"
+                        android:maxHeight="300dp"
+                        android:scaleType="centerCrop"
                         android:src="@mipmap/ic_launcher"
                         auto:layout_collapseMode="parallax" />
 
