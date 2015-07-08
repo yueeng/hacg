@@ -313,15 +313,16 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
       holder.text1.setText(item.title)
       holder.text1.setTextColor(Common.randomColor())
       holder.text2.setText(item.content)
-      val tags = item.expend.map(o => s" ${o.name} ").mkString(" ")
+      val w = " "
+      val tags = item.expend.map(o => s"$w${o.name}$w").mkString(" ")
       val span = new SpannableStringBuilder(tags)
       for {tag <- item.expend
-           p = tags.indexOf(tag.name)
+           pw = tags.indexOf(s"$w${tag.name}$w")
+           p = pw + w.length
            e = p + tag.name.length
-           p2 = tags.indexOf(s" ${tag.name} ")
-           e2 = p2 + s" ${tag.name} ".length} {
+           ew = e + w.length} {
         span.setSpan(new TagClickableSpan(tag), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), p2, e2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
       }
       holder.text3.setText(span)
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
