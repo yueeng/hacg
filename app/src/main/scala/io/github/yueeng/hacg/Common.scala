@@ -35,7 +35,7 @@ object HAcg {
 
   def HOSTS_=(hosts: Set[String]) = config.edit().putStringSet("system.hosts", hosts).commit()
 
-  val DEFAULT_HOSTS = Set("hacg.be", "hacg.me")
+  val DEFAULT_HOSTS = Set("hacg.me", "hacg.be", "hacg.club")
 }
 
 object HAcgApplication {

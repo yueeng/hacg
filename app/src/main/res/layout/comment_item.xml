@@ -1,77 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="2dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginTop="2dp"
     android:descendantFocusability="blocksDescendants">
 
-    <android.support.v7.widget.CardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="5dp">
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/image1"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/app_name"
+                android:src="@mipmap/ic_launcher" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:id="@+id/image1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:adjustViewBounds="true"
-                    android:src="@mipmap/ic_launcher" />
+                android:orientation="vertical"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/text1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/app_name"
-                            android:textColor="@color/text_color_title"
-                            android:textSize="@dimen/text_size_title" />
-
-                        <TextView
-                            android:id="@+id/text3"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/app_name"
-                            android:textColor="@color/text_color_summary"
-                            android:textSize="@dimen/text_size_summary" />
-                    </LinearLayout>
+                    android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/text2"
-                        android:layout_width="match_parent"
+                        android:id="@+id/text1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/app_name"
+                        android:textColor="@color/text_color_title"
+                        android:textSize="@dimen/text_size_title" />
+
+                    <TextView
+                        android:id="@+id/text3"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/app_name"
-                        android:textColor="@color/text_color_content"
-                        android:textSize="@dimen/text_size_content" />
-
+                        android:textColor="@color/text_color_summary"
+                        android:textSize="@dimen/text_size_summary" />
                 </LinearLayout>
-            </LinearLayout>
 
-            <android.support.v7.widget.RecyclerView
-                android:id="@+id/list1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp" />
+                <TextView
+                    android:id="@+id/text2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textColor="@color/text_color_content"
+                    android:textSize="@dimen/text_size_content" />
+
+            </LinearLayout>
         </LinearLayout>
-    </android.support.v7.widget.CardView>
-</FrameLayout>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/list1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</android.support.v7.widget.CardView>

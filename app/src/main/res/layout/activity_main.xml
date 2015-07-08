@@ -27,7 +27,8 @@
             android:layout_height="wrap_content"
             android:textSize="@dimen/text_size_large"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:layout_scrollFlags="enterAlways" />
+            app:layout_scrollFlags="enterAlways"
+            app:tabMode="scrollable" />
     </android.support.design.widget.AppBarLayout>
 
     <android.support.v4.view.ViewPager
@@ -35,4 +36,5 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
 </android.support.design.widget.CoordinatorLayout>

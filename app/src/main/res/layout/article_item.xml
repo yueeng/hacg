@@ -2,7 +2,10 @@
 <android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="5dp"
+    android:layout_marginBottom="2dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginTop="2dp"
     android:descendantFocusability="blocksDescendants">
 
     <LinearLayout
@@ -18,7 +21,8 @@
                 android:id="@+id/image1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:adjustViewBounds="true" />
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/app_name" />
 
             <TextView
                 android:id="@+id/text3"
@@ -39,9 +43,9 @@
             android:layout_gravity="bottom|start"
             android:ellipsize="end"
             android:maxLines="2"
-            android:text="@string/app_name"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
+            android:text="@string/app_name"
             android:textColor="@color/text_color_title"
             android:textSize="@dimen/text_size_large" />
 
@@ -50,9 +54,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
+            android:maxLines="4"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
-            android:maxLines="4"
             android:text="@string/app_name"
             android:textColor="@color/text_color_content"
             android:textSize="@dimen/text_size_content" />
