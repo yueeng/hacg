@@ -1,7 +1,8 @@
 .gradle
 .idea
 *.iml
-*.apk
+/app-release.apk
+/app-release.zip
 /local.properties
 /build
 /captures
