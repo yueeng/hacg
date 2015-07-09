@@ -310,6 +310,7 @@ class InfoFragment extends Fragment {
         url.httpGet.jsoup {
           dom =>
             val entry = dom.select(".entry-content")
+            entry.select(".toggle-box").foreach(_.removeAttr("style"))
             entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
             entry.select("script,.wp-polls-loading").remove()
             entry.select(".wp-polls").foreach(div => {
@@ -323,7 +324,7 @@ class InfoFragment extends Fragment {
             })
 
             entry.select("*").removeAttr("class").removeAttr("style")
-            entry.select("a[href=#]").remove()
+            entry.select("a[href=#]").foreach(i=>i.attr("href", "javascript:void(0)"))
             entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
             entry.select("embed").unwrap()
             entry.select("img").foreach(i => {
@@ -350,7 +351,7 @@ class InfoFragment extends Fragment {
                   _article.title).replace("{{body}}", entry.html()
                   .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
                   .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
-                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">$1</a>$2$3"""))
+                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3"""))
               } else null,
               if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {

@@ -20,6 +20,7 @@
         <item>游戏</item>
         <item>文章</item>
         <item>音乐</item>
+        <item>番剧</item>
     </string-array>
     <string name="comment_refresh">刷新</string>
     <string name="comment_verify">部分字段为空。</string>

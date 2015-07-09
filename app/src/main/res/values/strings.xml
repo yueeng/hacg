@@ -19,6 +19,7 @@
         <item>GAMES</item>
         <item>ARTICLE</item>
         <item>MUSIC</item>
+        <item>ROU</item>
     </string-array>
     <string name="comment_refresh">Refresh</string>
     <string name="comment_verify">Some fields are empty.</string>

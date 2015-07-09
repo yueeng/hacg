@@ -39,7 +39,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html")
+    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou")
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment = {
@@ -255,7 +255,10 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
           dom => (dom.select("article").map(o => new Article(o)).toList,
             dom.select("#wp_page_numbers a").lastOption match {
               case Some(n) if ">" == n.text() => n.attr("abs:href")
-              case _ => null
+              case _ => dom.select("#nav-below .nav-previous a").headOption match {
+                case Some(p) => p.attr("abs:href")
+                case _ => null
+              }
             })
         }
       }
