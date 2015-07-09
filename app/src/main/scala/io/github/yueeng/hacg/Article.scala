@@ -59,8 +59,11 @@ case class Article(title: String,
                    author: Option[Tag],
                    category: Option[Tag],
                    tags: List[Tag]) extends Parcelable {
+  private val defimg = s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
+
   def img = image.contains("ac2668bb905471cd47934f7627983958") match {
-    case true => s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
+    case true => defimg
+    case false if image.isEmpty => defimg
     case _ => image
   }
 
