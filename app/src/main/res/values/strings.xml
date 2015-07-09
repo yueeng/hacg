@@ -34,4 +34,7 @@
     <string name="comment_review_to">Review: %1$s</string>
     <string name="app_about">About</string>
     <string name="app_publish">Publish</string>
+    <string name="app_update">Update</string>
+    <string name="app_update_new">Local version is %1$s, the new version is %2$s</string>
+    <string name="app_update_none">Version %1$s is newest.</string>
 </resources>

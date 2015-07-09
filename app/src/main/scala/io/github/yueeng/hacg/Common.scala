@@ -6,7 +6,8 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 import android.content.DialogInterface.OnDismissListener
-import android.content.{Context, DialogInterface}
+import android.content.{Context, DialogInterface, Intent}
+import android.net.Uri
 import android.os.{AsyncTask, Bundle}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
@@ -36,6 +37,8 @@ object HAcg {
   def HOSTS_=(hosts: Set[String]) = config.edit().putStringSet("system.hosts", hosts).commit()
 
   val DEFAULT_HOSTS = Set("hacg.me", "hacg.be", "hacg.club")
+
+  val release: String = "https://github.com/yueeng/hacg/releases/latest"
 }
 
 object HAcgApplication {
@@ -177,6 +180,27 @@ object Common {
       case e: Exception => e.printStackTrace(); ""
     }
   }
+
+  def versionBefore(local: String, online: String): Boolean = {
+    try {
+      val l = local.split( """\.""").map(_.toInt).toList
+      val o = online.split( """\.""").map(_.toInt).toList
+      for (i <- 0 until Math.min(l.length, o.length)) {
+        if (l(i) < o(i)) {
+          return true
+        }
+      }
+      if (o.length > l.length) {
+        return o.drop(l.length).exists(_ != 0)
+      }
+    } catch {
+      case e: Exception =>
+    }
+    false
+  }
+
+  def openWeb(context: Context, uri: String) =
+    context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 
   val random = new Random(System.currentTimeMillis())
 

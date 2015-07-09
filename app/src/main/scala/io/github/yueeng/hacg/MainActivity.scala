@@ -36,6 +36,47 @@ class MainActivity extends AppCompatActivity {
     val tabs: TabLayout = findViewById(R.id.tab)
     pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
     tabs.setupWithViewPager(pager)
+
+    checkVersion(false)
+  }
+
+  def checkVersion(toast: Boolean = false) = {
+    new ScalaTask[Void, Void, Option[(String, String)]] {
+      override def background(params: Void*): Option[(String, String)] = {
+        HAcg.release.httpGet.jsoup {
+          dom => (
+            dom.select(".css-truncate-target").text(),
+            dom.select(".release-downloads a[href$=.apk]").headOption match {
+              case Some(a) => a.attr("abs:href")
+              case _ => null
+            }
+            )
+        } match {
+          case Some((v: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, u)
+          case _ => None
+        }
+      }
+
+      override def post(result: Option[(String, String)]): Unit = {
+        result match {
+          case Some((v: String, u: String)) =>
+            new Builder(MainActivity.this)
+              .setTitle(R.string.app_update)
+              .setMessage(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
+              .setPositiveButton(R.string.app_update,
+                dialogClick { (d, w) => openWeb(MainActivity.this, u) })
+              .setNeutralButton(R.string.app_publish,
+                dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
+              .setNegativeButton(R.string.app_cancel, null)
+              .create().show()
+          case _ =>
+            if (toast) {
+              Toast.makeText(MainActivity.this, getString(R.string.app_update_none, Common.version(MainActivity.this)), Toast.LENGTH_SHORT).show()
+            }
+        }
+      }
+    }.execute()
+
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
@@ -69,15 +110,14 @@ class MainActivity extends AppCompatActivity {
         true
       case R.id.settings => setHost(); true
       case R.id.about =>
-        new Builder(this).setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
+        new Builder(this)
+          .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
+          .setItems(Array[CharSequence](getString(R.string.app_name)),
+            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.WEB) })
           .setPositiveButton(R.string.app_publish,
-            dialogClick {
-              (d, w) => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/yueeng/hacg/releases")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            })
-          .setNeutralButton(R.string.app_name,
-            dialogClick {
-              (d, w) => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(HAcg.WEB)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            })
+            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
+          .setNeutralButton(R.string.app_update,
+            dialogClick { (d, w) => checkVersion(true) })
           .setNegativeButton(R.string.app_cancel, null)
           .create().show()
         true
