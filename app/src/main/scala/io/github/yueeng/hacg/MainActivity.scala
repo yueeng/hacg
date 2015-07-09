@@ -67,7 +67,19 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.settings => setHost()
+      case R.id.settings => setHost(); true
+      case R.id.about =>
+        new Builder(this).setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
+          .setPositiveButton(R.string.app_publish,
+            dialogClick {
+              (d, w) => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/yueeng/hacg/releases")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            })
+          .setNeutralButton(R.string.app_name,
+            dialogClick {
+              (d, w) => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(HAcg.WEB)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            })
+          .setNegativeButton(R.string.app_cancel, null)
+          .create().show()
         true
       case _ => super.onOptionsItemSelected(item)
     }

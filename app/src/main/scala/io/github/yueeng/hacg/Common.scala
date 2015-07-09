@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface}
-import android.os.{Bundle, AsyncTask}
+import android.os.{AsyncTask, Bundle}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
@@ -169,6 +169,12 @@ object Common {
         case Some(h) => Option(f(h))
         case _ => None
       }
+    }
+  }
+
+  def version(context: Context): String = {
+    try context.getPackageManager.getPackageInfo(context.getPackageName, 0).versionName catch {
+      case e: Exception => e.printStackTrace(); ""
     }
   }
 

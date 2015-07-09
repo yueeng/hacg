@@ -99,11 +99,12 @@ class InfoFragment extends Fragment {
       case _ =>
     }
   }
-  val AUTHOR = "author"
-  val EMAIL = "email"
   val CONFIG_AUTHOR = "config.author"
   val CONFIG_EMAIL = "config.email"
-  val COMMENT = "comment"
+  val AUTHOR = "author"
+  val EMAIL = "email"
+  var COMMENT = "comment"
+  val COMMENTPREFIX = "comment-[a-f0-9]{8}"
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
@@ -372,6 +373,10 @@ class InfoFragment extends Fragment {
               _adapter.notifyDataSetChanged()
 
               _url = data._3
+            }
+            COMMENT = data._4.find(o => o._1.matches(COMMENTPREFIX)) match {
+              case Some(s) => s._1
+              case _ => COMMENT
             }
             val filter = List(AUTHOR, EMAIL, COMMENT)
             _post ++= data._4.filter(o => !filter.contains(o._1))

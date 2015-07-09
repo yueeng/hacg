@@ -31,4 +31,6 @@
     <string name="app_copy">Copy</string>
     <string name="comment_copy">Copyed %1$s</string>
     <string name="comment_review_to">Review: %1$s</string>
+    <string name="app_about">About</string>
+    <string name="app_publish">Publish</string>
 </resources>
