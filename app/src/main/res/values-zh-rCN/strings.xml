@@ -38,4 +38,5 @@
     <string name="app_update">更新</string>
     <string name="app_update_new">本地版本 %1$s，最新版本%2$s。</string>
     <string name="app_update_none">版本 %1$s 已经是最新版本。</string>
+    <string name="app_update_check">检查更新</string>
 </resources>

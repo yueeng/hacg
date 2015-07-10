@@ -116,7 +116,7 @@ class MainActivity extends AppCompatActivity {
             dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.WEB) })
           .setPositiveButton(R.string.app_publish,
             dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
-          .setNeutralButton(R.string.app_update,
+          .setNeutralButton(R.string.app_update_check,
             dialogClick { (d, w) => checkVersion(true) })
           .setNegativeButton(R.string.app_cancel, null)
           .create().show()

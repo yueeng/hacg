@@ -37,4 +37,5 @@
     <string name="app_update">Update</string>
     <string name="app_update_new">Local version is %1$s, the new version is %2$s</string>
     <string name="app_update_none">Version %1$s is newest.</string>
+    <string name="app_update_check">Check update</string>
 </resources>
