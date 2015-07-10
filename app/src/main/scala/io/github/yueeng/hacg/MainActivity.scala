@@ -43,7 +43,7 @@ class MainActivity extends AppCompatActivity {
   def checkVersion(toast: Boolean = false) = {
     new ScalaTask[Void, Void, Option[(String, String)]] {
       override def background(params: Void*): Option[(String, String)] = {
-        HAcg.release.httpGet.jsoup {
+        s"${HAcg.release}/latest".httpGet.jsoup {
           dom => (
             dom.select(".css-truncate-target").text(),
             dom.select(".release-downloads a[href$=.apk]").headOption match {
@@ -63,10 +63,8 @@ class MainActivity extends AppCompatActivity {
             new Builder(MainActivity.this)
               .setTitle(R.string.app_update)
               .setMessage(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
-              .setPositiveButton(R.string.app_update,
-                dialogClick { (d, w) => openWeb(MainActivity.this, u) })
-              .setNeutralButton(R.string.app_publish,
-                dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
+              .setPositiveButton(R.string.app_update, dialogClick { (d, w) => openWeb(MainActivity.this, u) })
+              .setNeutralButton(R.string.app_publish, dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
               .setNegativeButton(R.string.app_cancel, null)
               .create().show()
           case _ =>

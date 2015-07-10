@@ -38,7 +38,7 @@ object HAcg {
 
   val DEFAULT_HOSTS = Set("hacg.me", "hacg.be", "hacg.club")
 
-  val release: String = "https://github.com/yueeng/hacg/releases/latest"
+  val release: String = "https://github.com/yueeng/hacg/releases"
 }
 
 object HAcgApplication {
