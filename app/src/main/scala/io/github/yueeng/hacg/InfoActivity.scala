@@ -149,6 +149,7 @@ class InfoFragment extends Fragment {
     list.setLayoutManager(new FullyLinearLayoutManager(getActivity))
     list.setAdapter(_adapter)
 
+    val drawer: DrawerLayout = root.findViewById(R.id.drawer)
     list.addOnScrollListener(new OnScrollListener {
       override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
         (state, _url, list.getLayoutManager) match {
@@ -157,19 +158,33 @@ class InfoFragment extends Fragment {
             query(url, QUERY_COMMENT)
           case _ =>
         }
+        state match {
+          case RecyclerView.SCROLL_STATE_IDLE => drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+          case _ => drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN)
+        }
       }
     })
 
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.menu1).map(root.findViewById).foreach {
-      case m: FloatingActionMenu =>
-        m.setMenuButtonColorNormal(randomColor())
-        m.setMenuButtonColorPressed(randomColor())
-        m.setMenuButtonColorRipple(randomColor())
+    val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
+    menu.setMenuButtonColorNormal(randomColor())
+    menu.setMenuButtonColorPressed(randomColor())
+    menu.setMenuButtonColorRipple(randomColor())
+    val click = viewClick { v =>
+      v.getId match {
+        case R.id.button1 => Common.openWeb(getActivity, _article.link)
+        case R.id.button2 => drawer.openDrawer(GravityCompat.END)
+        case R.id.button3 => comment(null)
+      }
+      menu.close(true)
+    }
+
+    List(R.id.button1, R.id.button2, R.id.button3).map(root.findViewById).foreach {
       case b: FloatingActionButton =>
         b.setColorNormal(randomColor())
         b.setColorPressed(randomColor())
         b.setColorRipple(randomColor())
         b.setOnClickListener(click)
+      case _ =>
     }
 
     _progress.view = root.findViewById(R.id.progress)
@@ -198,15 +213,6 @@ class InfoFragment extends Fragment {
     })
     _web.view = web
     root
-  }
-
-  lazy val click = viewClick { v =>
-    v.getId match {
-      case R.id.button1 => startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(_article.link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-      case R.id.button2 => getView.findViewById(R.id.drawer).asInstanceOf[DrawerLayout].openDrawer(GravityCompat.END)
-      case R.id.button3 => comment(null)
-    }
-    getView.findViewById(R.id.menu1).asInstanceOf[FloatingActionMenu].close(true)
   }
 
   def onBackPressed: Boolean = {
@@ -324,7 +330,7 @@ class InfoFragment extends Fragment {
             })
 
             entry.select("*").removeAttr("class").removeAttr("style")
-            entry.select("a[href=#]").foreach(i=>i.attr("href", "javascript:void(0)"))
+            entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
             entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
             entry.select("embed").unwrap()
             entry.select("img").foreach(i => {
