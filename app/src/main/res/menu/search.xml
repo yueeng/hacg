@@ -7,6 +7,11 @@
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/philosophy"
+        android:icon="@drawable/philosophy"
+        android:title="@string/app_philosophy"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/search_clear"
         android:icon="@android:drawable/ic_menu_close_clear_cancel"
         android:title="@string/app_search_clear"

@@ -20,6 +20,7 @@
         <item>ARTICLE</item>
         <item>MUSIC</item>
         <item>ROU</item>
+        <item>Philosophy</item>
     </string-array>
     <string name="comment_refresh">Refresh</string>
     <string name="comment_verify">Some fields are empty.</string>
@@ -38,4 +39,5 @@
     <string name="app_update_new">Local version is %1$s, the new version is %2$s</string>
     <string name="app_update_none">Version %1$s is newest.</string>
     <string name="app_update_check">Check update</string>
+    <string name="app_philosophy">Philosophy</string>
 </resources>

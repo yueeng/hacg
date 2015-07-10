@@ -7,6 +7,7 @@ import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
 import android.support.design.widget.TabLayout
 import android.support.v4.app._
+import android.support.v4.view.ViewPager.SimpleOnPageChangeListener
 import android.support.v4.view.{MenuItemCompat, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
@@ -19,7 +20,8 @@ import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
-import android.widget.{EditText, ImageView, TextView, Toast}
+import android.webkit.{WebChromeClient, WebView, WebViewClient}
+import android.widget._
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
 
@@ -27,16 +29,39 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 class MainActivity extends AppCompatActivity {
+  lazy val pager: ViewPager = findViewById(R.id.container)
+
   protected override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
-    val pager: ViewPager = findViewById(R.id.container)
+
     val tabs: TabLayout = findViewById(R.id.tab)
-    pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
+    val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
+    pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
 
+    val button = findViewById(R.id.button1)
+
+    def resetbutton() = {
+      button.setVisibility(if (pager.getCurrentItem == pager.getAdapter.getCount - 1) View.VISIBLE else View.GONE)
+    }
+    resetbutton()
+    pager.addOnPageChangeListener(new SimpleOnPageChangeListener() {
+      override def onPageSelected(position: Int): Unit = {
+        resetbutton()
+      }
+    })
+
+    button.setOnClickListener(
+      viewClick {
+        v => adapter.current match {
+          case web: WebFragment => web.back()
+          case _ =>
+        }
+      }
+    )
     checkVersion(false)
   }
 
@@ -78,16 +103,25 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou")
+    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou", HAcg.philosophy)
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
-    override def getItem(position: Int): Fragment = {
-      new ArticleFragment().arguments(new Bundle().string("url", data(position)))
-    }
+    override def getItem(position: Int): Fragment =
+      (data(position) match {
+        case HAcg.`philosophy` => new WebFragment()
+        case _ => new ArticleFragment()
+      }).arguments(new Bundle().string("url", data(position)))
 
     override def getCount: Int = data.size
 
     override def getPageTitle(position: Int): CharSequence = title(position)
+
+    var current: Fragment = _
+
+    override def setPrimaryItem(container: ViewGroup, position: Int, `object`: scala.Any): Unit = {
+      super.setPrimaryItem(container, position, `object`)
+      current = `object`.asInstanceOf[Fragment]
+    }
   }
 
 
@@ -107,6 +141,7 @@ class MainActivity extends AppCompatActivity {
         suggestions.clearHistory()
         true
       case R.id.settings => setHost(); true
+      case R.id.philosophy => pager.setCurrentItem(pager.getAdapter.getCount - 1); true
       case R.id.about =>
         new Builder(this)
           .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
@@ -154,6 +189,57 @@ class MainActivity extends AppCompatActivity {
       .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts() })
       .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => HAcg.HOST = hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString })
       .create().show()
+  }
+}
+
+class WebFragment extends Fragment {
+
+  var uri: String = _
+  lazy val defuri = getArguments.getString("url")
+  lazy val web: WebView = getView.findViewById(R.id.web)
+//  lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
+
+  override def onCreate(state: Bundle): Unit = {
+    super.onCreate(state)
+    setRetainInstance(true)
+    uri = if (state != null && state.containsKey("url")) state.getString("url") else defuri
+  }
+
+  def back() = (web.canGoBack, uri) match {
+    case (_, `defuri`) =>
+    case (true, _) => web.goBack()
+    case _ => web.loadUrl(defuri)
+  }
+
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
+    val root = inflater.inflate(R.layout.fragment_web, container, false)
+    val web: WebView = root.findViewById(R.id.web)
+    web.getSettings.setJavaScriptEnabled(true)
+    web.setWebViewClient(new WebViewClient() {
+      override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
+        view.loadUrl(url)
+//        progress.setProgress(0)
+        true
+      }
+
+      override def onPageFinished(view: WebView, url: String): Unit = {
+        super.onPageFinished(view, url)
+        uri = url
+//        progress.setProgress(100)
+      }
+    })
+//    web.setWebChromeClient(new WebChromeClient() {
+//      override def onProgressChanged(view: WebView, newProgress: Int): Unit = {
+//        progress.setProgress(newProgress)
+//      }
+//    })
+
+    web.loadUrl(uri)
+    root
+  }
+
+  override def onSaveInstanceState(state: Bundle): Unit = {
+    state.putString("url", uri)
   }
 }
 
