@@ -197,7 +197,7 @@ class WebFragment extends Fragment {
   var uri: String = _
   lazy val defuri = getArguments.getString("url")
   lazy val web: WebView = getView.findViewById(R.id.web)
-//  lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
+  lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
 
   override def onCreate(state: Bundle): Unit = {
     super.onCreate(state)
@@ -218,21 +218,21 @@ class WebFragment extends Fragment {
     web.setWebViewClient(new WebViewClient() {
       override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
         view.loadUrl(url)
-//        progress.setProgress(0)
+        progress.setProgress(0)
         true
       }
 
       override def onPageFinished(view: WebView, url: String): Unit = {
         super.onPageFinished(view, url)
         uri = url
-//        progress.setProgress(100)
+        progress.setProgress(100)
       }
     })
-//    web.setWebChromeClient(new WebChromeClient() {
-//      override def onProgressChanged(view: WebView, newProgress: Int): Unit = {
-//        progress.setProgress(newProgress)
-//      }
-//    })
+    web.setWebChromeClient(new WebChromeClient() {
+      override def onProgressChanged(view: WebView, newProgress: Int): Unit = {
+        progress.setProgress(newProgress)
+      }
+    })
 
     web.loadUrl(uri)
     root
