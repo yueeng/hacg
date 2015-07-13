@@ -23,7 +23,19 @@ case class Tag(name: String, url: String) extends Parcelable {
   }
 }
 
-case class Comment(id: Int, content: String, user: String, face: String, time: Option[Date], children: List[Comment]) extends Parcelable {
+object Tag {
+
+  val CREATOR: Parcelable.Creator[Tag] = new Parcelable.Creator[Tag] {
+    override def createFromParcel(source: Parcel): Tag = new Tag(
+      source.readString(),
+      source.readString()
+    )
+
+    override def newArray(size: Int): Array[Tag] = new Array[Tag](size)
+  }
+}
+
+case class Comment(id: Int, content: String, user: String, face: String, moderation: String, time: Option[Date], children: List[Comment]) extends Parcelable {
   def this(e: Element) = {
     this(
       Comment.ID.findPrefixMatchOf(e.select(">article").attr("id")) match {
@@ -33,6 +45,7 @@ case class Comment(id: Int, content: String, user: String, face: String, time: O
       e.select(">article .comment-content").text(),
       e.select(">article .fn").text(),
       e.select(">article .avatar").attr("abs:src"),
+      e.select(">article footer>.comment-awaiting-moderation").text(),
       e.select(">article time").attr("datetime"),
       e.select(">.children>li").map(e => new Comment(e)).toList
     )
@@ -45,8 +58,29 @@ case class Comment(id: Int, content: String, user: String, face: String, time: O
     dest.writeString(content)
     dest.writeString(user)
     dest.writeString(face)
+    dest.writeString(moderation)
     dest.writeLong(if (time.nonEmpty) time.get.getTime else 0)
     dest.writeParcelableArray(children.toArray, flags)
+  }
+}
+
+object Comment {
+  val ID = """comment-(\d+)""".r
+  val CREATOR: Parcelable.Creator[Comment] = new Parcelable.Creator[Comment] {
+    override def createFromParcel(source: Parcel): Comment = new Comment(
+      source.readInt(),
+      source.readString(),
+      source.readString(),
+      source.readString(),
+      source.readString(),
+      source.readLong() match {
+        case 0 => None
+        case l => Option(new Date(l))
+      },
+      source.readParcelableArray(classOf[Comment].getClassLoader).map(_.asInstanceOf[Comment]).toList
+    )
+
+    override def newArray(size: Int): Array[Comment] = new Array[Comment](size)
   }
 }
 
@@ -97,37 +131,6 @@ case class Article(title: String,
     dest.writeParcelable(author.orNull, flags)
     dest.writeParcelable(category.orNull, flags)
     dest.writeParcelableArray(tags.toArray, flags)
-  }
-}
-
-object Tag {
-
-  val CREATOR: Parcelable.Creator[Tag] = new Parcelable.Creator[Tag] {
-    override def createFromParcel(source: Parcel): Tag = new Tag(
-      source.readString(),
-      source.readString()
-    )
-
-    override def newArray(size: Int): Array[Tag] = new Array[Tag](size)
-  }
-}
-
-object Comment {
-  val ID = """comment-(\d+)""".r
-  val CREATOR: Parcelable.Creator[Comment] = new Parcelable.Creator[Comment] {
-    override def createFromParcel(source: Parcel): Comment = new Comment(
-      source.readInt(),
-      source.readString(),
-      source.readString(),
-      source.readString(),
-      source.readLong() match {
-        case 0 => None
-        case l => Option(new Date(l))
-      },
-      source.readParcelableArray(classOf[Comment].getClassLoader).map(_.asInstanceOf[Comment]).toList
-    )
-
-    override def newArray(size: Int): Array[Comment] = new Array[Comment](size)
   }
 }
 

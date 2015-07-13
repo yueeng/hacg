@@ -1,7 +1,6 @@
 package io.github.yueeng.hacg
 
 import android.content.Context
-import android.support.v4.app.{FragmentManager, FragmentStatePagerAdapter}
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view.{View, ViewGroup}
 import io.github.yueeng.hacg.Common.viewClick
@@ -114,9 +113,5 @@ object ViewEx {
 
     override def refresh(): Unit = view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
   }
-
-}
-
-abstract class HacgFragmentStatePagerAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm){
 
 }

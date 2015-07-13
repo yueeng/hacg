@@ -287,6 +287,10 @@ class InfoFragment extends Fragment {
                 _progress2.value = false
                 if (result._1) {
                   _post(COMMENT) = ""
+                  _url = null
+                  _adapter.data.clear()
+                  _adapter.notifyDataSetChanged()
+                  query(_article.link, QUERY_COMMENT)
                 }
                 Toast.makeText(getActivity, result._2, Toast.LENGTH_LONG).show()
               }
@@ -353,7 +357,7 @@ class InfoFragment extends Fragment {
                 .removeAttr("height")
             })
             (
-              if (content) using(scala.io.Source.fromInputStream(HAcgApplication.context.getAssets.open("template.html"))) {
+              if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}",
                   _article.title).replace("{{body}}", entry.html()
                   .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
@@ -378,6 +382,7 @@ class InfoFragment extends Fragment {
               _web.value = (data._1, url)
             }
             if (comment) {
+              data._2.filter(_.moderation.isNonEmpty).foreach(println)
               _adapter.data ++= data._2
               _adapter.notifyDataSetChanged()
 
@@ -405,6 +410,7 @@ class InfoFragment extends Fragment {
     val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
     val text3: TextView = view.findViewById(R.id.text3)
+    val text4: TextView = view.findViewById(R.id.text4)
     val image: ImageView = view.findViewById(R.id.image1)
     val list: RecyclerView = view.findViewById(R.id.list1)
     val adapter = new CommentAdapter
@@ -425,7 +431,9 @@ class InfoFragment extends Fragment {
       holder.text1.setText(item.user)
       holder.text2.setText(item.content)
       holder.text3.setText(item.time.map(datafmt.format).orNull)
-      holder.text3.setVisibility(if (item.time.nonEmpty) View.VISIBLE else View.GONE)
+      holder.text3.setVisibility(if (item.time.isEmpty) View.GONE else View.VISIBLE)
+      holder.text4.setText(item.moderation)
+      holder.text4.setVisibility(if (item.moderation.isNullOrEmpty) View.GONE else View.VISIBLE)
       holder.adapter.data.clear()
       holder.adapter.data ++= item.children
       holder.adapter.notifyDataSetChanged()
