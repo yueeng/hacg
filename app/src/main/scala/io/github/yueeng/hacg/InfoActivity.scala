@@ -148,6 +148,7 @@ class InfoFragment extends Fragment {
     _error.image = root.findViewById(R.id.image1)
     val list: RecyclerView = root.findViewById(R.id.list1)
     list.setLayoutManager(new FullyLinearLayoutManager(getActivity))
+    list.setHasFixedSize(true)
     list.setAdapter(_adapter)
 
     val drawer: DrawerLayout = root.findViewById(R.id.drawer)
@@ -417,6 +418,7 @@ class InfoFragment extends Fragment {
     val context = view.getContext
     list.setAdapter(adapter)
     list.setLayoutManager(new FullyLinearLayoutManager(context))
+    list.setHasFixedSize(true)
     view.setOnClickListener(_click)
   }
 

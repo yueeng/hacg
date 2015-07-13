@@ -354,8 +354,8 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
     val layout = new StaggeredGridLayoutManager(getResources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
     recycler.setLayoutManager(layout)
+    recycler.setHasFixedSize(true)
     recycler.setAdapter(adapter)
-
     recycler.addOnScrollListener(new OnScrollListener {
       override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit =
         (state, url, recycler.getLayoutManager) match {
