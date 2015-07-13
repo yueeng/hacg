@@ -103,6 +103,7 @@ class InfoFragment extends Fragment {
   val CONFIG_EMAIL = "config.email"
   val AUTHOR = "author"
   val EMAIL = "email"
+  var COMMENTURL = ""
   var COMMENT = "comment"
   val COMMENTPREFIX = "comment-[a-f0-9]{8}"
 
@@ -264,7 +265,7 @@ class InfoFragment extends Fragment {
       .setPositiveButton(R.string.comment_submit,
         dialogClick { (d, w) =>
           fill
-          if (List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
+          if (COMMENTURL.isEmpty || List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
             _progress2.value = true
@@ -272,7 +273,7 @@ class InfoFragment extends Fragment {
             new ScalaTask[Map[String, String], Void, R] {
               override def background(params: Map[String, String]*): R = {
                 val data = params.head
-                s"${HAcg.WORDPRESS}/wp-comments-post.php".httpPost(data).jsoup match {
+                COMMENTURL.httpPost(data).jsoup match {
                   case Some(dom) =>
                     dom.select("#error-page").headOption match {
                       case Some(e) => (false, e.text())
@@ -310,7 +311,7 @@ class InfoFragment extends Fragment {
     val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
     _progress.value = content
     _progress2.value = true
-    type R = Option[(String, List[Comment], String, Map[String, String])]
+    type R = Option[(String, List[Comment], String, Map[String, String], String)]
     new ScalaTask[Void, Void, R] {
       override def background(params: Void*): R = {
         url.httpGet.jsoup {
@@ -364,7 +365,8 @@ class InfoFragment extends Fragment {
                 case Some(a) => a.attr("abs:href")
                 case _ => null
               },
-              dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap
+              dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
+              dom.select("#commentform").attr("abs:action")
               )
         }
       }
@@ -387,6 +389,8 @@ class InfoFragment extends Fragment {
             }
             val filter = List(AUTHOR, EMAIL, COMMENT)
             _post ++= data._4.filter(o => !filter.contains(o._1))
+
+            COMMENTURL = data._5
           case _ => _error.error = _web.value == null
         }
         _progress.value = false
