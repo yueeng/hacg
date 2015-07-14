@@ -49,8 +49,8 @@ class FullyLinearLayoutManager(context: Context) extends LinearLayoutManager(con
     recycler.bindViewToPosition(view, position)
     if (view != null) {
       val p = view.getLayoutParams.asInstanceOf[RecyclerView.LayoutParams]
-      val childWidthSpec = ViewGroup.getChildMeasureSpec(widthSpec, getPaddingLeft + getPaddingRight, p.width)
-      val childHeightSpec = ViewGroup.getChildMeasureSpec(heightSpec, getPaddingTop + getPaddingBottom, p.height)
+      val childWidthSpec = ViewGroup.getChildMeasureSpec(widthSpec, getPaddingLeft + getPaddingRight + p.leftMargin + p.rightMargin, p.width)
+      val childHeightSpec = ViewGroup.getChildMeasureSpec(heightSpec, getPaddingTop + getPaddingBottom + p.topMargin + p.bottomMargin, p.height)
       view.measure(childWidthSpec, childHeightSpec)
       measuredDimension(0) = view.getMeasuredWidth + p.leftMargin + p.rightMargin
       measuredDimension(1) = view.getMeasuredHeight + p.bottomMargin + p.topMargin

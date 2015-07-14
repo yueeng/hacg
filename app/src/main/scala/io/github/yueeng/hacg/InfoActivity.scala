@@ -147,7 +147,7 @@ class InfoFragment extends Fragment {
 
     _error.image = root.findViewById(R.id.image1)
     val list: RecyclerView = root.findViewById(R.id.list1)
-    list.setLayoutManager(new FullyLinearLayoutManager(getActivity))
+    list.setLayoutManager(new LinearLayoutManager(getActivity))
     list.setHasFixedSize(true)
     list.setAdapter(_adapter)
 
