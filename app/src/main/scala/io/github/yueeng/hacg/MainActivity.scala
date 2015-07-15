@@ -44,14 +44,12 @@ class MainActivity extends AppCompatActivity {
 
     val button = findViewById(R.id.button1)
 
-    def resetbutton() = {
+    def reset() =
       button.setVisibility(if (pager.getCurrentItem == pager.getAdapter.getCount - 1) View.VISIBLE else View.GONE)
-    }
-    resetbutton()
+
+    reset()
     pager.addOnPageChangeListener(new SimpleOnPageChangeListener() {
-      override def onPageSelected(position: Int): Unit = {
-        resetbutton()
-      }
+      override def onPageSelected(position: Int): Unit = reset()
     })
 
     button.setOnClickListener(

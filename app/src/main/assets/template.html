@@ -2,7 +2,7 @@
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8"/>
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
     <title>{{title}}</title>
     <style type="text/css">
@@ -17,6 +17,22 @@
             font-size: 1.5em;
         }
 
+        h2 {
+            font-size: 1.4em;
+        }
+
+        h3 {
+            font-size: 1.3em;
+        }
+
+        h4 {
+            font-size: 1.2em;
+        }
+
+        h5 {
+            font-size: 1.1em;
+        }
+
         pre {
             white-space: pre-wrap;
         }
@@ -28,22 +44,49 @@
         a {
             color: #20C6EF;
         }
+
         audio {
+            width: 100%;
+        }
+
+        video {
             width: 100%;
         }
     </style>
     <script src="file:///android_asset/jquery-1.11.2.min.js"></script>
     <script src="file:///android_asset/jquery.lazyload.min.js"></script>
     <script>
-    $(function(){
-        $("img.lazy").lazyload({
-            placeholder: "file:///android_res/drawable/loading.jpg"
+        $(function () {
+            $("img.lazy").lazyload({
+                placeholder: "file:///android_res/drawable/loading.jpg"
+            });
         });
-    });
+        var tip = true;
+        function addVideo(w, h, s, n, d) {
+            var prefix = "file=";
+            if (s.substr(0, prefix.length) == prefix) {
+                var src = s.substr(prefix.length, s.length - prefix.length);
+                var pos = src.indexOf("&amp;");
+                if (pos >= 0 && src.substr(0, pos).indexOf("?") == -1) {
+                    src = src.substr(0, pos) + "?" + src.substr(pos + 5, src.length - pos - 5);
+                }
+                if (tip) {
+                    tip = false;
+                    document.write('<p>是否能在线播放视频取决于手机对该视频格式的支持，不能在线播放可直接下载视频文件。</p>');
+                }
+                document.write('<h5>播放：<a href="javascript:window.hacg.play(\'' + src + '\')">' + n + '</a>&nbsp;[<a href="' + src + '">下载</a>]</h5>');
+                if (d.length > 0) {
+                    document.write('<p>' + d + '</p>');
+                }
+            }
+        }
+        function renderVideo() {
+        }
     </script>
 </head>
 <body>
-    <h1>{{title}}</h1>
-    <div>{{body}}</div>
+<h1>{{title}}</h1>
+
+<div>{{body}}</div>
 </body>
 </html>

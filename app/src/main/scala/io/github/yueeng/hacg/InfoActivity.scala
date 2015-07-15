@@ -16,7 +16,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
-import android.webkit.{WebView, WebViewClient}
+import android.webkit.{JavascriptInterface, WebView, WebViewClient}
 import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
@@ -192,9 +192,6 @@ class InfoFragment extends Fragment {
     _progress.view = root.findViewById(R.id.progress)
     _progress2.view = root.findViewById(R.id.swipe)
 
-    //    _progress.view.setOnRefreshListener(new OnRefreshListener {
-    //      override def onRefresh(): Unit = query(_article.link, QUERY_WEB)
-    //    })
     _progress2.view.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
         _url = null
@@ -213,8 +210,17 @@ class InfoFragment extends Fragment {
         true
       }
     })
+    web.addJavascriptInterface(new JsFace(), "hacg")
     _web.view = web
     root
+  }
+
+  class JsFace {
+    @JavascriptInterface
+    def play(url: String): Unit = {
+      startActivity(new Intent(Intent.ACTION_VIEW)
+        .setDataAndType(Uri.parse(url), "video/mp4"))
+    }
   }
 
   def onBackPressed: Boolean = {
@@ -324,7 +330,8 @@ class InfoFragment extends Fragment {
             val entry = dom.select(".entry-content")
             entry.select(".toggle-box").foreach(_.removeAttr("style"))
             entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
-            entry.select("script,.wp-polls-loading").remove()
+            entry.select(".wp-polls-loading").remove()
+            entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
             entry.select(".wp-polls").foreach(div => {
               val node = if (div.parent.attr("class") != "entry-content") div.parent else div
               val name = div.select("strong").headOption match {
