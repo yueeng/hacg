@@ -217,9 +217,9 @@ class InfoFragment extends Fragment {
 
   class JsFace {
     @JavascriptInterface
-    def play(url: String): Unit = {
-      startActivity(new Intent(Intent.ACTION_VIEW)
-        .setDataAndType(Uri.parse(url), "video/mp4"))
+    def play(name: String, url: String): Unit = {
+      startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW)
+        .setDataAndType(Uri.parse(url), "video/mp4"), name))
     }
   }
 

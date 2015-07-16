@@ -74,7 +74,7 @@
                     tip = false;
                     document.write('<p>是否能在线播放视频取决于手机对该视频格式的支持，不能在线播放可直接下载视频文件。</p>');
                 }
-                document.write('<h5>播放：<a href="javascript:window.hacg.play(\'' + src + '\')">' + n + '</a>&nbsp;[<a href="' + src + '">下载</a>]</h5>');
+                document.write('<h5>播放：<a href="javascript:window.hacg.play(\'' + n + '\', \'' + src + '\')">' + n + '</a>&nbsp;[<a href="' + src + '">下载</a>]</h5>');
                 if (d.length > 0) {
                     document.write('<p>' + d + '</p>');
                 }
