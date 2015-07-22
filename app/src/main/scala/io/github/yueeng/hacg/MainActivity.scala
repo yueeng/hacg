@@ -5,9 +5,8 @@ import android.content._
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
-import android.support.design.widget.TabLayout
+import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
-import android.support.v4.view.ViewPager.SimpleOnPageChangeListener
 import android.support.v4.view.{MenuItemCompat, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
@@ -42,25 +41,13 @@ class MainActivity extends AppCompatActivity {
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
 
-    val button = findViewById(R.id.button1)
-
-    def reset() =
-      button.setVisibility(if (pager.getCurrentItem == pager.getAdapter.getCount - 1) View.VISIBLE else View.GONE)
-
-    reset()
-    pager.addOnPageChangeListener(new SimpleOnPageChangeListener() {
-      override def onPageSelected(position: Int): Unit = reset()
-    })
-
-    button.setOnClickListener(
-      viewClick {
-        v => adapter.current match {
-          case web: WebFragment => web.back()
-          case _ =>
-        }
-      }
-    )
     checkVersion(false)
+  }
+
+  override def onBackPressed(): Unit = {
+    Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
+      .setAction(R.string.app_exit, viewClick { v => finishAfterTransition() })
+      .show()
   }
 
   def checkVersion(toast: Boolean = false) = {
@@ -203,16 +190,12 @@ class WebFragment extends Fragment {
     uri = if (state != null && state.containsKey("url")) state.getString("url") else defuri
   }
 
-  def back() = (web.canGoBack, uri) match {
-    case (_, `defuri`) =>
-    case (true, _) => web.goBack()
-    case _ => web.loadUrl(defuri)
-  }
-
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_web, container, false)
     val web: WebView = root.findViewById(R.id.web)
     web.getSettings.setJavaScriptEnabled(true)
+    val back = root.findViewById(R.id.button2)
+    val fore = root.findViewById(R.id.button3)
     web.setWebViewClient(new WebViewClient() {
       override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
         view.loadUrl(url)
@@ -224,6 +207,9 @@ class WebFragment extends Fragment {
         super.onPageFinished(view, url)
         uri = url
         progress.setProgress(100)
+
+        back.setEnabled(view.canGoBack)
+        fore.setEnabled(view.canGoForward)
       }
     })
     web.setWebChromeClient(new WebChromeClient() {
@@ -231,6 +217,17 @@ class WebFragment extends Fragment {
         progress.setProgress(newProgress)
       }
     })
+
+    val click = viewClick {
+      v => v.getId match {
+        case R.id.button1 => web.loadUrl(defuri)
+        case R.id.button2 => if (web.canGoBack) web.goBack()
+        case R.id.button3 => if (web.canGoForward) web.goForward()
+        case R.id.button4 => web.loadUrl(uri)
+      }
+    }
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
+      .map(root.findViewById).foreach(_.setOnClickListener(click))
 
     web.loadUrl(uri)
     root

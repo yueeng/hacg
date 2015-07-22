@@ -41,4 +41,5 @@
     <string name="app_update_none">版本 %1$s 已经是最新版本。</string>
     <string name="app_update_check">检查更新</string>
     <string name="app_philosophy">哲学</string>
+    <string name="app_exit">退出</string>
 </resources>

@@ -16,7 +16,8 @@
 
     <android.support.v4.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <WebView
             android:id="@+id/web"
@@ -24,4 +25,45 @@
             android:layout_height="match_parent" />
     </android.support.v4.widget.NestedScrollView>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#000">
+
+        <ImageView
+            android:id="@+id/button1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/web_button_background"
+            android:padding="5dp"
+            android:src="@drawable/ic_home" />
+
+        <ImageView
+            android:id="@+id/button2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/web_button_background"
+            android:padding="5dp"
+            android:src="@drawable/ic_back" />
+
+        <ImageView
+            android:id="@+id/button3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/web_button_background"
+            android:padding="5dp"
+            android:src="@drawable/ic_fore" />
+
+        <ImageView
+            android:id="@+id/button4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/web_button_background"
+            android:padding="5dp"
+            android:src="@drawable/ic_refresh" />
+    </LinearLayout>
 </LinearLayout>
