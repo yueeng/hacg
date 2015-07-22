@@ -8,8 +8,8 @@ import android.provider.SearchRecentSuggestions
 import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
 import android.support.v4.view.{MenuItemCompat, ViewPager}
-import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
+import android.support.v4.widget.{NestedScrollView, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView.OnScrollListener
@@ -237,8 +237,12 @@ class WebFragment extends Fragment {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_web, container, false)
+    val nested: NestedScrollView = root.findViewById(R.id.nested)
     val web: WebView = root.findViewById(R.id.web)
-    web.getSettings.setJavaScriptEnabled(true)
+    val settings = web.getSettings
+    settings.setJavaScriptEnabled(true)
+    settings.setUseWideViewPort(true)
+    settings.setLoadWithOverviewMode(true)
     val back = root.findViewById(R.id.button2)
     val fore = root.findViewById(R.id.button3)
     web.setWebViewClient(new WebViewClient() {
@@ -250,6 +254,7 @@ class WebFragment extends Fragment {
 
       override def onPageFinished(view: WebView, url: String): Unit = {
         super.onPageFinished(view, url)
+        nested.scrollTo(0, 0)
         uri = url
         progress.setProgress(100)
 

@@ -15,6 +15,7 @@
         android:progressDrawable="@drawable/progress" />
 
     <android.support.v4.widget.NestedScrollView
+        android:id="@+id/nested"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
