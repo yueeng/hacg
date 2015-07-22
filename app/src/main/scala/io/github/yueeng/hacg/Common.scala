@@ -25,25 +25,30 @@ import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.util.Random
 
 object HAcg {
-  val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
+  private val SYSTEM_HOST: String = "system.host"
+  private val SYSTEM_HOSTS: String = "system.hosts"
+  private val SYSTEM_PHILOSOPHY: String = "system.philosophy"
+  private val SYSTEM_PHILOSOPHY_HOSTS: String = "system.philosophy_hosts"
 
-  def HOST = config.getString("system.host", "hacg.me")
+  val DEFAULT_HOSTS = List("hacg.me", "hacg.be", "hacg.club")
+  val DEFAULT_PHILOSOPHY_HOSTS = List("www.zhexue.in","bbs.hacg.me")
 
-  def HOST_=(host: String) = config.edit().putString("system.host", host).commit()
+  val RELEASE = "https://github.com/yueeng/hacg/releases"
+  
+  private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
 
-  def WEB = s"http://www.$HOST"
+  def host = config.getString(SYSTEM_HOST, DEFAULT_HOSTS.head)
+  def host_=(host: String) = config.edit().putString(SYSTEM_HOST, host).commit()
+  def hosts = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS.toSet[String]).toSet
+  def hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_HOSTS, hosts).commit()
+  def web = s"http://www.$host"
+  def wordpress = s"$web/wordpress"
 
-  def WORDPRESS = s"$WEB/wordpress"
-
-  def HOSTS = config.getStringSet("system.hosts", DEFAULT_HOSTS)
-
-  def HOSTS_=(hosts: Set[String]) = config.edit().putStringSet("system.hosts", hosts).commit()
-
-  val DEFAULT_HOSTS = Set("hacg.me", "hacg.be", "hacg.club")
-
-  val release = "https://github.com/yueeng/hacg/releases"
-
-  val philosophy = "http://www.zhexue.in/m"
+  def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
+  def philosophy_host_=(host: String) = config.edit().putString(SYSTEM_PHILOSOPHY, host).commit()
+  def philosophy_hosts = config.getStringSet(SYSTEM_PHILOSOPHY_HOSTS, DEFAULT_PHILOSOPHY_HOSTS.toSet[String]).toSet
+  def philosophy_hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_PHILOSOPHY_HOSTS, hosts).commit()
+  def philosophy = s"http://$philosophy_host/m"
 }
 
 object HAcgApplication {

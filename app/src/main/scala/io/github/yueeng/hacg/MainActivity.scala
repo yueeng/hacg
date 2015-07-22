@@ -46,14 +46,14 @@ class MainActivity extends AppCompatActivity {
 
   override def onBackPressed(): Unit = {
     Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
-      .setAction(R.string.app_exit, viewClick { v => finishAfterTransition() })
+      .setAction(R.string.app_exit, viewClick { v => ActivityCompat.finishAfterTransition(MainActivity.this) })
       .show()
   }
 
   def checkVersion(toast: Boolean = false) = {
     new ScalaTask[Void, Void, Option[(String, String)]] {
       override def background(params: Void*): Option[(String, String)] = {
-        s"${HAcg.release}/latest".httpGet.jsoup {
+        s"${HAcg.RELEASE}/latest".httpGet.jsoup {
           dom => (
             dom.select(".css-truncate-target").text(),
             dom.select(".release-downloads a[href$=.apk]").headOption match {
@@ -74,7 +74,7 @@ class MainActivity extends AppCompatActivity {
               .setTitle(R.string.app_update)
               .setMessage(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
               .setPositiveButton(R.string.app_update, dialogClick { (d, w) => openWeb(MainActivity.this, u) })
-              .setNeutralButton(R.string.app_publish, dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
+              .setNeutralButton(R.string.app_publish, dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
               .setNegativeButton(R.string.app_cancel, null)
               .create().show()
           case _ =>
@@ -88,12 +88,13 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou", HAcg.philosophy)
+    val philosophy = HAcg.philosophy
+    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou", philosophy)
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment =
       (data(position) match {
-        case HAcg.`philosophy` => new WebFragment()
+        case `philosophy` => new WebFragment()
         case _ => new ArticleFragment()
       }).arguments(new Bundle().string("url", data(position)))
 
@@ -108,7 +109,6 @@ class MainActivity extends AppCompatActivity {
       current = `object`.asInstanceOf[Fragment]
     }
   }
-
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
     getMenuInflater.inflate(R.menu.search, menu)
@@ -125,15 +125,15 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.settings => setHost(); true
+      case R.id.settings => settings(); true
       case R.id.philosophy => pager.setCurrentItem(pager.getAdapter.getCount - 1); true
       case R.id.about =>
         new Builder(this)
           .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
           .setItems(Array[CharSequence](getString(R.string.app_name)),
-            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.WEB) })
+            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.web) })
           .setPositiveButton(R.string.app_publish,
-            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.release) })
+            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
           .setNeutralButton(R.string.app_update_check,
             dialogClick { (d, w) => checkVersion(true) })
           .setNegativeButton(R.string.app_cancel, null)
@@ -143,44 +143,89 @@ class MainActivity extends AppCompatActivity {
     }
   }
 
-  def setHosts(): Unit = {
-    val edit = new EditText(this)
-    edit.setHint(R.string.settings_host_sample)
+  def settings(): Unit = {
+    val items = Array[CharSequence](getString(R.string.settings_host), getString(R.string.settings_philosophy_host))
     new Builder(this)
-      .setTitle(R.string.settings_host)
+      .setTitle(R.string.app_settings)
+      .setItems(items,
+        dialogClick {
+          (d, w) => w match {
+            case 0 => setHost()
+            case 1 => setPhilosophy()
+          }
+        })
+      .setPositiveButton(R.string.app_cancel, null)
+      .create()
+      .show()
+  }
+
+  def setHosts(title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val edit = new EditText(this)
+    if (hint != 0) {
+      edit.setHint(hint)
+    }
+    new Builder(this)
+      .setTitle(title)
       .setView(edit)
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { d => setHost() })
+      .setOnDismissListener(dialogDismiss { d => setHostx(title, hint, hostlist, cur, set, ok, reset) })
       .setNeutralButton(R.string.settings_host_reset,
-        dialogClick { (d, w) => HAcg.HOSTS = HAcg.DEFAULT_HOSTS })
+        dialogClick { (d, w) => reset() })
       .setPositiveButton(R.string.app_ok,
         dialogClick { (d, w) =>
           val host = edit.getText.toString
           if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$""")) {
-            HAcg.HOSTS = (HAcg.HOSTS + edit.getText.toString).toSet
+            ok(host)
           } else {
-            Toast.makeText(MainActivity.this, R.string.settings_host_sample, Toast.LENGTH_SHORT).show()
+            Toast.makeText(MainActivity.this, hint, Toast.LENGTH_SHORT).show()
           }
         })
       .create().show()
   }
 
-  def setHost(): Unit = {
-    val hosts = HAcg.HOSTS.map(_.asInstanceOf[CharSequence]).toArray
+  def setHostx(title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val hosts = hostlist().toList
     new Builder(this)
-      .setTitle(R.string.settings_host)
-      .setSingleChoiceItems(hosts, hosts.indexOf(HAcg.HOST), null)
+      .setTitle(title)
+      .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
       .setNegativeButton(R.string.app_cancel, null)
-      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts() })
-      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => HAcg.HOST = hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString })
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts(title, hint, hostlist, cur, set, ok, reset) })
+      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
       .create().show()
   }
+
+  def setHost(): Unit = {
+    setHostx(
+      R.string.settings_host,
+      R.string.settings_host_sample,
+      () => HAcg.hosts,
+      () => HAcg.host,
+      host => HAcg.host = host,
+      host => HAcg.hosts = HAcg.hosts + host,
+      () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
+    )
+  }
+
+  def setPhilosophy(): Unit = {
+    setHostx(
+      R.string.settings_philosophy_host,
+      R.string.settings_philosophy_sample,
+      () => HAcg.philosophy_hosts,
+      () => HAcg.philosophy_host,
+      host => HAcg.philosophy_host = host,
+      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
+      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
+    )
+  }
+
 }
 
 class WebFragment extends Fragment {
 
   var uri: String = _
-  lazy val defuri = getArguments.getString("url")
+
+  def defuri = HAcg.philosophy
+
   lazy val web: WebView = getView.findViewById(R.id.web)
   lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
 
@@ -253,7 +298,7 @@ class ListActivity extends AppCompatActivity {
         val key = i.getStringExtra(SearchManager.QUERY)
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.saveRecentQuery(key, null)
-        ( s"""${HAcg.WORDPRESS}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
+        ( s"""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
       case _ => null
     }
     if (url == null) {
@@ -324,7 +369,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
   }
 
   def defurl = getArguments.getString("url") match {
-    case uri if uri.startsWith("/") => s"${HAcg.WORDPRESS}$uri"
+    case uri if uri.startsWith("/") => s"${HAcg.wordpress}$uri"
     case uri => uri
   }
 
