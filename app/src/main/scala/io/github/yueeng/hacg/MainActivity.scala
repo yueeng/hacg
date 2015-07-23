@@ -8,10 +8,10 @@ import android.provider.SearchRecentSuggestions
 import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
 import android.support.v4.view.{MenuItemCompat, ViewPager}
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
-import android.support.v4.widget.{NestedScrollView, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
-import android.support.v7.app.{AlertDialog, AppCompatActivity}
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
@@ -19,7 +19,6 @@ import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
-import android.webkit.{WebChromeClient, WebView, WebViewClient}
 import android.widget._
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
@@ -88,15 +87,11 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    val philosophy = HAcg.philosophy
-    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou", philosophy)
+    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou")
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment =
-      (data(position) match {
-        case `philosophy` => new WebFragment()
-        case _ => new ArticleFragment()
-      }).arguments(new Bundle().string("url", data(position)))
+      new ArticleFragment().arguments(new Bundle().string("url", data(position)))
 
     override def getCount: Int = data.size
 
@@ -111,7 +106,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
-    getMenuInflater.inflate(R.menu.search, menu)
+    getMenuInflater.inflate(R.menu.menu_main, menu)
     val search = MenuItemCompat.getActionView(menu.findItem(R.id.search)).asInstanceOf[SearchView]
     val manager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
     val info = manager.getSearchableInfo(new ComponentName(this, classOf[ListActivity]))
@@ -125,8 +120,8 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.settings => settings(); true
-      case R.id.philosophy => pager.setCurrentItem(pager.getAdapter.getCount - 1); true
+      case R.id.settings => HAcg.setHost(this); true
+      case R.id.philosophy => startActivity(new Intent(this, classOf[WebActivity])); true
       case R.id.about =>
         new Builder(this)
           .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
@@ -141,150 +136,6 @@ class MainActivity extends AppCompatActivity {
         true
       case _ => super.onOptionsItemSelected(item)
     }
-  }
-
-  def settings(): Unit = {
-    val items = Array[CharSequence](getString(R.string.settings_host), getString(R.string.settings_philosophy_host))
-    new Builder(this)
-      .setTitle(R.string.app_settings)
-      .setItems(items,
-        dialogClick {
-          (d, w) => w match {
-            case 0 => setHost()
-            case 1 => setPhilosophy()
-          }
-        })
-      .setPositiveButton(R.string.app_cancel, null)
-      .create()
-      .show()
-  }
-
-  def setHosts(title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
-    val edit = new EditText(this)
-    if (hint != 0) {
-      edit.setHint(hint)
-    }
-    new Builder(this)
-      .setTitle(title)
-      .setView(edit)
-      .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { d => setHostx(title, hint, hostlist, cur, set, ok, reset) })
-      .setNeutralButton(R.string.settings_host_reset,
-        dialogClick { (d, w) => reset() })
-      .setPositiveButton(R.string.app_ok,
-        dialogClick { (d, w) =>
-          val host = edit.getText.toString
-          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$""")) {
-            ok(host)
-          } else {
-            Toast.makeText(MainActivity.this, hint, Toast.LENGTH_SHORT).show()
-          }
-        })
-      .create().show()
-  }
-
-  def setHostx(title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
-    val hosts = hostlist().toList
-    new Builder(this)
-      .setTitle(title)
-      .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
-      .setNegativeButton(R.string.app_cancel, null)
-      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts(title, hint, hostlist, cur, set, ok, reset) })
-      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
-      .create().show()
-  }
-
-  def setHost(): Unit = {
-    setHostx(
-      R.string.settings_host,
-      R.string.settings_host_sample,
-      () => HAcg.hosts,
-      () => HAcg.host,
-      host => HAcg.host = host,
-      host => HAcg.hosts = HAcg.hosts + host,
-      () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
-    )
-  }
-
-  def setPhilosophy(): Unit = {
-    setHostx(
-      R.string.settings_philosophy_host,
-      R.string.settings_philosophy_sample,
-      () => HAcg.philosophy_hosts,
-      () => HAcg.philosophy_host,
-      host => HAcg.philosophy_host = host,
-      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
-      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
-    )
-  }
-
-}
-
-class WebFragment extends Fragment {
-
-  var uri: String = _
-
-  def defuri = HAcg.philosophy
-
-  lazy val web: WebView = getView.findViewById(R.id.web)
-  lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
-
-  override def onCreate(state: Bundle): Unit = {
-    super.onCreate(state)
-    setRetainInstance(true)
-    uri = if (state != null && state.containsKey("url")) state.getString("url") else defuri
-  }
-
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    val root = inflater.inflate(R.layout.fragment_web, container, false)
-    val nested: NestedScrollView = root.findViewById(R.id.nested)
-    val web: WebView = root.findViewById(R.id.web)
-    val settings = web.getSettings
-    settings.setJavaScriptEnabled(true)
-    settings.setUseWideViewPort(true)
-    settings.setLoadWithOverviewMode(true)
-    val back = root.findViewById(R.id.button2)
-    val fore = root.findViewById(R.id.button3)
-    web.setWebViewClient(new WebViewClient() {
-      override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
-        view.loadUrl(url)
-        progress.setProgress(0)
-        true
-      }
-
-      override def onPageFinished(view: WebView, url: String): Unit = {
-        super.onPageFinished(view, url)
-        nested.scrollTo(0, 0)
-        uri = url
-        progress.setProgress(100)
-
-        back.setEnabled(view.canGoBack)
-        fore.setEnabled(view.canGoForward)
-      }
-    })
-    web.setWebChromeClient(new WebChromeClient() {
-      override def onProgressChanged(view: WebView, newProgress: Int): Unit = {
-        progress.setProgress(newProgress)
-      }
-    })
-
-    val click = viewClick {
-      v => v.getId match {
-        case R.id.button1 => web.loadUrl(defuri)
-        case R.id.button2 => if (web.canGoBack) web.goBack()
-        case R.id.button3 => if (web.canGoForward) web.goForward()
-        case R.id.button4 => web.loadUrl(uri)
-      }
-    }
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
-      .map(root.findViewById).foreach(_.setOnClickListener(click))
-
-    web.loadUrl(uri)
-    root
-  }
-
-  override def onSaveInstanceState(state: Bundle): Unit = {
-    state.putString("url", uri)
   }
 }
 

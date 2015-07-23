@@ -14,8 +14,12 @@ import android.os.{AsyncTask, Bundle}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
+import android.support.v7.app.AlertDialog
+import android.support.v7.app.AlertDialog.Builder
 import android.view.View
+import android.widget.{EditText, Toast}
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
+import io.github.yueeng.hacg.Common._
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
@@ -31,24 +35,94 @@ object HAcg {
   private val SYSTEM_PHILOSOPHY_HOSTS: String = "system.philosophy_hosts"
 
   val DEFAULT_HOSTS = List("hacg.me", "hacg.be", "hacg.club")
-  val DEFAULT_PHILOSOPHY_HOSTS = List("www.zhexue.in","bbs.hacg.me")
+  val DEFAULT_PHILOSOPHY_HOSTS = List("bbs.hacg.me", "www.zhexue.in")
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
-  
+
   private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
 
   def host = config.getString(SYSTEM_HOST, DEFAULT_HOSTS.head)
+
   def host_=(host: String) = config.edit().putString(SYSTEM_HOST, host).commit()
+
   def hosts = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS.toSet[String]).toSet
+
   def hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_HOSTS, hosts).commit()
+
   def web = s"http://www.$host"
+
   def wordpress = s"$web/wordpress"
 
   def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
+
   def philosophy_host_=(host: String) = config.edit().putString(SYSTEM_PHILOSOPHY, host).commit()
+
   def philosophy_hosts = config.getStringSet(SYSTEM_PHILOSOPHY_HOSTS, DEFAULT_PHILOSOPHY_HOSTS.toSet[String]).toSet
+
   def philosophy_hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_PHILOSOPHY_HOSTS, hosts).commit()
+
   def philosophy = s"http://$philosophy_host/m"
+
+
+  def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val edit = new EditText(context)
+    if (hint != 0) {
+      edit.setHint(hint)
+    }
+    new Builder(context)
+      .setTitle(title)
+      .setView(edit)
+      .setNegativeButton(R.string.app_cancel, null)
+      .setOnDismissListener(dialogDismiss { d => setHostx(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setNeutralButton(R.string.settings_host_reset,
+        dialogClick { (d, w) => reset() })
+      .setPositiveButton(R.string.app_ok,
+        dialogClick { (d, w) =>
+          val host = edit.getText.toString
+          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$""")) {
+            ok(host)
+          } else {
+            Toast.makeText(context, hint, Toast.LENGTH_SHORT).show()
+          }
+        })
+      .create().show()
+  }
+
+  def setHostx(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val hosts = hostlist().toList
+    new Builder(context)
+      .setTitle(title)
+      .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
+      .setNegativeButton(R.string.app_cancel, null)
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
+      .create().show()
+  }
+
+  def setHost(context: Context): Unit = {
+    setHostx(context,
+      R.string.settings_host,
+      R.string.settings_host_sample,
+      () => HAcg.hosts,
+      () => HAcg.host,
+      host => HAcg.host = host,
+      host => HAcg.hosts = HAcg.hosts + host,
+      () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
+    )
+  }
+
+  def setPhilosophy(context: Context): Unit = {
+    setHostx(context,
+      R.string.settings_philosophy_host,
+      R.string.settings_philosophy_sample,
+      () => HAcg.philosophy_hosts,
+      () => HAcg.philosophy_host,
+      host => HAcg.philosophy_host = host,
+      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
+      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
+    )
+  }
+
 }
 
 object HAcgApplication {
@@ -90,7 +164,9 @@ object Common {
 
   implicit class fragmentex(f: Fragment) {
     def arguments(b: Bundle) = {
-      f.setArguments(b)
+      if (b != null) {
+        f.setArguments(b)
+      }
       f
     }
   }

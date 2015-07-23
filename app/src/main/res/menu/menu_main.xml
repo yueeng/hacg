@@ -18,7 +18,7 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/settings"
-        android:title="@string/app_settings"
+        android:title="@string/settings_host"
         app:showAsAction="never" />
     <item
         android:id="@+id/about"
