@@ -39,7 +39,8 @@ class MainActivity extends AppCompatActivity {
     val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
-
+    //hack align tab by left
+    tabs.smoothScrollTo(0,0)
     checkVersion(false)
   }
 
