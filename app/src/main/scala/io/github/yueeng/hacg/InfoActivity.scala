@@ -2,7 +2,8 @@ package io.github.yueeng.hacg
 
 import java.text.SimpleDateFormat
 
-import android.content.{ClipData, ClipboardManager, Context, Intent}
+import android.content.DialogInterface.OnShowListener
+import android.content._
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -237,7 +238,7 @@ class InfoFragment extends Fragment {
       commenting(c)
       return
     }
-    new Builder(getActivity)
+    val alert = new Builder(getActivity)
       .setTitle(c.user)
       .setMessage(c.content)
       .setPositiveButton(R.string.comment_review, dialogClick { (d, w) => commenting(c) })
@@ -249,7 +250,24 @@ class InfoFragment extends Fragment {
           clipboard.setPrimaryClip(clip)
           Toast.makeText(getActivity, getActivity.getString(R.string.comment_copy, c.content), Toast.LENGTH_SHORT).show()
         })
-      .create().show()
+      .create()
+    alert.setOnShowListener(new OnShowListener {
+      override def onShow(dialog: DialogInterface): Unit = {
+        def r(v: Seq[View]): Unit = v match {
+          case Nil =>
+          case a +: b => rr(a); r(b)
+        }
+        def rr(v: View): Unit = v match {
+          case tv: TextView =>
+            tv.setTextIsSelectable(true)
+          case vg: ViewGroup =>
+            r(for (i <- 0 until vg.getChildCount; sv = vg.getChildAt(i)) yield sv)
+          case _ =>
+        }
+        rr(alert.getWindow.getDecorView)
+      }
+    })
+    alert.show()
   }
 
   def commenting(c: Comment): Unit = {
