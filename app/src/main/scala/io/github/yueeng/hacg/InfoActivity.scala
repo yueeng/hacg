@@ -179,11 +179,12 @@ class InfoFragment extends Fragment {
         case R.id.button1 => Common.openWeb(getActivity, _article.link)
         case R.id.button2 => drawer.openDrawer(GravityCompat.END)
         case R.id.button3 => comment(null)
+        case R.id.button4 => share(_article.image)
       }
       menu.close(true)
     }
 
-    List(R.id.button1, R.id.button2, R.id.button3).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById).foreach {
       case b: FloatingActionButton =>
         b.setColorNormal(randomColor())
         b.setColorPressed(randomColor())
@@ -218,6 +219,25 @@ class InfoFragment extends Fragment {
     root
   }
 
+  def share(url: String) = {
+    url.httpDownloadAsync() {
+      case Some(file) =>
+        val title = _article.title
+        val intro = _article.content
+        val url = _article.link
+        startActivity(Intent.createChooser(
+          new Intent(Intent.ACTION_SEND)
+            .setType("image/*")
+            .putExtra(Intent.EXTRA_TITLE, title)
+            .putExtra(Intent.EXTRA_SUBJECT, title)
+            .putExtra(Intent.EXTRA_TEXT, s"$intro $url")
+            .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
+            .putExtra(Intent.EXTRA_REFERRER, Uri.parse(url)),
+          title))
+      case _ =>
+    }
+  }
+
   class JsFace {
     @JavascriptInterface
     def play(name: String, url: String): Unit = {
@@ -234,25 +254,7 @@ class InfoFragment extends Fragment {
         Picasso.`with`(getActivity).load(uri).placeholder(R.drawable.loading).into(image)
         val alert = new Builder(getActivity)
           .setView(image)
-          .setNeutralButton(R.string.app_share,
-            dialogClick { (d, w) =>
-              url.httpDownloadAsync() {
-                case Some(file) =>
-                  val title = _article.title
-                  val intro = _article.content
-                  val url = _article.link
-                  startActivity(Intent.createChooser(
-                    new Intent(Intent.ACTION_SEND)
-                      .setType("image/*")
-                      .putExtra(Intent.EXTRA_TITLE, title)
-                      .putExtra(Intent.EXTRA_SUBJECT, title)
-                      .putExtra(Intent.EXTRA_TEXT, s"$intro $url")
-                      .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
-                      .putExtra(Intent.EXTRA_REFERRER, Uri.parse(url)),
-                    title))
-                case _ =>
-              }
-            })
+          .setNeutralButton(R.string.app_share, dialogClick { (d, w) => share(url) })
           .setPositiveButton(R.string.app_save,
             dialogClick { (d, w) =>
               val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE).asInstanceOf[DownloadManager]
