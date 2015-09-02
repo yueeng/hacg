@@ -46,4 +46,5 @@
     <string name="settings_philosophy_sample">例“bbs.hacg.me”</string>
     <string name="app_exit_confirm">要退出吗？</string>
     <string name="app_save">保存</string>
+    <string name="app_share">分享</string>
 </resources>

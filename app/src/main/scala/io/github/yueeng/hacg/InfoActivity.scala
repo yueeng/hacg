@@ -234,13 +234,33 @@ class InfoFragment extends Fragment {
         Picasso.`with`(getActivity).load(uri).placeholder(R.drawable.loading).into(image)
         val alert = new Builder(getActivity)
           .setView(image)
+          .setNeutralButton(R.string.app_share,
+            dialogClick { (d, w) =>
+              url.httpDownloadAsync() {
+                case Some(file) =>
+                  val title = _article.title
+                  val intro = _article.content
+                  val url = _article.link
+                  startActivity(Intent.createChooser(
+                    new Intent(Intent.ACTION_SEND)
+                      .setType("image/*")
+                      .putExtra(Intent.EXTRA_TITLE, title)
+                      .putExtra(Intent.EXTRA_SUBJECT, title)
+                      .putExtra(Intent.EXTRA_TEXT, s"$intro $url")
+                      .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
+                      .putExtra(Intent.EXTRA_REFERRER, Uri.parse(url)),
+                    title))
+                case _ =>
+              }
+            })
           .setPositiveButton(R.string.app_save,
             dialogClick { (d, w) =>
               val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE).asInstanceOf[DownloadManager]
               val task = new Request(uri)
               task.allowScanningByMediaScanner()
               task.setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-              task.setMimeType(MimeTypeMap.getFileExtensionFromUrl(url))
+              val ext = MimeTypeMap.getFileExtensionFromUrl(url)
+              task.setMimeType(MimeTypeMap.getSingleton.getMimeTypeFromExtension(ext))
               manager.enqueue(task)
             })
           .setNegativeButton(R.string.app_cancel, null)

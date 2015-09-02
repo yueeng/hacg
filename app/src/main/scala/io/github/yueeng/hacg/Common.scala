@@ -1,5 +1,6 @@
 package io.github.yueeng.hacg
 
+import java.io.File
 import java.net._
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
@@ -21,6 +22,7 @@ import android.view.View.OnLongClickListener
 import android.widget.{EditText, Toast}
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import io.github.yueeng.hacg.Common._
+import okio.Okio
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
@@ -255,6 +257,38 @@ object Common {
         Option(response.body().string(), response.request().urlString())
       } catch {
         case _: Exception => None
+      }
+    }
+
+    def httpDownloadAsync(file: String = null)(fn: Option[File] => Unit) = {
+      new ScalaTask[Unit, Unit, Option[File]] {
+        override def background(params: Unit*): Option[File] = url.httpDownload(file)
+
+        override def post(result: Option[File]): Unit = fn(result)
+      }.execute()
+    }
+
+    def httpDownload(file: String = null): Option[File] = {
+      try {
+        System.out.println(url)
+        val http = new OkHttpClient()
+        http.setConnectTimeout(15, TimeUnit.SECONDS)
+        val request = new Request.Builder().get().url(url).build()
+        val response = http.newCall(request).execute()
+
+        val target = if (file == null) {
+          val path = response.request().uri.getPath
+          new File(HAcgApplication.instance.getExternalCacheDir, path.substring(path.lastIndexOf('/') + 1))
+        } else {
+          new File(file)
+        }
+
+        val sink = Okio.buffer(Okio.sink(target))
+        sink.writeAll(response.body().source())
+        sink.close()
+        Option(target)
+      } catch {
+        case e: Exception => e.printStackTrace(); None
       }
     }
   }

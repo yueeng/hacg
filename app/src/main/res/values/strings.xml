@@ -45,4 +45,5 @@
     <string name="settings_philosophy_host">Philosophy bbs host</string>
     <string name="settings_philosophy_sample">Like "bbs.hacg.me".</string>
     <string name="app_save">Save</string>
+    <string name="app_share">Share</string>
 </resources>
