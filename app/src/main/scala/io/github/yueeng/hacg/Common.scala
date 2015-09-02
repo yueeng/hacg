@@ -17,6 +17,7 @@ import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AlertDialog.Builder
 import android.view.View
+import android.view.View.OnLongClickListener
 import android.widget.{EditText, Toast}
 import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import io.github.yueeng.hacg.Common._
@@ -145,6 +146,10 @@ object Common {
 
   implicit def viewClick(func: View => Unit): View.OnClickListener = new View.OnClickListener {
     override def onClick(view: View): Unit = func(view)
+  }
+
+  implicit def viewLongClick(func: View => Boolean): View.OnLongClickListener = new OnLongClickListener {
+    override def onLongClick(v: View): Boolean = func(v)
   }
 
   implicit def dialogClick(func: (DialogInterface, Int) => Unit): DialogInterface.OnClickListener = new DialogInterface.OnClickListener {
