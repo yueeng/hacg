@@ -2,6 +2,8 @@ package io.github.yueeng.hacg
 
 import java.text.SimpleDateFormat
 
+import android.app.DownloadManager
+import android.app.DownloadManager.Request
 import android.content.DialogInterface.OnShowListener
 import android.content._
 import android.net.Uri
@@ -17,7 +19,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
-import android.webkit.{JavascriptInterface, WebView, WebViewClient}
+import android.webkit.{JavascriptInterface, MimeTypeMap, WebView, WebViewClient}
 import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
@@ -222,6 +224,31 @@ class InfoFragment extends Fragment {
       startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW)
         .setDataAndType(Uri.parse(url), "video/mp4"), name))
     }
+
+    @JavascriptInterface
+    def save(url: String): Unit = {
+      getActivity.runOnUiThread(runnable { () =>
+        val uri = Uri.parse(url)
+        val image = new ImageView(getActivity)
+        image.setAdjustViewBounds(true)
+        Picasso.`with`(getActivity).load(uri).placeholder(R.drawable.loading).into(image)
+        val alert = new Builder(getActivity)
+          .setView(image)
+          .setPositiveButton(R.string.app_save,
+            dialogClick { (d, w) =>
+              val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE).asInstanceOf[DownloadManager]
+              val task = new Request(uri)
+              task.allowScanningByMediaScanner()
+              task.setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+              task.setMimeType(MimeTypeMap.getFileExtensionFromUrl(url))
+              manager.enqueue(task)
+            })
+          .setNegativeButton(R.string.app_cancel, null)
+          .create()
+        image.setOnClickListener(viewClick { v => alert.dismiss() })
+        alert.show()
+      })
+    }
   }
 
   def onBackPressed: Boolean = {
@@ -370,11 +397,12 @@ class InfoFragment extends Fragment {
                 case Some(a) =>
                   a.attr("href") match {
                     case href if src.equals(href) =>
+                      a.attr("href", s"javascript:hacg.save('$src');")
                     case href if href.isImg =>
-                      a.attr("href", src).after( s"""<a href="$href"><img data-original="$href" class="lazy" /></a>""")
+                      a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
                     case _ =>
                   }
-                case _ => i.wrap( s"""<a href="$src"></a>""")
+                case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
               }
               i.attr("data-original", src)
                 .addClass("lazy")
