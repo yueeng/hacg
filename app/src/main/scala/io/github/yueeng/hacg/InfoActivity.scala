@@ -230,7 +230,7 @@ class InfoFragment extends Fragment {
             .setType("image/*")
             .putExtra(Intent.EXTRA_TITLE, title)
             .putExtra(Intent.EXTRA_SUBJECT, title)
-            .putExtra(Intent.EXTRA_TEXT, s"$intro $url")
+            .putExtra(Intent.EXTRA_TEXT, s"$title\n$intro $url")
             .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file))
             .putExtra(Intent.EXTRA_REFERRER, Uri.parse(url)),
           title))
@@ -307,7 +307,7 @@ class InfoFragment extends Fragment {
           case a +: b => rr(a); r(b)
         }
         def rr(v: View): Unit = v match {
-          case tv: TextView =>
+          case tv: TextView if !tv.isInstanceOf[Button] =>
             tv.setTextIsSelectable(true)
           case vg: ViewGroup =>
             r(for (i <- 0 until vg.getChildCount; sv = vg.getChildAt(i)) yield sv)
