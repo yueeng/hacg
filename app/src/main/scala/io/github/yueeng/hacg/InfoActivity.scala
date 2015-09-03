@@ -7,7 +7,7 @@ import android.app.DownloadManager.Request
 import android.content.DialogInterface.OnShowListener
 import android.content._
 import android.net.Uri
-import android.os.Bundle
+import android.os.{Build, Bundle}
 import android.preference.PreferenceManager
 import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
@@ -19,7 +19,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
-import android.webkit.{JavascriptInterface, MimeTypeMap, WebView, WebViewClient}
+import android.webkit._
 import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
@@ -206,7 +206,11 @@ class InfoFragment extends Fragment {
     })
 
     val web: WebView = root.findViewById(R.id.web)
-    web.getSettings.setJavaScriptEnabled(true)
+    val settings = web.getSettings
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
+    }
+    settings.setJavaScriptEnabled(true)
     web.setWebViewClient(new WebViewClient {
       override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
         val uri = Uri.parse(url)
