@@ -318,8 +318,10 @@ object Common {
       val l = local.split( """\.""").map(_.toInt).toList
       val o = online.split( """\.""").map(_.toInt).toList
       for (i <- 0 until Math.min(l.length, o.length)) {
-        if (l(i) < o(i)) {
-          return true
+        l(i) - o(i) match {
+          case x if x > 0 => return false
+          case x if x < 0 => return true
+          case _ =>
         }
       }
       if (o.length > l.length) {
