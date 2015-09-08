@@ -38,6 +38,13 @@ class WebActivity extends AppCompatActivity {
       case _ => super.onBackPressed()
     }
   }
+
+  override def onOptionsItemSelected(item: MenuItem): Boolean = {
+    item.getItemId match {
+      case R.id.home => finish(); true
+      case _ => super.onOptionsItemSelected(item)
+    }
+  }
 }
 
 class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayout] {

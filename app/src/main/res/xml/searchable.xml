@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <searchable xmlns:android="http://schemas.android.com/apk/res/android"
-    android:label="@string/app_name"
     android:hint="@string/app_name"
     android:includeInGlobalSearch="false"
-    android:searchSuggestIntentAction="io.github.yueeng.hacg.SEARCH"
+    android:label="@string/app_name"
+    android:searchSettingsDescription="@string/app_name"
     android:searchSuggestAuthority="io.github.yueeng.hacg.SuggestionProvider"
-    android:searchSuggestSelection=" ? "
-    android:searchSettingsDescription="@string/app_name">
+    android:searchSuggestIntentAction="android.intent.action.SEARCH"
+    android:searchSuggestSelection=" ? ">
 
 </searchable>

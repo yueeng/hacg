@@ -40,7 +40,7 @@ class MainActivity extends AppCompatActivity {
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
     //hack align tab by left
-    tabs.smoothScrollTo(0,0)
+    tabs.smoothScrollTo(0, 0)
     checkVersion(false)
   }
 
@@ -177,19 +177,9 @@ class ListActivity extends AppCompatActivity {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case R.id.home =>
-        val upIntent = NavUtils.getParentActivityIntent(this)
-        if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-          TaskStackBuilder.create(this)
-            .addNextIntentWithParentStack(upIntent)
-            .startActivities()
-        } else {
-          NavUtils.navigateUpTo(this, upIntent)
-        }
-        true
+      case R.id.home => finish(); true
       case _ => super.onOptionsItemSelected(item)
     }
-
   }
 }
 

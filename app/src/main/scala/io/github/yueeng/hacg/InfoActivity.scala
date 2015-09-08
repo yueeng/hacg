@@ -10,7 +10,7 @@ import android.net.Uri
 import android.os.{Build, Bundle}
 import android.preference.PreferenceManager
 import android.support.design.widget.CollapsingToolbarLayout
-import android.support.v4.app.{Fragment, NavUtils, TaskStackBuilder}
+import android.support.v4.app.Fragment
 import android.support.v4.view.{GravityCompat, ViewCompat}
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
@@ -40,22 +40,15 @@ class InfoActivity extends AppCompatActivity {
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_info)
-    //    ViewCompat.setTransitionName(findViewById(R.id.toolbar), "article")
-    val transaction = getSupportFragmentManager.beginTransaction()
 
-    val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
+    val manager = getSupportFragmentManager
+
+    val fragment = manager.findFragmentById(R.id.container) match {
       case fragment: InfoFragment => fragment
-      case _ =>
-        val fragment = new InfoFragment
-        val extra = new Bundle()
-        extra.putParcelable("article", _article)
-        fragment.setArguments(extra)
-        fragment
+      case _ => new InfoFragment().arguments(new Bundle().parcelable("article", _article))
     }
 
-    transaction.replace(R.id.container, fragment)
-
-    transaction.commit()
+    manager.beginTransaction().replace(R.id.container, fragment).commit()
   }
 
   override def onBackPressed(): Unit = {
@@ -67,19 +60,9 @@ class InfoActivity extends AppCompatActivity {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case R.id.home =>
-        val upIntent = NavUtils.getParentActivityIntent(this)
-        if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-          TaskStackBuilder.create(this)
-            .addNextIntentWithParentStack(upIntent)
-            .startActivities()
-        } else {
-          NavUtils.navigateUpTo(this, upIntent)
-        }
-        true
+      case R.id.home => finish(); true
       case _ => super.onOptionsItemSelected(item)
     }
-
   }
 }
 
@@ -127,6 +110,16 @@ class InfoFragment extends Fragment {
   }
   lazy val _progress2 = new ViewEx[Boolean, SwipeRefreshLayout] {
     override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
+  }
+
+  override def onResume(): Unit = {
+    super.onResume()
+    if (_web.view != null) _web.view.onResume()
+  }
+
+  override def onPause(): Unit = {
+    super.onPause()
+    if (_web.view != null) _web.view.onPause()
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {

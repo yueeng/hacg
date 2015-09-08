@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface, Intent, SharedPreferences}
 import android.net.Uri
-import android.os.{AsyncTask, Bundle}
+import android.os.{Parcelable, AsyncTask, Bundle}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
@@ -181,6 +181,10 @@ object Common {
   implicit class bundleex(b: Bundle) {
     def string(key: String, value: String) = {
       b.putString(key, value)
+      b
+    }
+    def parcelable(key:String,value:Parcelable)={
+      b.putParcelable(key,value)
       b
     }
   }
