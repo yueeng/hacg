@@ -60,7 +60,7 @@ class InfoActivity extends AppCompatActivity {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case R.id.home => finish(); true
+      case android.R.id.home =>onBackPressed(); true
       case _ => super.onOptionsItemSelected(item)
     }
   }
@@ -112,14 +112,11 @@ class InfoFragment extends Fragment {
     override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
   }
 
-  override def onResume(): Unit = {
-    super.onResume()
-    if (_web.view != null) _web.view.onResume()
-  }
-
-  override def onPause(): Unit = {
-    super.onPause()
-    if (_web.view != null) _web.view.onPause()
+  override def onDestroy(): Unit = {
+    super.onDestroy()
+    if (_web.view != null) {
+      _web.view.destroy()
+    }
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
