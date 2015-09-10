@@ -2,12 +2,14 @@ package io.github.yueeng.hacg
 
 import android.app.SearchManager
 import android.content._
+import android.graphics.Point
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
 import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
-import android.support.v4.view.{MenuItemCompat, ViewPager}
+import android.support.v4.view.ViewPager.SimpleOnPageChangeListener
+import android.support.v4.view.{MenuItemCompat, PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
@@ -19,6 +21,7 @@ import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
+import android.widget.ImageView.ScaleType
 import android.widget._
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
@@ -28,6 +31,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class MainActivity extends AppCompatActivity {
   lazy val pager: ViewPager = findViewById(R.id.container)
+  lazy val ad: ViewPager = findViewById(R.id.pager)
 
   protected override def onCreate(savedInstanceState: Bundle) {
     super.onCreate(savedInstanceState)
@@ -39,9 +43,87 @@ class MainActivity extends AppCompatActivity {
     val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
+
+    val crop = getWindowManager.getDefaultDisplay match {
+      case d: Display =>
+        val lp = ad.getLayoutParams
+        val p = new Point()
+        d.getSize(p)
+        lp.height = Math.min(p.x * 225 / 550, p.y / 3)
+        ad.setLayoutParams(lp)
+        p.x < p.y
+      case _ => ad.setVisibility(View.GONE); false
+    }
+    ad.setAdapter(new AdAdapter(crop))
+
+    ad.addOnPageChangeListener(new SimpleOnPageChangeListener {
+      override def onPageScrollStateChanged(state: Int): Unit = {
+        state match {
+          case ViewPager.SCROLL_STATE_DRAGGING => adstop()
+          case ViewPager.SCROLL_STATE_IDLE => adstart()
+          case _ =>
+        }
+      }
+    })
     //hack align tab by left
     tabs.smoothScrollTo(0, 0)
     checkVersion(false)
+  }
+
+  override def onPause(): Unit = {
+    super.onPause()
+    adstop()
+  }
+
+
+  override def onResume(): Unit = {
+    super.onResume()
+    adstart()
+  }
+
+  val adspan = 5000
+
+  def adstart() = {
+    ad.removeCallbacks(adrun)
+    ad.postDelayed(adrun, adspan)
+  }
+
+  def adstop() = ad.removeCallbacks(adrun)
+
+  def adchange(): Unit = {
+    ad.setCurrentItem(ad.getCurrentItem + 1 match {
+      case x if x >= ad.getAdapter.getCount => 0
+      case x => x
+    })
+    ad.postDelayed(adrun, adspan)
+  }
+
+  val adrun: Runnable = runnable { () =>
+    ad.setCurrentItem(ad.getCurrentItem + 1 match {
+      case x if x >= ad.getAdapter.getCount => 0
+      case x => x
+    })
+    ad.postDelayed(adrun, adspan)
+  }
+
+  class AdAdapter(crop: Boolean) extends PagerAdapter {
+    override def isViewFromObject(view: View, `object`: scala.Any): Boolean = view == `object`
+
+    override def getCount: Int = 4
+
+    override def instantiateItem(container: ViewGroup, position: Int): AnyRef = {
+      val image = new ImageView(container.getContext)
+      image.setAdjustViewBounds(true)
+      if (crop) image.setScaleType(ScaleType.CENTER_CROP)
+      image.setOnClickListener(viewClick { v => Common.openWeb(MainActivity.this, s"http://hacg.club/gg/${position + 1}") })
+      Picasso.`with`(container.getContext).load(s"http://hacg.club/gg/${position + 1}.jpg").into(image)
+      container.addView(image)
+      image
+    }
+
+    override def destroyItem(container: ViewGroup, position: Int, `object`: scala.Any): Unit = {
+      container.removeView(`object`.asInstanceOf[View])
+    }
   }
 
   override def onBackPressed(): Unit = {
