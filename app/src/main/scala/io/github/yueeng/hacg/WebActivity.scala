@@ -41,7 +41,7 @@ class WebActivity extends AppCompatActivity {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case android.R.id.home => onBackPressed(); true
+      case android.R.id.home => super.onBackPressed(); true
       case _ => super.onOptionsItemSelected(item)
     }
   }
