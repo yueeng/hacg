@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.android_support_version = "23.0.1"
+    ext.android_support_version = "23.1.0"
     repositories {
         jcenter()
     }
