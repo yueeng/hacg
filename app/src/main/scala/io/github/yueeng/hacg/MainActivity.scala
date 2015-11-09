@@ -1,5 +1,6 @@
 package io.github.yueeng.hacg
 
+import android.animation.ObjectAnimator
 import android.app.SearchManager
 import android.content._
 import android.graphics.Point
@@ -21,6 +22,7 @@ import android.text.style.{BackgroundColorSpan, ClickableSpan}
 import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView.ScaleType
 import android.widget._
 import com.squareup.picasso.Picasso
@@ -436,6 +438,24 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
       Picasso.`with`(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
+
+      if (position > last) {
+        last = position
+        val anim = ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0)
+          .setDuration(1000)
+        anim.setInterpolator(interpolator)
+        anim.start()
+      }
+    }
+
+    var last = -1
+    val interpolator = new DecelerateInterpolator(3)
+    val from = getActivity.getWindowManager.getDefaultDisplay match {
+      case d: Display =>
+        val p = new Point()
+        d.getSize(p)
+        Math.max(p.x, p.y) / 4
+      case _ => 300;
     }
 
     override def onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
