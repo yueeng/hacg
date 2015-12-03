@@ -239,7 +239,7 @@ class ListActivity extends AppCompatActivity {
         val key = i.getStringExtra(SearchManager.QUERY)
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.saveRecentQuery(key, null)
-        ( s"""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
+        ( s"""${HAcg.web}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
       case _ => null
     }
     if (url == null) {
@@ -300,7 +300,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
   }
 
   def defurl = getArguments.getString("url") match {
-    case uri if uri.startsWith("/") => s"${HAcg.wordpress}$uri"
+    case uri if uri.startsWith("/") => s"${HAcg.web}$uri"
     case uri => uri
   }
 

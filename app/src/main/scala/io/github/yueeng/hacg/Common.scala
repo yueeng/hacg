@@ -37,8 +37,8 @@ object HAcg {
   private val SYSTEM_PHILOSOPHY: String = "system.philosophy"
   private val SYSTEM_PHILOSOPHY_HOSTS: String = "system.philosophy_hosts"
 
-  val DEFAULT_HOSTS = List("hacg.me", "hacg.be", "hacg.club")
-  val DEFAULT_PHILOSOPHY_HOSTS = List("bbs.hacg.me", "www.zhexue.in")
+  val DEFAULT_HOSTS = List("www.hacg.me/wp", "www.hacg.be/wp", "www.hacg.club/wp", "www.hacg.lol/wp")
+  val DEFAULT_PHILOSOPHY_HOSTS = List("bbs.hacg.me/m", "www.zhexue.in/m")
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
@@ -52,9 +52,9 @@ object HAcg {
 
   def hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_HOSTS, hosts).commit()
 
-  def web = s"http://www.$host"
+  def web = s"http://$host"
 
-  def wordpress = s"$web/wordpress"
+//  def wordpress = s"$web/wordpress"
 
   def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
 
@@ -64,7 +64,7 @@ object HAcg {
 
   def philosophy_hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_PHILOSOPHY_HOSTS, hosts).commit()
 
-  def philosophy = s"http://$philosophy_host/m"
+  def philosophy = s"http://$philosophy_host"
 
 
   def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
@@ -82,7 +82,7 @@ object HAcg {
       .setPositiveButton(R.string.app_ok,
         dialogClick { (d, w) =>
           val host = edit.getText.toString
-          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$""")) {
+          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}(?:/.+)?$""")) {
             ok(host)
           } else {
             Toast.makeText(context, hint, Toast.LENGTH_SHORT).show()

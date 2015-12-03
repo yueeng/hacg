@@ -27,9 +27,9 @@
     <string name="comment_verify">部分字段为空。</string>
     <string name="app_settings">设置</string>
     <string name="app_ok">确定</string>
-    <string name="settings_host">神社备用域名</string>
-    <string name="settings_host_more">添加新域名</string>
-    <string name="settings_host_sample">例“hacg.be”</string>
+    <string name="settings_host">神社备用域名网址</string>
+    <string name="settings_host_more">添加新域名网址</string>
+    <string name="settings_host_sample">例“www.hacg.me/wp”</string>
     <string name="settings_host_reset">重置所有</string>
     <string name="app_copy">复制</string>
     <string name="comment_copy">已复制 %1$s</string>
@@ -42,8 +42,8 @@
     <string name="app_update_check">检查更新</string>
     <string name="app_philosophy">哲学</string>
     <string name="app_exit">退出</string>
-    <string name="settings_philosophy_host">哲学论坛域名</string>
-    <string name="settings_philosophy_sample">例“bbs.hacg.me”</string>
+    <string name="settings_philosophy_host">哲学论坛域名网址</string>
+    <string name="settings_philosophy_sample">例“bbs.hacg.me/m”</string>
     <string name="app_exit_confirm">要退出吗？</string>
     <string name="app_save">保存</string>
     <string name="app_share">分享</string>
