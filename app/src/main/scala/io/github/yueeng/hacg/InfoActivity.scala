@@ -60,7 +60,7 @@ class InfoActivity extends AppCompatActivity {
 
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
-      case android.R.id.home =>onBackPressed(); true
+      case android.R.id.home => onBackPressed(); true
       case _ => super.onOptionsItemSelected(item)
     }
   }
@@ -127,7 +127,9 @@ class InfoFragment extends Fragment {
     activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
     root.findViewById(R.id.toolbar_collapsing) match {
-      case c: CollapsingToolbarLayout => c.setTitle(_article.title)
+      case c: CollapsingToolbarLayout =>
+        c.setExpandedTitleColor(Common.randomColor())
+        c.setTitle(_article.title)
       case _ => activity.setTitle(_article.title)
     }
 
@@ -272,7 +274,9 @@ class InfoFragment extends Fragment {
       case menu: DrawerLayout if menu.isDrawerOpen(GravityCompat.END) =>
         menu.closeDrawer(GravityCompat.END)
         true
-      case _ => false
+      case _ =>
+        _web.view.setVisibility(View.INVISIBLE)
+        false
     }
   }
 
@@ -430,9 +434,9 @@ class InfoFragment extends Fragment {
               if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
                 reader => reader.mkString.replace("{{title}}",
                   _article.title).replace("{{body}}", entry.html())
-//                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
-//                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
-//                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
+                //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
+                //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
+                //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
               } else null,
               if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
               dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {

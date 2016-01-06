@@ -35,8 +35,8 @@ class MainActivity extends AppCompatActivity {
   lazy val pager: ViewPager = findViewById(R.id.container)
   lazy val ad: ViewPager = findViewById(R.id.pager)
 
-  protected override def onCreate(savedInstanceState: Bundle) {
-    super.onCreate(savedInstanceState)
+  protected override def onCreate(state: Bundle) {
+    super.onCreate(state)
     setContentView(R.layout.activity_main)
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
@@ -69,7 +69,9 @@ class MainActivity extends AppCompatActivity {
     })
     //hack align tab by left
     tabs.smoothScrollTo(0, 0)
-    checkVersion(false)
+    if (state == null) {
+      checkVersion(false)
+    }
   }
 
   override def onPause(): Unit = {
