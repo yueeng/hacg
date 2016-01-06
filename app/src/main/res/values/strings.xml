@@ -22,6 +22,11 @@
         <item>ROU</item>
         <item>Philosophy</item>
     </string-array>
+    <string-array name="app_magnet_tip">
+        <item>Oh, My god~</item>
+        <item>I don\'t know!</item>
+        <item>What\'s this?</item>
+    </string-array>
     <string name="comment_refresh">Refresh</string>
     <string name="comment_verify">Some fields are empty.</string>
     <string name="app_settings">Settings</string>
@@ -31,7 +36,7 @@
     <string name="settings_host_sample">Like "www.hacg.me/wp".</string>
     <string name="settings_host_reset">Reset all</string>
     <string name="app_copy">Copy</string>
-    <string name="comment_copy">Copyed %1$s</string>
+    <string name="app_copied">Copyed %1$s</string>
     <string name="comment_review_to">Review: %1$s</string>
     <string name="app_about">About</string>
     <string name="app_publish">Publish</string>
@@ -46,4 +51,6 @@
     <string name="settings_philosophy_sample">Like "bbs.hacg.me/m".</string>
     <string name="app_save">Save</string>
     <string name="app_share">Share</string>
+    <string name="app_magnet">Magnetlink</string>
+    <string name="app_open">Open</string>
 </resources>

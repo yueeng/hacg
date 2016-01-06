@@ -15,7 +15,7 @@ import android.support.v4.view.{GravityCompat, ViewCompat}
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
-import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
@@ -102,6 +102,10 @@ class InfoFragment extends Fragment {
     query(_article.link, QUERY_ALL)
   }
 
+  lazy val _magnet = new ViewEx[List[String], View] {
+    override def refresh(): Unit = view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE)
+  }
+
   lazy val _progress = new ViewEx[Boolean, ProgressBar] {
     override def refresh(): Unit = {
       view.setIndeterminate(value)
@@ -176,15 +180,18 @@ class InfoFragment extends Fragment {
       menu.close(true)
     }
 
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById).foreach {
       case b: FloatingActionButton =>
         b.setColorNormal(randomColor())
         b.setColorPressed(randomColor())
         b.setColorRipple(randomColor())
+      case _ =>
+    }
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById).foreach {
+      case b: FloatingActionButton =>
         b.setOnClickListener(click)
       case _ =>
     }
-
     _progress.view = root.findViewById(R.id.progress)
     _progress2.view = root.findViewById(R.id.swipe)
 
@@ -194,6 +201,38 @@ class InfoFragment extends Fragment {
         _adapter.data.clear()
         _adapter.notifyDataSetChanged()
         query(_article.link, QUERY_COMMENT)
+      }
+    })
+    _magnet.view = root.findViewById(R.id.button5)
+    _magnet.view.setOnClickListener(new View.OnClickListener {
+      var em = getResources.getStringArray(R.array.app_magnet_tip)
+      var magnet = em.size
+      var toast: Toast = _
+
+      override def onClick(v: View): Unit = magnet match {
+        case 0 if _magnet.value != null && _magnet.value.nonEmpty => new Builder(getActivity)
+          .setTitle(R.string.app_magnet)
+          .setSingleChoiceItems(_magnet.value.toArray[CharSequence], 0, null)
+          .setNegativeButton(R.string.app_cancel, null)
+          .setPositiveButton(R.string.app_open, dialogClick { (d, w) =>
+            val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
+            val link = s"magnet:?xt=urn:btih:${_magnet.value(pos)}"
+            startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
+          })
+          .setNeutralButton(R.string.app_copy, dialogClick { (d, w) =>
+            val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
+            val link = s"magnet:?xt=urn:btih:${_magnet.value(pos)}"
+            val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+            val clip = ClipData.newPlainText(getString(R.string.app_magnet), link)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, link), Toast.LENGTH_SHORT).show()
+          }).create().show()
+          menu.close(true)
+        case _ if magnet > 0 => magnet -= 1
+          if (toast != null) toast.cancel()
+          toast = Toast.makeText(getActivity, em(magnet), Toast.LENGTH_SHORT)
+          toast.show()
+        case _ =>
       }
     })
 
@@ -295,7 +334,7 @@ class InfoFragment extends Fragment {
           val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
           val clip = ClipData.newPlainText(c.user, c.content)
           clipboard.setPrimaryClip(clip)
-          Toast.makeText(getActivity, getActivity.getString(R.string.comment_copy, c.content), Toast.LENGTH_SHORT).show()
+          Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
         })
       .create()
     alert.setOnShowListener(new OnShowListener {
@@ -453,6 +492,7 @@ class InfoFragment extends Fragment {
         result match {
           case Some(data) =>
             if (content) {
+              _magnet.value = """\b[a-zA-Z0-9]{40}\b""".r.findAllIn(data._1).toList
               _web.value = (data._1, url)
             }
             if (comment) {

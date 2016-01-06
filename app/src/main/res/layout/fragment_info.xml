@@ -87,6 +87,15 @@
             android:layout_margin="10dp">
 
             <com.github.clans.fab.FloatingActionButton
+                android:id="@+id/button5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_magnet"
+                android:visibility="gone"
+                app:fab_label="@string/app_magnet"
+                app:fab_size="mini" />
+
+            <com.github.clans.fab.FloatingActionButton
                 android:id="@+id/button1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
