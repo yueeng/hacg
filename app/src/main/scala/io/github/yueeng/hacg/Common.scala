@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface, Intent, SharedPreferences}
 import android.net.Uri
-import android.os.{Parcelable, AsyncTask, Bundle}
+import android.os.{AsyncTask, Bundle, Parcelable}
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
@@ -20,8 +20,8 @@ import android.support.v7.app.AlertDialog.Builder
 import android.view.View
 import android.view.View.OnLongClickListener
 import android.widget.{EditText, Toast}
-import com.squareup.okhttp.{FormEncodingBuilder, OkHttpClient, Request}
 import io.github.yueeng.hacg.Common._
+import okhttp3.{MultipartBody, OkHttpClient, Request}
 import okio.Okio
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -54,7 +54,7 @@ object HAcg {
 
   def web = s"http://$host"
 
-//  def wordpress = s"$web/wordpress"
+  //  def wordpress = s"$web/wordpress"
 
   def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
 
@@ -183,8 +183,9 @@ object Common {
       b.putString(key, value)
       b
     }
-    def parcelable(key:String,value:Parcelable)={
-      b.putParcelable(key,value)
+
+    def parcelable(key: String, value: Parcelable) = {
+      b.putParcelable(key, value)
       b
     }
   }
@@ -238,12 +239,13 @@ object Common {
 
     def httpGet = {
       try {
-        val http = new OkHttpClient()
-        http.setConnectTimeout(15, TimeUnit.SECONDS)
-        http.setReadTimeout(30, TimeUnit.SECONDS)
+        val http = new OkHttpClient.Builder()
+          .connectTimeout(15, TimeUnit.SECONDS)
+          .readTimeout(30, TimeUnit.SECONDS)
+          .build()
         val request = new Request.Builder().get().url(url).build()
         val response = http.newCall(request).execute()
-        Option(response.body().string(), response.request().urlString())
+        Option(response.body().string(), response.request().url().toString)
       } catch {
         case _: Exception => None
       }
@@ -251,14 +253,15 @@ object Common {
 
     def httpPost(post: Map[String, String]) = {
       try {
-        val http = new OkHttpClient()
-        http.setConnectTimeout(15, TimeUnit.SECONDS)
-        http.setWriteTimeout(30, TimeUnit.SECONDS)
-        http.setReadTimeout(30, TimeUnit.SECONDS)
-        val data = (new FormEncodingBuilder /: post)((b, o) => b.add(o._1, o._2)).build()
+        val http = new OkHttpClient.Builder()
+          .connectTimeout(15, TimeUnit.SECONDS)
+          .writeTimeout(30, TimeUnit.SECONDS)
+          .readTimeout(30, TimeUnit.SECONDS)
+          .build()
+        val data = (new MultipartBody.Builder /: post)((b, o) => b.addFormDataPart(o._1, o._2)).build()
         val request = new Request.Builder().url(url).post(data).build()
         val response = http.newCall(request).execute()
-        Option(response.body().string(), response.request().urlString())
+        Option(response.body().string(), response.request().url().toString)
       } catch {
         case _: Exception => None
       }
@@ -275,13 +278,14 @@ object Common {
     def httpDownload(file: String = null): Option[File] = {
       try {
         System.out.println(url)
-        val http = new OkHttpClient()
-        http.setConnectTimeout(15, TimeUnit.SECONDS)
+        val http = new OkHttpClient.Builder()
+          .connectTimeout(15, TimeUnit.SECONDS)
+          .build()
         val request = new Request.Builder().get().url(url).build()
         val response = http.newCall(request).execute()
 
         val target = if (file == null) {
-          val path = response.request().uri.getPath
+          val path = response.request().url().uri().getPath
           new File(HAcgApplication.instance.getExternalCacheDir, path.substring(path.lastIndexOf('/') + 1))
         } else {
           new File(file)
@@ -395,12 +399,12 @@ class PersistCookieStore(context: Context) extends CookieStore {
 
   pref.getAll.collect { case (k: String, v: String) if !v.isEmpty => (k, v.split(",")) }
     .foreach { o =>
-    map(URI.create(o._1)) = mutable.HashSet() ++= o._2.flatMap {
-      c => try HttpCookie.parse(c) catch {
-        case _: Throwable => Nil
+      map(URI.create(o._1)) = mutable.HashSet() ++= o._2.flatMap {
+        c => try HttpCookie.parse(c) catch {
+          case _: Throwable => Nil
+        }
       }
     }
-  }
 
   implicit class httpCookie(c: HttpCookie) {
     def string: String = {
