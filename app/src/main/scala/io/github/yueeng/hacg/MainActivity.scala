@@ -137,28 +137,29 @@ class MainActivity extends AppCompatActivity {
   }
 
   def checkVersion(toast: Boolean = false) = {
-    new ScalaTask[Void, Void, Option[(String, String)]] {
-      override def background(params: Void*): Option[(String, String)] = {
+    new ScalaTask[Void, Void, Option[(String, String, String)]] {
+      override def background(params: Void*): Option[(String, String, String)] = {
         s"${HAcg.RELEASE}/latest".httpGet.jsoup {
           dom => (
             dom.select(".css-truncate-target").text(),
+            dom.select(".markdown-body").text().trim,
             dom.select(".release-downloads a[href$=.apk]").headOption match {
               case Some(a) => a.attr("abs:href")
               case _ => null
             }
             )
         } match {
-          case Some((v: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, u)
+          case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
           case _ => None
         }
       }
 
-      override def post(result: Option[(String, String)]): Unit = {
+      override def post(result: Option[(String, String, String)]): Unit = {
         result match {
-          case Some((v: String, u: String)) =>
+          case Some((v: String, t:String, u: String)) =>
             new Builder(MainActivity.this)
-              .setTitle(R.string.app_update)
-              .setMessage(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
+              .setTitle(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
+              .setMessage(t)
               .setPositiveButton(R.string.app_update, dialogClick { (d, w) => openWeb(MainActivity.this, u) })
               .setNeutralButton(R.string.app_publish, dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
               .setNegativeButton(R.string.app_cancel, null)
