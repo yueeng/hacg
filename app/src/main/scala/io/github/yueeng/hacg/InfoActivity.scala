@@ -205,12 +205,12 @@ class InfoFragment extends Fragment {
     })
     _magnet.view = root.findViewById(R.id.button5)
     _magnet.view.setOnClickListener(new View.OnClickListener {
-      var em = getResources.getStringArray(R.array.app_magnet_tip)
-      var magnet = em.size
+//      var em = getResources.getStringArray(R.array.app_magnet_tip)
+      var magnet = 0
       var toast: Toast = _
 
       override def onClick(v: View): Unit = magnet match {
-        case 0 if _magnet.value != null && _magnet.value.nonEmpty => new Builder(getActivity)
+        case 3 if _magnet.value != null && _magnet.value.nonEmpty => new Builder(getActivity)
           .setTitle(R.string.app_magnet)
           .setSingleChoiceItems(_magnet.value.toArray[CharSequence], 0, null)
           .setNegativeButton(R.string.app_cancel, null)
@@ -228,9 +228,9 @@ class InfoFragment extends Fragment {
             Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, link), Toast.LENGTH_SHORT).show()
           }).create().show()
           menu.close(true)
-        case _ if magnet > 0 => magnet -= 1
+        case _ => magnet += 1
           if (toast != null) toast.cancel()
-          toast = Toast.makeText(getActivity, em(magnet), Toast.LENGTH_SHORT)
+          toast = Toast.makeText(getActivity, (0 until magnet).map(_=>"...").mkString, Toast.LENGTH_SHORT)
           toast.show()
         case _ =>
       }

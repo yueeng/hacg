@@ -423,8 +423,10 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
       val item = data(position)
       holder.article = item
       holder.text1.setText(item.title)
+      holder.text1.setVisibility(if (item.title.isNonEmpty) View.VISIBLE else View.GONE)
       holder.text1.setTextColor(Common.randomColor())
       holder.text2.setText(item.content)
+      holder.text2.setVisibility(if (item.content.isNonEmpty) View.VISIBLE else View.GONE)
       val w = " "
       val tags = item.expend.map(o => s"$w${o.name}$w").mkString(" ")
       val span = new SpannableStringBuilder(tags)

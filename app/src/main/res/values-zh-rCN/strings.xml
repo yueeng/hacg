@@ -23,11 +23,6 @@
         <item>番剧</item>
         <item>哲学</item>
     </string-array>
-    <string-array name="app_magnet_tip">
-        <item>噢，我的天~</item>
-        <item>我也不知道呀！</item>
-        <item>这是什么？</item>
-    </string-array>
     <string name="comment_refresh">刷新</string>
     <string name="comment_verify">部分字段为空。</string>
     <string name="app_settings">设置</string>
