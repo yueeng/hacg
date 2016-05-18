@@ -69,7 +69,7 @@ class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayou
   override def onOptionsItemSelected(item: MenuItem): Boolean = {
     item.getItemId match {
       case R.id.open => Common.openWeb(getActivity, uri); true
-      case R.id.settings => HAcg.setPhilosophy(getActivity); true
+      case R.id.settings => HAcg.setPhilosophy(getActivity, _ => web.loadUrl(defuri)); true
       case _ => super.onOptionsItemSelected(item)
     }
   }

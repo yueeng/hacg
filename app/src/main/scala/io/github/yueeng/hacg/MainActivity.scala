@@ -32,6 +32,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 class MainActivity extends AppCompatActivity {
+  lazy val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
   lazy val pager: ViewPager = findViewById(R.id.container)
   lazy val ad: ViewPager = findViewById(R.id.pager)
 
@@ -42,7 +43,6 @@ class MainActivity extends AppCompatActivity {
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
 
     val tabs: TabLayout = findViewById(R.id.tab)
-    val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
 
@@ -119,8 +119,8 @@ class MainActivity extends AppCompatActivity {
       val image = new ImageView(container.getContext)
       image.setAdjustViewBounds(true)
       if (crop) image.setScaleType(ScaleType.CENTER_CROP)
-      image.setOnClickListener(viewClick { v => Common.openWeb(MainActivity.this, s"http://hacg.club/gg/${position + 1}") })
-      Picasso.`with`(container.getContext).load(s"http://hacg.club/gg/${position + 1}.jpg").into(image)
+      image.setOnClickListener(viewClick { v => Common.openWeb(MainActivity.this, s"http://${HAcg.domain}/gg/${position + 1}") })
+      Picasso.`with`(container.getContext).load(s"http://${HAcg.domain}/gg/${position + 1}.jpg").into(image)
       container.addView(image)
       image
     }
@@ -156,7 +156,7 @@ class MainActivity extends AppCompatActivity {
 
       override def post(result: Option[(String, String, String)]): Unit = {
         result match {
-          case Some((v: String, t:String, u: String)) =>
+          case Some((v: String, t: String, u: String)) =>
             new Builder(MainActivity.this)
               .setTitle(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
               .setMessage(t)
@@ -175,7 +175,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/erogame.html", "/age.html", "/op.html", "/category/rou")
+    lazy val data = List("/", "/anime.html", "/comic.html", "/game.html", "/age.html", "/op.html", "/rou.html")
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment =
@@ -208,7 +208,11 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.settings => HAcg.setHost(this); true
+      case R.id.settings => HAcg.setHost(this, _ => adapter.current match {
+        case f: ArticleFragment => f.reload()
+        case _ =>
+      })
+        true
       case R.id.philosophy => startActivity(new Intent(this, classOf[WebActivity])); true
       case R.id.about =>
         new Builder(this)
@@ -310,6 +314,12 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
   override def onSaveInstanceState(out: Bundle): Unit = {
     out.putParcelableArray("data", adapter.data.toArray)
     out.putBoolean("error", error.error)
+  }
+
+  def reload(): Unit = {
+    adapter.data.clear()
+    adapter.notifyDataSetChanged()
+    query(defurl)
   }
 
   override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })

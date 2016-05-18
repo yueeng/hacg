@@ -17,6 +17,7 @@ import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AlertDialog.Builder
+import android.text.InputType
 import android.view.View
 import android.view.View.OnLongClickListener
 import android.widget.{EditText, Toast}
@@ -37,8 +38,8 @@ object HAcg {
   private val SYSTEM_PHILOSOPHY: String = "system.philosophy"
   private val SYSTEM_PHILOSOPHY_HOSTS: String = "system.philosophy_hosts"
 
-  val DEFAULT_HOSTS = List("www.hacg.me/wp", "www.hacg.be/wp", "www.hacg.club/wp", "www.hacg.lol/wp")
-  val DEFAULT_PHILOSOPHY_HOSTS = List("bbs.hacg.me/m", "www.zhexue.in/m")
+  val DEFAULT_HOSTS = List("www.hacg.me/wp", "www.hacg.li/wp", "www.hacg.be/wp", "www.hacg.club/wp", "www.hacg.lol/wp")
+  val DEFAULT_PHILOSOPHY_HOSTS = List("liqu.pro")
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
@@ -54,6 +55,11 @@ object HAcg {
 
   def web = s"http://$host"
 
+  def domain = host.indexOf('/') match {
+    case i if i >= 0 => host.substring(0, i)
+    case _ => host
+  }
+
   //  def wordpress = s"$web/wordpress"
 
   def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
@@ -66,12 +72,12 @@ object HAcg {
 
   def philosophy = s"http://$philosophy_host"
 
-
   def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val edit = new EditText(context)
     if (hint != 0) {
       edit.setHint(hint)
     }
+    edit.setInputType(InputType.TYPE_TEXT_VARIATION_URI)
     new Builder(context)
       .setTitle(title)
       .setView(edit)
@@ -82,7 +88,7 @@ object HAcg {
       .setPositiveButton(R.string.app_ok,
         dialogClick { (d, w) =>
           val host = edit.getText.toString
-          if (host.matches( """^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}(?:/.+)?$""")) {
+          if (host.isNonEmpty) {
             ok(host)
           } else {
             Toast.makeText(context, hint, Toast.LENGTH_SHORT).show()
@@ -102,25 +108,31 @@ object HAcg {
       .create().show()
   }
 
-  def setHost(context: Context): Unit = {
+  def setHost(context: Context, ok: String => Unit = null): Unit = {
     setHostx(context,
       R.string.settings_host,
       R.string.settings_host_sample,
       () => HAcg.hosts,
       () => HAcg.host,
-      host => HAcg.host = host,
+      host => {
+        HAcg.host = host
+        if (ok != null) ok(host)
+      },
       host => HAcg.hosts = HAcg.hosts + host,
       () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
     )
   }
 
-  def setPhilosophy(context: Context): Unit = {
+  def setPhilosophy(context: Context, ok: String => Unit = null): Unit = {
     setHostx(context,
       R.string.settings_philosophy_host,
       R.string.settings_philosophy_sample,
       () => HAcg.philosophy_hosts,
       () => HAcg.philosophy_host,
-      host => HAcg.philosophy_host = host,
+      host => {
+        HAcg.philosophy_host = host
+        if (ok != null) ok(host)
+      },
       host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
       () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
     )
@@ -258,7 +270,7 @@ object Common {
           .writeTimeout(30, TimeUnit.SECONDS)
           .readTimeout(30, TimeUnit.SECONDS)
           .build()
-        val data = (new MultipartBody.Builder /: post)((b, o) => b.addFormDataPart(o._1, o._2)).build()
+        val data = (new MultipartBody.Builder /: post) ((b, o) => b.addFormDataPart(o._1, o._2)).build()
         val request = new Request.Builder().url(url).post(data).build()
         val response = http.newCall(request).execute()
         Option(response.body().string(), response.request().url().toString)
@@ -390,9 +402,9 @@ object CookieManagerProxy {
 }
 
 /**
- * PersistentCookieStore
- * Created by Rain on 2015/7/1.
- */
+  * PersistentCookieStore
+  * Created by Rain on 2015/7/1.
+  */
 class PersistCookieStore(context: Context) extends CookieStore {
   private final val map = new mutable.HashMap[URI, mutable.HashSet[HttpCookie]]
   private final val pref: SharedPreferences = context.getSharedPreferences("cookies.pref", Context.MODE_PRIVATE)
