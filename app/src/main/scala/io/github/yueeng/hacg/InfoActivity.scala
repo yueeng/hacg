@@ -30,9 +30,9 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * Info activity
- * Created by Rain on 2015/5/12.
- */
+  * Info activity
+  * Created by Rain on 2015/5/12.
+  */
 
 class InfoActivity extends AppCompatActivity {
   lazy val _article = getIntent.getParcelableExtra[Article]("article")
@@ -426,7 +426,7 @@ class InfoFragment extends Fragment {
     val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
     _progress.value = content
     _progress2.value = true
-    type R = Option[(String, List[Comment], String, Map[String, String], String)]
+    type R = Option[(String, List[Comment], String, Map[String, String], String, String)]
     new ScalaTask[Void, Void, R] {
       override def background(params: Void*): R = {
         url.httpGet.jsoup {
@@ -483,7 +483,8 @@ class InfoFragment extends Fragment {
                 case _ => null
               },
               dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
-              dom.select("#commentform").attr("abs:action")
+              dom.select("#commentform").attr("abs:action"),
+              if (content) entry.text() else null
               )
         }
       }
@@ -492,7 +493,7 @@ class InfoFragment extends Fragment {
         result match {
           case Some(data) =>
             if (content) {
-              _magnet.value = """\b[a-zA-Z0-9]{40}\b""".r.findAllIn(data._1).toList
+              _magnet.value = """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList
               _web.value = (data._1, url)
             }
             if (comment) {
@@ -530,7 +531,7 @@ class InfoFragment extends Fragment {
     val adapter = new CommentAdapter
     val context = view.getContext
     list.setAdapter(adapter)
-    list.setLayoutManager(new FullyLinearLayoutManager(context))
+    list.setLayoutManager(new LinearLayoutManager(context))
     list.setHasFixedSize(true)
     view.setOnClickListener(_click)
   }

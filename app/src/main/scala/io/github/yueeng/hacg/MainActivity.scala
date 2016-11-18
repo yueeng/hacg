@@ -391,8 +391,9 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
         case h: ArticleHolder =>
           //          val article = v.getTag.asInstanceOf[Article]
           //          startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
-          ActivityCompat.startActivity(getActivity,
+          ActivityCompat.startActivityForResult(getActivity,
             new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
+            0,
             ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
         case _ =>
       }
