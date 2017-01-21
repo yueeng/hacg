@@ -3,7 +3,7 @@ apply plugin: "jp.leafytree.android-scala"
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.0"
+    buildToolsVersion "25.0.2"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"
@@ -39,7 +39,7 @@ dependencies {
     compile "com.android.support:recyclerview-v7:$android_support_version"
     compile 'com.github.clans:fab:1.6.4'
     compile "org.scala-lang:scala-library:2.11.8"
-    compile "com.squareup.okhttp3:okhttp:3.4.2"
+    compile "com.squareup.okhttp3:okhttp:3.5.0"
     compile "com.squareup.picasso:picasso:2.5.2"
     compile 'org.jsoup:jsoup:1.9.2'
     androidTestCompile "com.android.support:multidex-instrumentation:1.0.1", { exclude module: "multidex" }
