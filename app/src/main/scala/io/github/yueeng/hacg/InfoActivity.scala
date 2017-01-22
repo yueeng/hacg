@@ -24,7 +24,7 @@ import android.widget._
 import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
-import io.github.yueeng.hacg.ViewEx.ViewEx
+import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -69,11 +69,8 @@ class InfoActivity extends AppCompatActivity {
 class InfoFragment extends Fragment {
   lazy val _article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
-  val _web = new ViewEx.ViewEx[(String, String), WebView] {
-    override def refresh(): Unit =
-      view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null)
-  }
-  val _error = new ViewEx.Error {
+  val _web = new ViewBinder[(String, String), WebView](null, (view, value) => view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null))
+  val _error = new ErrorBinder(false) {
     override def retry(): Unit = query(_article.link, QUERY_ALL)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
@@ -102,25 +99,18 @@ class InfoFragment extends Fragment {
     query(_article.link, QUERY_ALL)
   }
 
-  lazy val _magnet = new ViewEx[List[String], View] {
-    override def refresh(): Unit = view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE)
-  }
+  lazy val _magnet = new ViewBinder[List[String], View](List.empty[String], (view, value) => view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE))
 
-  lazy val _progress = new ViewEx[Boolean, ProgressBar] {
-    override def refresh(): Unit = {
-      view.setIndeterminate(value)
-      view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
-    }
-  }
-  lazy val _progress2 = new ViewEx[Boolean, SwipeRefreshLayout] {
-    override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
-  }
+  lazy val _progress = new ViewBinder[Boolean, ProgressBar](false, (view, value) => {
+    view.setIndeterminate(value)
+    view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
+  })
+
+  lazy val _progress2 = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
 
   override def onDestroy(): Unit = {
     super.onDestroy()
-    if (_web.view != null) {
-      _web.view.destroy()
-    }
+    _web.views.foreach(_.destroy())
   }
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
@@ -144,7 +134,7 @@ class InfoFragment extends Fragment {
       case _ =>
     }
 
-    _error.image = root.findViewById(R.id.image1)
+    _error += root.findViewById(R.id.image1)
     val list: RecyclerView = root.findViewById(R.id.list1)
     list.setLayoutManager(new LinearLayoutManager(getActivity))
     list.setHasFixedSize(true)
@@ -192,10 +182,10 @@ class InfoFragment extends Fragment {
         b.setOnClickListener(click)
       case _ =>
     }
-    _progress.view = root.findViewById(R.id.progress)
-    _progress2.view = root.findViewById(R.id.swipe)
+    _progress += root.findViewById(R.id.progress)
+    _progress2 += root.findViewById(R.id.swipe)
 
-    _progress2.view.setOnRefreshListener(new OnRefreshListener {
+    _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
         _url = null
         _adapter.data.clear()
@@ -203,25 +193,25 @@ class InfoFragment extends Fragment {
         query(_article.link, QUERY_COMMENT)
       }
     })
-    _magnet.view = root.findViewById(R.id.button5)
-    _magnet.view.setOnClickListener(new View.OnClickListener {
+    _magnet += root.findViewById(R.id.button5)
+    _magnet.views.head.setOnClickListener(new View.OnClickListener {
       val max = 3
       var magnet = 0
       var toast: Toast = _
 
       override def onClick(v: View): Unit = magnet match {
-        case `max` if _magnet.value != null && _magnet.value.nonEmpty => new Builder(getActivity)
+        case `max` if _magnet() != null && _magnet().nonEmpty => new Builder(getActivity)
           .setTitle(R.string.app_magnet)
-          .setSingleChoiceItems(_magnet.value.toArray[CharSequence], 0, null)
+          .setSingleChoiceItems(_magnet().toArray[CharSequence], 0, null)
           .setNegativeButton(R.string.app_cancel, null)
           .setPositiveButton(R.string.app_open, dialogClick { (d, w) =>
             val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-            val link = s"magnet:?xt=urn:btih:${_magnet.value(pos)}"
+            val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
             startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
           })
           .setNeutralButton(R.string.app_copy, dialogClick { (d, w) =>
             val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-            val link = s"magnet:?xt=urn:btih:${_magnet.value(pos)}"
+            val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
             val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
             val clip = ClipData.newPlainText(getString(R.string.app_magnet), link)
             clipboard.setPrimaryClip(clip)
@@ -250,7 +240,7 @@ class InfoFragment extends Fragment {
       }
     })
     web.addJavascriptInterface(new JsFace(), "hacg")
-    _web.view = web
+    _web += web
     root
   }
 
@@ -314,7 +304,7 @@ class InfoFragment extends Fragment {
         menu.closeDrawer(GravityCompat.END)
         true
       case _ =>
-        _web.view.setVisibility(View.INVISIBLE)
+        _web.views.foreach(_.setVisibility(View.INVISIBLE))
         false
     }
   }
@@ -379,7 +369,7 @@ class InfoFragment extends Fragment {
           if (COMMENTURL.isEmpty || List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
-            _progress2.value = true
+            _progress2 <= true
             type R = (Boolean, String)
             new ScalaTask[Map[String, String], Void, R] {
               override def background(params: Map[String, String]*): R = {
@@ -395,7 +385,7 @@ class InfoFragment extends Fragment {
               }
 
               override def post(result: R): Unit = {
-                _progress2.value = false
+                _progress2 <= false
                 if (result._1) {
                   _post(COMMENT) = ""
                   _url = null
@@ -418,14 +408,14 @@ class InfoFragment extends Fragment {
   val QUERY_ALL = QUERY_WEB | QUERY_COMMENT
 
   def query(url: String, op: Int): Unit = {
-    if (_progress.value || _progress2.value) {
+    if (_progress() || _progress2()) {
       return
     }
-    _error.error = false
+    _error <= false
     val content = (op & QUERY_WEB) == QUERY_WEB
     val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
-    _progress.value = content
-    _progress2.value = true
+    _progress <= content
+    _progress2 <= true
     type R = Option[(String, List[Comment], String, Map[String, String], String, String)]
     new ScalaTask[Void, Void, R] {
       override def background(params: Void*): R = {
@@ -493,8 +483,8 @@ class InfoFragment extends Fragment {
         result match {
           case Some(data) =>
             if (content) {
-              _magnet.value = """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList
-              _web.value = (data._1, url)
+              _magnet <= """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList
+              _web <=(data._1, url)
             }
             if (comment) {
               data._2.filter(_.moderation.isNonEmpty).foreach(println)
@@ -511,10 +501,10 @@ class InfoFragment extends Fragment {
             _post ++= data._4.filter(o => !filter.contains(o._1))
 
             COMMENTURL = data._5
-          case _ => _error.error = _web.value == null
+          case _ => _error <= (_web() == null)
         }
-        _progress.value = false
-        _progress2.value = false
+        _progress <= false
+        _progress2 <= false
       }
     }.execute()
   }

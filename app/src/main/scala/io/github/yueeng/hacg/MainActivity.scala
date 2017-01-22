@@ -27,6 +27,7 @@ import android.widget.ImageView.ScaleType
 import android.widget._
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
+import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -283,10 +284,11 @@ object SearchHistoryProvider {
   val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
 }
 
-class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayout] {
+class ArticleFragment extends Fragment {
+  var busy = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
   lazy val adapter = new ArticleAdapter()
   var url: String = null
-  val error = new ViewEx.Error {
+  val error = new ErrorBinder(false) {
     override def retry(): Unit = query(defurl)
   }
 
@@ -301,7 +303,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
         adapter.notifyDataSetChanged()
         return
       }
-      error.error = saved.getBoolean("error", false)
+      error <= saved.getBoolean("error", false)
     }
     query(defurl)
   }
@@ -313,7 +315,7 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
 
   override def onSaveInstanceState(out: Bundle): Unit = {
     out.putParcelableArray("data", adapter.data.toArray)
-    out.putBoolean("error", error.error)
+    out.putBoolean("error", error())
   }
 
   def reload(): Unit = {
@@ -322,13 +324,11 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
     query(defurl)
   }
 
-  override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
-
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     val root = inflater.inflate(R.layout.fragment_list, container, false)
-    error.image = root.findViewById(R.id.image1)
-    view = root.findViewById(R.id.swipe)
-    view.setOnRefreshListener(new OnRefreshListener {
+    error += root.findViewById(R.id.image1)
+    busy += root.findViewById(R.id.swipe)
+    busy.views.head.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
         adapter.data.clear()
         adapter.notifyDataSetChanged()
@@ -353,9 +353,9 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
   }
 
   def query(uri: String): Unit = {
-    if (value) return
-    value = true
-    error.error = false
+    if (busy()) return
+    busy <= true
+    error <= false
     type R = Option[(List[Article], String)]
     new ScalaTask[String, Void, R]() {
       override def background(params: String*): R = {
@@ -378,9 +378,9 @@ class ArticleFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshL
             adapter.data ++= r._1
             adapter.notifyItemRangeInserted(adapter.data.size - r._1.size, r._1.size)
           case _ =>
-            error.error = adapter.data.isEmpty
+            error <= adapter.data.isEmpty
         }
-        value = false
+        busy <= false
       }
     }.execute(uri)
   }

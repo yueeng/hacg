@@ -1,17 +1,18 @@
 package io.github.yueeng.hacg
 
 import java.io.File
+import java.lang.ref.WeakReference
 import java.net._
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
 import java.util
 import java.util.Date
-import java.util.concurrent.TimeUnit
+import java.util.concurrent._
 
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface, Intent, SharedPreferences}
 import android.net.Uri
-import android.os.{AsyncTask, Bundle, Parcelable}
+import android.os._
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
@@ -29,6 +30,7 @@ import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.util.Random
 
@@ -515,4 +517,43 @@ class PersistCookieStore(context: Context) extends CookieStore {
     edit.apply()
     (map.getOrElse(uri, Nil) ++ map.values.flatMap(o => o.filter(c => HttpCookie.domainMatches(c.getDomain, uri.getHost)))).toList.distinct
   }
+}
+
+object ViewBinder {
+
+  class ViewBinder[T, V <: View](private var _value: T, private val func: (V, T) => Unit) {
+    def apply(): T = _value
+
+    private val _views = ListBuffer.empty[WeakReference[V]]
+
+    def +=(v: V): ViewBinder[T, V] = synchronized {
+      _views += new WeakReference(v)
+      if (_value != null) func(v, _value)
+      this
+    }
+
+    def -=(v: V): ViewBinder[T, V] = synchronized {
+      _views --= _views.filter(p => p.get == null || p.get == v)
+      this
+    }
+
+    def <=(v: T): ViewBinder[T, V] = synchronized {
+      _value = v
+      _views --= _views.filter(p => p.get == null)
+      if (_value != null) _views.foreach(p => func(p.get, v))
+      this
+    }
+
+    def views = synchronized(_views.filter(_.get != null).map(_.get).toList)
+  }
+
+  abstract class ErrorBinder(value: Boolean) extends ViewBinder[Boolean, View](value, (v, t) => v.setVisibility(if (t) View.VISIBLE else View.INVISIBLE)) {
+    override def +=(v: View): ViewBinder[Boolean, View] = {
+      v.setOnClickListener(viewClick(_ => retry()))
+      super.+=(v)
+    }
+
+    def retry(): Unit
+  }
+
 }

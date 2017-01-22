@@ -10,6 +10,7 @@ import android.view._
 import android.webkit.{WebChromeClient, WebView, WebViewClient}
 import android.widget.ProgressBar
 import io.github.yueeng.hacg.Common._
+import io.github.yueeng.hacg.ViewBinder.ViewBinder
 
 class WebActivity extends AppCompatActivity {
   override def onCreate(savedInstanceState: Bundle): Unit = {
@@ -47,8 +48,8 @@ class WebActivity extends AppCompatActivity {
   }
 }
 
-class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayout] {
-
+class WebFragment extends Fragment {
+  val busy = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
   var uri: String = _
 
   def defuri = getArguments match {
@@ -58,8 +59,6 @@ class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayou
 
   lazy val web: WebView = getView.findViewById(R.id.web)
   lazy val progress: ProgressBar = getView.findViewById(R.id.progress)
-
-  override def refresh(): Unit = view.post(runnable { () => view.setRefreshing(value) })
 
   override def onCreateOptionsMenu(menu: Menu, inflater: MenuInflater): Unit = {
     inflater.inflate(R.menu.menu_web, menu)
@@ -85,8 +84,8 @@ class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayou
     val root = inflater.inflate(R.layout.fragment_web, container, false)
     val web: WebView = root.findViewById(R.id.web)
 
-    view = root.findViewById(R.id.swipe)
-    view.setOnRefreshListener(new OnRefreshListener {
+    busy += root.findViewById(R.id.swipe)
+    busy.views.head.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = web.loadUrl(uri)
     })
 
@@ -103,12 +102,12 @@ class WebFragment extends Fragment with ViewEx.ViewEx[Boolean, SwipeRefreshLayou
       }
 
       override def onPageStarted(view: WebView, url: String, favicon: Bitmap): Unit = {
-        value = true
+        busy <= true
         progress.setProgress(0)
       }
 
       override def onPageFinished(view: WebView, url: String): Unit = {
-        value = false
+        busy <= false
         progress.setProgress(100)
         uri = url
 
