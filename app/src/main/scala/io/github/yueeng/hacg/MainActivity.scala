@@ -103,7 +103,7 @@ class MainActivity extends AppCompatActivity {
     ad.postDelayed(adrun, adspan)
   }
 
-  val adrun: Runnable = runnable { () =>
+  val adrun: Runnable = () => {
     ad.setCurrentItem(ad.getCurrentItem + 1 match {
       case x if x >= ad.getAdapter.getCount => 0
       case x => x
@@ -285,7 +285,7 @@ object SearchHistoryProvider {
 }
 
 class ArticleFragment extends Fragment {
-  var busy = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
+  var busy = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
   lazy val adapter = new ArticleAdapter()
   var url: String = null
   val error = new ErrorBinder(false) {

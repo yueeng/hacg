@@ -176,7 +176,7 @@ object Common {
     override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
   }
 
-  implicit def runnable(func: () => Unit): Runnable = new Runnable {
+  implicit def runnable(func: () => _): Runnable = new Runnable {
     override def run(): Unit = func()
   }
 
@@ -521,7 +521,7 @@ class PersistCookieStore(context: Context) extends CookieStore {
 
 object ViewBinder {
 
-  class ViewBinder[T, V <: View](private var _value: T, private val func: (V, T) => Unit) {
+  class ViewBinder[T, V <: View](private var _value: T)(private val func: (V, T) => Unit) {
     def apply(): T = _value
 
     private val _views = ListBuffer.empty[WeakReference[V]]
@@ -547,7 +547,7 @@ object ViewBinder {
     def views = synchronized(_views.filter(_.get != null).map(_.get).toList)
   }
 
-  abstract class ErrorBinder(value: Boolean) extends ViewBinder[Boolean, View](value, (v, t) => v.setVisibility(if (t) View.VISIBLE else View.INVISIBLE)) {
+  abstract class ErrorBinder(value: Boolean) extends ViewBinder[Boolean, View](value)((v, t) => v.setVisibility(if (t) View.VISIBLE else View.INVISIBLE)) {
     override def +=(v: View): ViewBinder[Boolean, View] = {
       v.setOnClickListener(viewClick(_ => retry()))
       super.+=(v)

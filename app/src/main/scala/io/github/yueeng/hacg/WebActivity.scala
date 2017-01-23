@@ -49,7 +49,7 @@ class WebActivity extends AppCompatActivity {
 }
 
 class WebFragment extends Fragment {
-  val busy = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
+  val busy = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
   var uri: String = _
 
   def defuri = getArguments match {

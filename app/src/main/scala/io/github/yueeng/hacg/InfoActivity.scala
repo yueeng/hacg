@@ -69,7 +69,7 @@ class InfoActivity extends AppCompatActivity {
 class InfoFragment extends Fragment {
   lazy val _article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
-  val _web = new ViewBinder[(String, String), WebView](null, (view, value) => view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null))
+  val _web = new ViewBinder[(String, String), WebView](null)((view, value) => view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null))
   val _error = new ErrorBinder(false) {
     override def retry(): Unit = query(_article.link, QUERY_ALL)
   }
@@ -99,14 +99,14 @@ class InfoFragment extends Fragment {
     query(_article.link, QUERY_ALL)
   }
 
-  lazy val _magnet = new ViewBinder[List[String], View](List.empty[String], (view, value) => view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE))
+  lazy val _magnet = new ViewBinder[List[String], View](List.empty[String])((view, value) => view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE))
 
-  lazy val _progress = new ViewBinder[Boolean, ProgressBar](false, (view, value) => {
+  lazy val _progress = new ViewBinder[Boolean, ProgressBar](false)((view, value) => {
     view.setIndeterminate(value)
     view.setVisibility(if (value) View.VISIBLE else View.INVISIBLE)
   })
 
-  lazy val _progress2 = new ViewBinder[Boolean, SwipeRefreshLayout](false, (view, value) => view.post(runnable { () => view.setRefreshing(value) }))
+  lazy val _progress2 = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
 
   override def onDestroy(): Unit = {
     super.onDestroy()
@@ -272,7 +272,7 @@ class InfoFragment extends Fragment {
 
     @JavascriptInterface
     def save(url: String): Unit = {
-      getActivity.runOnUiThread(runnable { () =>
+      getActivity.runOnUiThread(() => {
         val uri = Uri.parse(url)
         val image = new ImageView(getActivity)
         image.setAdjustViewBounds(true)
