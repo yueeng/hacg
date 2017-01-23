@@ -272,7 +272,7 @@ class InfoFragment extends Fragment {
 
     @JavascriptInterface
     def save(url: String): Unit = {
-      getActivity.runOnUiThread(() => {
+      getActivity.runOnUiThread { () =>
         val uri = Uri.parse(url)
         val image = new ImageView(getActivity)
         image.setAdjustViewBounds(true)
@@ -294,7 +294,7 @@ class InfoFragment extends Fragment {
           .create()
         image.setOnClickListener(viewClick { v => alert.dismiss() })
         alert.show()
-      })
+      }
     }
   }
 
