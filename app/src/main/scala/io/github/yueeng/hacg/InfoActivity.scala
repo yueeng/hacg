@@ -245,7 +245,7 @@ class InfoFragment extends Fragment {
   }
 
   def share(url: String) = {
-    url.httpDownloadAsync() {
+    url.httpDownloadAsync(getContext) {
       case Some(file) =>
         val title = _article.title
         val intro = _article.content
@@ -370,21 +370,16 @@ class InfoFragment extends Fragment {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
             _progress2 <= true
-            type R = (Boolean, String)
-            new ScalaTask[Map[String, String], Void, R] {
-              override def background(params: Map[String, String]*): R = {
-                val data = params.head
-                COMMENTURL.httpPost(data).jsoup match {
-                  case Some(dom) =>
-                    dom.select("#error-page").headOption match {
-                      case Some(e) => (false, e.text())
-                      case _ => (true, getString(R.string.comment_succeeded))
-                    }
-                  case _ => (false, getString(R.string.comment_failed))
-                }
+            getContext.async { c =>
+              val result = COMMENTURL.httpPost(_post.toMap).jsoup match {
+                case Some(dom) =>
+                  dom.select("#error-page").headOption match {
+                    case Some(e) => (false, e.text())
+                    case _ => (true, getString(R.string.comment_succeeded))
+                  }
+                case _ => (false, getString(R.string.comment_failed))
               }
-
-              override def post(result: R): Unit = {
+              c.ui { _ =>
                 _progress2 <= false
                 if (result._1) {
                   _post(COMMENT) = ""
@@ -395,7 +390,7 @@ class InfoFragment extends Fragment {
                 }
                 Toast.makeText(getActivity, result._2, Toast.LENGTH_LONG).show()
               }
-            }.execute(_post.toMap)
+            }
           }
         })
       .setNegativeButton(R.string.app_cancel, null)
@@ -416,70 +411,67 @@ class InfoFragment extends Fragment {
     val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
     _progress <= content
     _progress2 <= true
-    type R = Option[(String, List[Comment], String, Map[String, String], String, String)]
-    new ScalaTask[Void, Void, R] {
-      override def background(params: Void*): R = {
-        url.httpGet.jsoup {
-          dom =>
-            val entry = dom.select(".entry-content")
-            entry.select(".toggle-box").foreach(_.removeAttr("style"))
-            entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
-            entry.select(".wp-polls-loading").remove()
-            entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
-            entry.select(".wp-polls").foreach(div => {
-              val node = if (div.parent.attr("class") != "entry-content") div.parent else div
-              val name = div.select("strong").headOption match {
-                case Some(strong) => strong.text()
-                case _ => "投票推荐"
-              }
-              node.after( s"""<a href="$url">$name</a>""")
-              node.remove()
-            })
+    getContext.async { c =>
+      val result = url.httpGet.jsoup {
+        dom =>
+          val entry = dom.select(".entry-content")
+          entry.select(".toggle-box").foreach(_.removeAttr("style"))
+          entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
+          entry.select(".wp-polls-loading").remove()
+          entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
+          entry.select(".wp-polls").foreach(div => {
+            val node = if (div.parent.attr("class") != "entry-content") div.parent else div
+            val name = div.select("strong").headOption match {
+              case Some(strong) => strong.text()
+              case _ => "投票推荐"
+            }
+            node.after( s"""<a href="$url">$name</a>""")
+            node.remove()
+          })
 
-            entry.select("*").removeAttr("class").removeAttr("style")
-            entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
-            entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
-            entry.select("embed").unwrap()
-            entry.select("img").foreach(i => {
-              val src = i.attr("src")
-              i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
-                case Some(a) =>
-                  a.attr("href") match {
-                    case href if src.equals(href) =>
-                      a.attr("href", s"javascript:hacg.save('$src');")
-                    case href if href.isImg =>
-                      a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
-                    case _ =>
-                  }
-                case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
-              }
-              i.attr("data-original", src)
-                .addClass("lazy")
-                .removeAttr("src")
-                .removeAttr("width")
-                .removeAttr("height")
-            })
-            (
-              if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
-                reader => reader.mkString.replace("{{title}}",
-                  _article.title).replace("{{body}}", entry.html())
-                //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
-                //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
-                //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
-              } else null,
-              if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
-              dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
-                case Some(a) => a.attr("abs:href")
-                case _ => null
-              },
-              dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
-              dom.select("#commentform").attr("abs:action"),
-              if (content) entry.text() else null
-              )
-        }
+          entry.select("*").removeAttr("class").removeAttr("style")
+          entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
+          entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
+          entry.select("embed").unwrap()
+          entry.select("img").foreach(i => {
+            val src = i.attr("src")
+            i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
+              case Some(a) =>
+                a.attr("href") match {
+                  case href if src.equals(href) =>
+                    a.attr("href", s"javascript:hacg.save('$src');")
+                  case href if href.isImg =>
+                    a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
+                  case _ =>
+                }
+              case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
+            }
+            i.attr("data-original", src)
+              .addClass("lazy")
+              .removeAttr("src")
+              .removeAttr("width")
+              .removeAttr("height")
+          })
+          (
+            if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
+              reader => reader.mkString.replace("{{title}}",
+                _article.title).replace("{{body}}", entry.html())
+              //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
+              //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
+              //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
+            } else null,
+            if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
+            dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
+              case Some(a) => a.attr("abs:href")
+              case _ => null
+            },
+            dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
+            dom.select("#commentform").attr("abs:action"),
+            if (content) entry.text() else null
+            )
       }
 
-      override def post(result: R): Unit = {
+      c.ui { _ =>
         result match {
           case Some(data) =>
             if (content) {
@@ -506,7 +498,7 @@ class InfoFragment extends Fragment {
         _progress <= false
         _progress2 <= false
       }
-    }.execute()
+    }
   }
 
   val datafmt = new SimpleDateFormat("yyyy-MM-dd hh:ss")

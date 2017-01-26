@@ -281,37 +281,32 @@ object Common {
       }
     }
 
-    def httpDownloadAsync(file: String = null)(fn: Option[File] => Unit) = {
-      new ScalaTask[Unit, Unit, Option[File]] {
-        override def background(params: Unit*): Option[File] = url.httpDownload(file)
-
-        override def post(result: Option[File]): Unit = fn(result)
-      }.execute()
+    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit) = context.async {
+      c => val result = url.httpDownload(file)
+        c.ui(_ => fn(result))
     }
 
-    def httpDownload(file: String = null): Option[File] = {
-      try {
-        System.out.println(url)
-        val http = new OkHttpClient.Builder()
-          .connectTimeout(15, TimeUnit.SECONDS)
-          .build()
-        val request = new Request.Builder().get().url(url).build()
-        val response = http.newCall(request).execute()
+    def httpDownload(file: String = null): Option[File] = try {
+      System.out.println(url)
+      val http = new OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .build()
+      val request = new Request.Builder().get().url(url).build()
+      val response = http.newCall(request).execute()
 
-        val target = if (file == null) {
-          val path = response.request().url().uri().getPath
-          new File(HAcgApplication.instance.getExternalCacheDir, path.substring(path.lastIndexOf('/') + 1))
-        } else {
-          new File(file)
-        }
-
-        val sink = Okio.buffer(Okio.sink(target))
-        sink.writeAll(response.body().source())
-        sink.close()
-        Option(target)
-      } catch {
-        case e: Exception => e.printStackTrace(); None
+      val target = if (file == null) {
+        val path = response.request().url().uri().getPath
+        new File(HAcgApplication.instance.getExternalCacheDir, path.substring(path.lastIndexOf('/') + 1))
+      } else {
+        new File(file)
       }
+
+      val sink = Okio.buffer(Okio.sink(target))
+      sink.writeAll(response.body().source())
+      sink.close()
+      Option(target)
+    } catch {
+      case e: Exception => e.printStackTrace(); None
     }
   }
 
@@ -361,6 +356,44 @@ object Common {
   val random = new Random(System.currentTimeMillis())
 
   def randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, Array[Float](random.nextInt(360), 1, 0.5F))
+
+  object ContextHelper {
+    val handler = new Handler(Looper.getMainLooper)
+    val mainThread = Looper.getMainLooper.getThread
+  }
+
+  class AsyncScalaContext[T](weak: WeakReference[T]) {
+    def ui(func: T => Unit): Boolean = weak.get() match {
+      case null => false
+      case ref =>
+        if (ContextHelper.mainThread == Thread.currentThread()) func(ref)
+        else ContextHelper.handler.post(() => func(ref))
+        true
+    }
+  }
+
+  implicit class AsyncScalaTask(context: Context) {
+    def async(task: AsyncScalaContext[_] => Unit): Future[Unit] = {
+      val weak = new AsyncScalaContext(new WeakReference(context))
+      BackgroundExecutor.submit { () =>
+        try task(weak) catch {
+          case _: Throwable =>
+        }
+      }
+    }
+  }
+
+  implicit def callable[T](task: () => T): Callable[T] = new Callable[T] {
+    override def call(): T = task()
+  }
+
+  object BackgroundExecutor {
+    val executor: ExecutorService =
+      Executors.newScheduledThreadPool(2 * Runtime.getRuntime.availableProcessors())
+
+    def submit[T](task: () => T): Future[T] = executor.submit(callable(task))
+  }
+
 }
 
 abstract class ScalaTask[A, P, R] extends AsyncTask[A, P, R] {

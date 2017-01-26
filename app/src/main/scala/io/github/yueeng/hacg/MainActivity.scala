@@ -138,24 +138,21 @@ class MainActivity extends AppCompatActivity {
   }
 
   def checkVersion(toast: Boolean = false) = {
-    new ScalaTask[Void, Void, Option[(String, String, String)]] {
-      override def background(params: Void*): Option[(String, String, String)] = {
-        s"${HAcg.RELEASE}/latest".httpGet.jsoup {
-          dom => (
-            dom.select(".css-truncate-target").text(),
-            dom.select(".markdown-body").text().trim,
-            dom.select(".release-downloads a[href$=.apk]").headOption match {
-              case Some(a) => a.attr("abs:href")
-              case _ => null
-            }
-            )
-        } match {
-          case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
-          case _ => None
-        }
+    this.async { c =>
+      val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup {
+        dom => (
+          dom.select(".css-truncate-target").text(),
+          dom.select(".markdown-body").text().trim,
+          dom.select(".release-downloads a[href$=.apk]").headOption match {
+            case Some(a) => a.attr("abs:href")
+            case _ => null
+          }
+          )
+      } match {
+        case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
+        case _ => None
       }
-
-      override def post(result: Option[(String, String, String)]): Unit = {
+      c.ui { _ =>
         result match {
           case Some((v: String, t: String, u: String)) =>
             new Builder(MainActivity.this)
@@ -171,8 +168,7 @@ class MainActivity extends AppCompatActivity {
             }
         }
       }
-    }.execute()
-
+    }
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
@@ -356,22 +352,19 @@ class ArticleFragment extends Fragment {
     if (busy()) return
     busy <= true
     error <= false
-    type R = Option[(List[Article], String)]
-    new ScalaTask[String, Void, R]() {
-      override def background(params: String*): R = {
-        params.head.httpGet.jsoup {
-          dom => (dom.select("article").map(o => new Article(o)).toList,
-            dom.select("#wp_page_numbers a").lastOption match {
-              case Some(n) if ">" == n.text() => n.attr("abs:href")
-              case _ => dom.select("#nav-below .nav-previous a").headOption match {
-                case Some(p) => p.attr("abs:href")
-                case _ => null
-              }
-            })
-        }
+    getContext.async { c =>
+      val result = uri.httpGet.jsoup {
+        dom => (dom.select("article").map(o => new Article(o)).toList,
+          dom.select("#wp_page_numbers a").lastOption match {
+            case Some(n) if ">" == n.text() => n.attr("abs:href")
+            case _ => dom.select("#nav-below .nav-previous a").headOption match {
+              case Some(p) => p.attr("abs:href")
+              case _ => null
+            }
+          })
       }
 
-      override def post(result: R): Unit = {
+      c.ui { _ =>
         result match {
           case Some(r) =>
             url = r._2
@@ -382,7 +375,7 @@ class ArticleFragment extends Fragment {
         }
         busy <= false
       }
-    }.execute(uri)
+    }
   }
 
   val click = new OnClickListener {
