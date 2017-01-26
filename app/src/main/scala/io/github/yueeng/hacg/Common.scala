@@ -248,6 +248,43 @@ object Common {
 
   private val img = List(".jpg", ".png", ".webp")
 
+  object ContextHelper {
+    val handler = new Handler(Looper.getMainLooper)
+    val mainThread = Looper.getMainLooper.getThread
+  }
+
+  class AsyncScalaContext[T](weak: WeakReference[T]) {
+    def ui(func: T => Unit): Boolean = weak.get() match {
+      case null => false
+      case ref =>
+        if (ContextHelper.mainThread == Thread.currentThread()) func(ref)
+        else ContextHelper.handler.post(() => func(ref))
+        true
+    }
+  }
+
+  implicit def fragment2context(f: Fragment): Context = f.getContext
+
+  def async[T](context: T)(task: AsyncScalaContext[_] => Unit): Future[Unit] = {
+    val weak = new AsyncScalaContext(new WeakReference(context))
+    BackgroundExecutor.submit { () =>
+      try task(weak) catch {
+        case _: Throwable =>
+      }
+    }
+  }
+
+  implicit def callable[T](task: () => T): Callable[T] = new Callable[T] {
+    override def call(): T = task()
+  }
+
+  object BackgroundExecutor {
+    val executor: ExecutorService =
+      Executors.newScheduledThreadPool(2 * Runtime.getRuntime.availableProcessors())
+
+    def submit[T](task: () => T): Future[T] = executor.submit(callable(task))
+  }
+
   implicit class httpex(url: String) {
     def isImg = img.exists(url.toLowerCase.endsWith)
 
@@ -281,7 +318,7 @@ object Common {
       }
     }
 
-    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit) = context.async {
+    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit) = async(context) {
       c => val result = url.httpDownload(file)
         c.ui(_ => fn(result))
     }
@@ -356,43 +393,6 @@ object Common {
   val random = new Random(System.currentTimeMillis())
 
   def randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, Array[Float](random.nextInt(360), 1, 0.5F))
-
-  object ContextHelper {
-    val handler = new Handler(Looper.getMainLooper)
-    val mainThread = Looper.getMainLooper.getThread
-  }
-
-  class AsyncScalaContext[T](weak: WeakReference[T]) {
-    def ui(func: T => Unit): Boolean = weak.get() match {
-      case null => false
-      case ref =>
-        if (ContextHelper.mainThread == Thread.currentThread()) func(ref)
-        else ContextHelper.handler.post(() => func(ref))
-        true
-    }
-  }
-
-  implicit class AsyncScalaTask(context: Context) {
-    def async(task: AsyncScalaContext[_] => Unit): Future[Unit] = {
-      val weak = new AsyncScalaContext(new WeakReference(context))
-      BackgroundExecutor.submit { () =>
-        try task(weak) catch {
-          case _: Throwable =>
-        }
-      }
-    }
-  }
-
-  implicit def callable[T](task: () => T): Callable[T] = new Callable[T] {
-    override def call(): T = task()
-  }
-
-  object BackgroundExecutor {
-    val executor: ExecutorService =
-      Executors.newScheduledThreadPool(2 * Runtime.getRuntime.availableProcessors())
-
-    def submit[T](task: () => T): Future[T] = executor.submit(callable(task))
-  }
 
 }
 

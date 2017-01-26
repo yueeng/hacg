@@ -138,7 +138,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   def checkVersion(toast: Boolean = false) = {
-    this.async { c =>
+    async(this) { c =>
       val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup {
         dom => (
           dom.select(".css-truncate-target").text(),
@@ -352,7 +352,7 @@ class ArticleFragment extends Fragment {
     if (busy()) return
     busy <= true
     error <= false
-    getContext.async { c =>
+    async(this) { c =>
       val result = uri.httpGet.jsoup {
         dom => (dom.select("article").map(o => new Article(o)).toList,
           dom.select("#wp_page_numbers a").lastOption match {

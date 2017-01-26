@@ -370,7 +370,7 @@ class InfoFragment extends Fragment {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
             _progress2 <= true
-            getContext.async { c =>
+            async(this) { c =>
               val result = COMMENTURL.httpPost(_post.toMap).jsoup match {
                 case Some(dom) =>
                   dom.select("#error-page").headOption match {
@@ -411,7 +411,7 @@ class InfoFragment extends Fragment {
     val comment = (op & QUERY_COMMENT) == QUERY_COMMENT
     _progress <= content
     _progress2 <= true
-    getContext.async { c =>
+    async(this) { c =>
       val result = url.httpGet.jsoup {
         dom =>
           val entry = dom.select(".entry-content")
