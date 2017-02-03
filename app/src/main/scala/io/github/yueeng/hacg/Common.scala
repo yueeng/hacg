@@ -18,6 +18,7 @@ import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AlertDialog.Builder
+import android.support.v7.widget.RecyclerView
 import android.text.InputType
 import android.view.View
 import android.view.View.OnLongClickListener
@@ -29,8 +30,8 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.{TraversableOnce, mutable}
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.util.Random
 
@@ -573,4 +574,31 @@ object ViewBinder {
     def retry(): Unit
   }
 
+}
+
+abstract class DataAdapter[V, VH <: RecyclerView.ViewHolder] extends RecyclerView.Adapter[VH] {
+  val data = ListBuffer[V]()
+
+  override def getItemCount: Int = size
+
+  def size = data.size
+
+  def clear() = {
+    val size = data.size
+    data.clear()
+    notifyItemRangeRemoved(0, size)
+    this
+  }
+
+  def +=(v: V) = {
+    data += v
+    notifyItemInserted(data.size)
+    this
+  }
+
+  def ++=(v: TraversableOnce[V]) = {
+    data ++= v
+    notifyItemRangeInserted(data.size - v.size, v.size)
+    this
+  }
 }

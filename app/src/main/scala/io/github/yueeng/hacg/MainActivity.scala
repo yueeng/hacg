@@ -30,7 +30,6 @@ import io.github.yueeng.hacg.Common._
 import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
 class MainActivity extends AppCompatActivity {
   lazy val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
@@ -295,8 +294,7 @@ class ArticleFragment extends Fragment {
     if (saved != null) {
       val data = saved.getParcelableArray("data")
       if (data != null && data.nonEmpty) {
-        adapter.data ++= data.map(_.asInstanceOf[Article])
-        adapter.notifyDataSetChanged()
+        adapter ++= data.map(_.asInstanceOf[Article])
         return
       }
       error <= saved.getBoolean("error", false)
@@ -315,8 +313,7 @@ class ArticleFragment extends Fragment {
   }
 
   def reload(): Unit = {
-    adapter.data.clear()
-    adapter.notifyDataSetChanged()
+    adapter.clear()
     query(defurl)
   }
 
@@ -326,8 +323,7 @@ class ArticleFragment extends Fragment {
     busy += root.findViewById(R.id.swipe)
     busy.views.head.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
-        adapter.data.clear()
-        adapter.notifyDataSetChanged()
+        adapter.clear()
         query(defurl)
       }
     })
@@ -339,7 +335,7 @@ class ArticleFragment extends Fragment {
     recycler.addOnScrollListener(new OnScrollListener {
       override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit =
         (state, url, recycler.getLayoutManager) match {
-          case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.data.size - 1 =>
+          case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.size - 1 =>
             query(url)
           case _ =>
         }
@@ -368,10 +364,9 @@ class ArticleFragment extends Fragment {
         result match {
           case Some(r) =>
             url = r._2
-            adapter.data ++= r._1
-            adapter.notifyItemRangeInserted(adapter.data.size - r._1.size, r._1.size)
+            adapter ++= r._1
           case _ =>
-            error <= adapter.data.isEmpty
+            error <= (adapter.size == 0)
         }
         busy <= false
       }
@@ -419,10 +414,7 @@ class ArticleFragment extends Fragment {
     }
   }
 
-  class ArticleAdapter extends RecyclerView.Adapter[ArticleHolder] {
-    val data = new ArrayBuffer[Article]()
-
-    override def getItemCount: Int = data.size
+  class ArticleAdapter extends DataAdapter[Article, ArticleHolder] {
 
     override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
       val item = data(position)

@@ -27,7 +27,6 @@ import io.github.yueeng.hacg.Common._
 import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Info activity
@@ -99,7 +98,7 @@ class InfoFragment extends Fragment {
     query(_article.link, QUERY_ALL)
   }
 
-  lazy val _magnet = new ViewBinder[List[String], View](List.empty[String])((view, value) => view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE))
+  lazy val _magnet = new ViewBinder[List[String], View](Nil)((view, value) => view.setVisibility(if (value.nonEmpty) View.VISIBLE else View.GONE))
 
   lazy val _progress = new ViewBinder[Boolean, ProgressBar](false)((view, value) => {
     view.setIndeterminate(value)
@@ -145,7 +144,7 @@ class InfoFragment extends Fragment {
       override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
         (state, _url, list.getLayoutManager) match {
           case (RecyclerView.SCROLL_STATE_IDLE, url, staggered: LinearLayoutManager)
-            if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.data.size - 1 =>
+            if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.size - 1 =>
             query(url, QUERY_COMMENT)
           case _ =>
         }
@@ -188,8 +187,7 @@ class InfoFragment extends Fragment {
     _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
       override def onRefresh(): Unit = {
         _url = null
-        _adapter.data.clear()
-        _adapter.notifyDataSetChanged()
+        _adapter.clear()
         query(_article.link, QUERY_COMMENT)
       }
     })
@@ -384,8 +382,7 @@ class InfoFragment extends Fragment {
                 if (result._1) {
                   _post(COMMENT) = ""
                   _url = null
-                  _adapter.data.clear()
-                  _adapter.notifyDataSetChanged()
+                  _adapter.clear()
                   query(_article.link, QUERY_COMMENT)
                 }
                 Toast.makeText(getActivity, result._2, Toast.LENGTH_LONG).show()
@@ -479,8 +476,7 @@ class InfoFragment extends Fragment {
             }
             if (comment) {
               data._2.filter(_.moderation.isNonEmpty).foreach(println)
-              _adapter.data ++= data._2
-              _adapter.notifyDataSetChanged()
+              _adapter ++= data._2
 
               _url = data._3
             }
@@ -517,10 +513,7 @@ class InfoFragment extends Fragment {
     view.setOnClickListener(_click)
   }
 
-  class CommentAdapter extends RecyclerView.Adapter[CommentHolder] {
-    val data = new ArrayBuffer[Comment]()
-
-    override def getItemCount: Int = data.size
+  class CommentAdapter extends DataAdapter[Comment, CommentHolder] {
 
     override def onBindViewHolder(holder: CommentHolder, position: Int): Unit = {
       val item = data(position)
@@ -531,9 +524,7 @@ class InfoFragment extends Fragment {
       holder.text3.setVisibility(if (item.time.isEmpty) View.GONE else View.VISIBLE)
       holder.text4.setText(item.moderation)
       holder.text4.setVisibility(if (item.moderation.isNullOrEmpty) View.GONE else View.VISIBLE)
-      holder.adapter.data.clear()
-      holder.adapter.data ++= item.children
-      holder.adapter.notifyDataSetChanged()
+      holder.adapter.clear ++= item.children
 
       if (item.face.isEmpty) {
         holder.image.setImageResource(R.mipmap.ic_launcher)
