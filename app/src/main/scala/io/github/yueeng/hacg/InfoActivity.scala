@@ -454,8 +454,7 @@ class InfoFragment extends Fragment {
           })
           (
             if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
-              reader => reader.mkString.replace("{{title}}",
-                _article.title).replace("{{body}}", entry.html())
+              reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
               //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
               //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
               //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")

@@ -180,8 +180,8 @@ object Common {
     override def run(): Unit = func()
   }
 
-  implicit def pair(p: (View, String)): android.support.v4.util.Pair[View, String] =
-    new android.support.v4.util.Pair[View, String](p._1, p._2)
+  implicit def pair[F, S](p: (F, S)): android.support.v4.util.Pair[F, S] =
+    new android.support.v4.util.Pair[F, S](p._1, p._2)
 
   implicit class fragmentex(f: Fragment) {
     def arguments(b: Bundle) = {
@@ -212,32 +212,16 @@ object Common {
 
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
 
-  implicit def string2date(str: String): Option[Date] = {
-    try {
-      Option(datefmt.parse(str))
-    } catch {
-      case _: ParseException => None
-    }
+  implicit def string2date(str: String): Option[Date] = try Option(datefmt.parse(str)) catch {
+    case _: ParseException => None
   }
 
   implicit def date2long(date: Date): Long = date.getTime
 
   implicit def date2string(date: Date): String = datefmt.format(date)
 
-  def using[A, B <: {def close() : Unit}](closeable: B)(f: B => A): A =
-    try {
-      f(closeable)
-    } finally {
-      closeable.close()
-    }
-
-  implicit class ReduceMap[T](list: List[T]) {
-    def reduceMap(func: T => List[T]): List[T] = {
-      list match {
-        case Nil => Nil
-        case head :: tail => head :: func(head).reduceMap(func) ::: tail.reduceMap(func)
-      }
-    }
+  def using[A, B <: {def close() : Unit}](closeable: B)(f: B => A): A = try f(closeable) finally {
+    closeable.close()
   }
 
   implicit class digest2string(s: String) {
