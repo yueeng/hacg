@@ -95,18 +95,17 @@ case class Article(title: String,
                    tags: List[Tag]) extends Parcelable {
   private val defimg = s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
 
-  def img = image.contains("ac2668bb905471cd47934f7627983958") match {
-    case true => defimg
-    case false if image.isEmpty => defimg
-    case _ => image
-  }
+  def img = if (image.isEmpty) defimg else image
 
   lazy val expend = tags ++ category ++ author
 
   def this(e: Element) = {
-    this(e.select("header a").text().trim,
-      e.select("header a").attr("abs:href"),
-      e.select(".entry-content img").attr("abs:src"),
+    this(e.select("header .entry-title a").text().trim,
+      e.select("header .entry-title a").attr("abs:href"),
+      e.select(".entry-content img") match {
+        case img if img.hasClass("avatar") => ""
+        case img => img.attr("abs:src")
+      },
       e.select(".entry-content p,.entry-summary p").text().trim,
       e.select("time").attr("datetime"),
       e.select("header .comments-link").text().trim match {
