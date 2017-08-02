@@ -3,7 +3,7 @@ apply plugin: "jp.leafytree.android-scala"
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "26.0.0"
+    buildToolsVersion "26.0.1"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"
@@ -28,6 +28,10 @@ android {
         preDexLibraries false
         javaMaxHeapSize "2g"
     }
+    compileOptions {
+        sourceCompatibility 1.7
+        targetCompatibility 1.7
+    }
 }
 
 dependencies {
@@ -39,9 +43,9 @@ dependencies {
     compile "com.android.support:recyclerview-v7:$android_support_version"
     compile 'com.github.clans:fab:1.6.4'
     compile "org.scala-lang:scala-library:2.11.11"
-    compile "com.squareup.okhttp3:okhttp:3.6.0"
+    compile "com.squareup.okhttp3:okhttp:3.8.1"
     compile "com.squareup.picasso:picasso:2.5.2"
-    compile 'org.jsoup:jsoup:1.9.2'
+    compile 'org.jsoup:jsoup:1.10.3'
     androidTestCompile "com.android.support:multidex-instrumentation:1.0.1", { exclude module: "multidex" }
 }
 
