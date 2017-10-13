@@ -171,7 +171,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/game.html", "/age.html", "/op.html", "/rou.html")
+    lazy val data = List("/", "/anime.html", "/comic.html", "/game.html", "/age.html", "/op.html", "/book.html")
     lazy val title = getResources.getStringArray(R.array.article_categories)
 
     override def getItem(position: Int): Fragment =
@@ -282,7 +282,7 @@ object SearchHistoryProvider {
 class ArticleFragment extends Fragment {
   var busy = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
   lazy val adapter = new ArticleAdapter()
-  var url: String = null
+  var url: String = _
   val error = new ErrorBinder(false) {
     override def retry(): Unit = query(defurl)
   }

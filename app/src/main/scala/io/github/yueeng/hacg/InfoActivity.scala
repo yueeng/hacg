@@ -73,7 +73,7 @@ class InfoFragment extends Fragment {
     override def retry(): Unit = query(_article.link, QUERY_ALL)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
-  var _url: String = null
+  var _url: String = _
 
   val _click = viewClick {
     v => v.getTag match {
