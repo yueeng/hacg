@@ -1,7 +1,6 @@
 package io.github.yueeng.hacg
 
 import java.io.File
-import java.lang.ref.WeakReference
 import java.net._
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
@@ -33,6 +32,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.collection.{TraversableOnce, mutable}
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
+import scala.ref.WeakReference
 import scala.util.Random
 
 object HAcg {
@@ -238,10 +238,10 @@ object Common {
     val mainThread = Looper.getMainLooper.getThread
   }
 
-  class AsyncScalaContext[T](weak: WeakReference[T]) {
-    def ui(func: T => Unit): Boolean = weak.get() match {
-      case null => false
-      case ref =>
+  class AsyncScalaContext[T <: AnyRef](weak: WeakReference[T]) {
+    def ui(func: T => Unit): Boolean = weak.get match {
+      case None => false
+      case Some(ref) =>
         if (ContextHelper.mainThread == Thread.currentThread()) func(ref)
         else ContextHelper.handler.post(() => func(ref))
         true
@@ -250,7 +250,7 @@ object Common {
 
   implicit def fragment2context(f: Fragment): Context = f.getContext
 
-  def async[T](context: T)(task: AsyncScalaContext[_] => Unit): Future[Unit] = {
+  def async[T <: AnyRef](context: T)(task: AsyncScalaContext[_] => Unit): Future[Unit] = {
     val weak = new AsyncScalaContext(new WeakReference(context))
     BackgroundExecutor.submit { () =>
       try task(weak) catch {
@@ -551,18 +551,18 @@ object ViewBinder {
     }
 
     def -=(v: V): ViewBinder[T, V] = synchronized {
-      _views --= _views.filter(p => p.get == null || p.get == v)
+      _views --= _views.filter(p => p.get.isEmpty || p.get.contains(v))
       this
     }
 
     def <=(v: T): ViewBinder[T, V] = synchronized {
       _value = v
-      _views --= _views.filter(p => p.get == null)
-      if (_value != null) _views.foreach(p => func(p.get, v))
+      _views --= _views.filter(p => p.get.isEmpty)
+      if (_value != null) _views.filter(_.get.nonEmpty).foreach(p => func(p.get.get, v))
       this
     }
 
-    def views = synchronized(_views.filter(_.get != null).map(_.get).toList)
+    def views = synchronized(_views.filter(_.get.nonEmpty).map(_.get.get).toList)
   }
 
   abstract class ErrorBinder(value: Boolean) extends ViewBinder[Boolean, View](value)((v, t) => v.setVisibility(if (t) View.VISIBLE else View.INVISIBLE)) {
