@@ -20,7 +20,6 @@
         <item>ARTICLE</item>
         <item>MUSIC</item>
         <item>Light Novel</item>
-        <item>Philosophy</item>
     </string-array>
     <string name="comment_refresh">Refresh</string>
     <string name="comment_verify">Some fields are empty.</string>
@@ -28,7 +27,7 @@
     <string name="app_ok">OK</string>
     <string name="settings_host">HAcg alternate host url</string>
     <string name="settings_host_more">Add new</string>
-    <string name="settings_host_sample">Like "www.hacg.me/wp".</string>
+    <string name="settings_host_sample">Like "www.hacg.me".</string>
     <string name="settings_host_reset">Reset all</string>
     <string name="app_copy">Copy</string>
     <string name="app_copied">Copyed %1$s</string>
@@ -42,8 +41,6 @@
     <string name="app_philosophy">Philosophy</string>
     <string name="app_exit_confirm">Want to exit?</string>
     <string name="app_exit">exit</string>
-    <string name="settings_philosophy_host">Philosophy bbs host url</string>
-    <string name="settings_philosophy_sample">Like "bbs.hacg.me/m".</string>
     <string name="app_save">Save</string>
     <string name="app_share">Share</string>
     <string name="app_magnet">Magnetlink</string>

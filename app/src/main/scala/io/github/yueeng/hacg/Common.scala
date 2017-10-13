@@ -39,7 +39,7 @@ object HAcg {
   private val SYSTEM_HOST: String = "system.host"
   private val SYSTEM_HOSTS: String = "system.hosts"
 
-  val DEFAULT_HOSTS = List("www.hacg.me/wp", "www.hacg.li/wp", "www.hacg.be/wp", "www.hacg.club/wp", "www.hacg.lol/wp")
+  val DEFAULT_HOSTS = List("www.hacg.me", "www.hacg.li", "www.hacg.be", "www.hacg.club", "www.hacg.lol")
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
@@ -60,7 +60,7 @@ object HAcg {
     case _ => host
   }
 
-  def wordpress = s"$web"
+  def wordpress = s"$web/wp"
 
   def philosophy = s"$wordpress/bbs"
 
@@ -114,22 +114,6 @@ object HAcg {
       () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
     )
   }
-
-  //  def setPhilosophy(context: Context, ok: String => Unit = null): Unit = {
-  //    setHostx(context,
-  //      R.string.settings_philosophy_host,
-  //      R.string.settings_philosophy_sample,
-  //      () => HAcg.philosophy_hosts,
-  //      () => HAcg.philosophy_host,
-  //      host => {
-  //        HAcg.philosophy_host = host
-  //        if (ok != null) ok(host)
-  //      },
-  //      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
-  //      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
-  //    )
-  //  }
-
 }
 
 object HAcgApplication {
