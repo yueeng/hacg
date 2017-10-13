@@ -38,11 +38,8 @@ import scala.util.Random
 object HAcg {
   private val SYSTEM_HOST: String = "system.host"
   private val SYSTEM_HOSTS: String = "system.hosts"
-  private val SYSTEM_PHILOSOPHY: String = "system.philosophy"
-  private val SYSTEM_PHILOSOPHY_HOSTS: String = "system.philosophy_hosts"
 
   val DEFAULT_HOSTS = List("www.hacg.me/wp", "www.hacg.li/wp", "www.hacg.be/wp", "www.hacg.club/wp", "www.hacg.lol/wp")
-  val DEFAULT_PHILOSOPHY_HOSTS = List("liqu.pro")
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
@@ -63,17 +60,9 @@ object HAcg {
     case _ => host
   }
 
-  //  def wordpress = s"$web/wordpress"
+  def wordpress = s"$web"
 
-  def philosophy_host = config.getString(SYSTEM_PHILOSOPHY, DEFAULT_PHILOSOPHY_HOSTS.head)
-
-  def philosophy_host_=(host: String) = config.edit().putString(SYSTEM_PHILOSOPHY, host).commit()
-
-  def philosophy_hosts = config.getStringSet(SYSTEM_PHILOSOPHY_HOSTS, DEFAULT_PHILOSOPHY_HOSTS.toSet[String]).toSet
-
-  def philosophy_hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_PHILOSOPHY_HOSTS, hosts).commit()
-
-  def philosophy = s"http://$philosophy_host"
+  def philosophy = s"$wordpress/bbs"
 
   def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val edit = new EditText(context)
@@ -126,20 +115,20 @@ object HAcg {
     )
   }
 
-  def setPhilosophy(context: Context, ok: String => Unit = null): Unit = {
-    setHostx(context,
-      R.string.settings_philosophy_host,
-      R.string.settings_philosophy_sample,
-      () => HAcg.philosophy_hosts,
-      () => HAcg.philosophy_host,
-      host => {
-        HAcg.philosophy_host = host
-        if (ok != null) ok(host)
-      },
-      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
-      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
-    )
-  }
+  //  def setPhilosophy(context: Context, ok: String => Unit = null): Unit = {
+  //    setHostx(context,
+  //      R.string.settings_philosophy_host,
+  //      R.string.settings_philosophy_sample,
+  //      () => HAcg.philosophy_hosts,
+  //      () => HAcg.philosophy_host,
+  //      host => {
+  //        HAcg.philosophy_host = host
+  //        if (ok != null) ok(host)
+  //      },
+  //      host => HAcg.philosophy_hosts = HAcg.philosophy_hosts + host,
+  //      () => HAcg.philosophy_hosts = HAcg.DEFAULT_PHILOSOPHY_HOSTS.toSet
+  //    )
+  //  }
 
 }
 

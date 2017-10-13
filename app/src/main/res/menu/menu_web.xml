@@ -6,8 +6,5 @@
         android:icon="@drawable/ic_chrome"
         android:title="@string/app_philosophy"
         app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/settings"
-        android:title="@string/settings_philosophy_host"
-        app:showAsAction="never" />
+
 </menu>

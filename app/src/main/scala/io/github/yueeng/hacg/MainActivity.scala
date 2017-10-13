@@ -9,7 +9,6 @@ import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
 import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
-import android.support.v4.view.ViewPager.SimpleOnPageChangeListener
 import android.support.v4.view.{MenuItemCompat, PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
@@ -34,80 +33,19 @@ import scala.collection.JavaConversions._
 class MainActivity extends AppCompatActivity {
   lazy val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
   lazy val pager: ViewPager = findViewById(R.id.container)
-  lazy val ad: ViewPager = findViewById(R.id.pager)
 
   protected override def onCreate(state: Bundle) {
     super.onCreate(state)
     setContentView(R.layout.activity_main)
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
-
     val tabs: TabLayout = findViewById(R.id.tab)
     pager.setAdapter(adapter)
     tabs.setupWithViewPager(pager)
 
-    val crop = getWindowManager.getDefaultDisplay match {
-      case d: Display =>
-        val lp = ad.getLayoutParams
-        val p = new Point()
-        d.getSize(p)
-        lp.height = Math.min(p.x * 225 / 550, p.y / 3)
-        ad.setLayoutParams(lp)
-        p.x < p.y
-      case _ => ad.setVisibility(View.GONE); false
-    }
-    ad.setAdapter(new AdAdapter(crop))
-
-    ad.addOnPageChangeListener(new SimpleOnPageChangeListener {
-      override def onPageScrollStateChanged(state: Int): Unit = {
-        state match {
-          case ViewPager.SCROLL_STATE_DRAGGING => adstop()
-          case ViewPager.SCROLL_STATE_IDLE => adstart()
-          case _ =>
-        }
-      }
-    })
-    //hack align tab by left
-    tabs.smoothScrollTo(0, 0)
     if (state == null) {
       checkVersion(false)
     }
-  }
-
-  override def onPause(): Unit = {
-    super.onPause()
-    adstop()
-  }
-
-
-  override def onResume(): Unit = {
-    super.onResume()
-    adstart()
-  }
-
-  val adspan = 5000
-
-  def adstart() = {
-    ad.removeCallbacks(adrun)
-    ad.postDelayed(adrun, adspan)
-  }
-
-  def adstop() = ad.removeCallbacks(adrun)
-
-  def adchange(): Unit = {
-    ad.setCurrentItem(ad.getCurrentItem + 1 match {
-      case x if x >= ad.getAdapter.getCount => 0
-      case x => x
-    })
-    ad.postDelayed(adrun, adspan)
-  }
-
-  val adrun: Runnable = () => {
-    ad.setCurrentItem(ad.getCurrentItem + 1 match {
-      case x if x >= ad.getAdapter.getCount => 0
-      case x => x
-    })
-    ad.postDelayed(adrun, adspan)
   }
 
   class AdAdapter(crop: Boolean) extends PagerAdapter {
@@ -214,7 +152,7 @@ class MainActivity extends AppCompatActivity {
         new Builder(this)
           .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
           .setItems(Array[CharSequence](getString(R.string.app_name)),
-            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.web) })
+            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.wordpress) })
           .setPositiveButton(R.string.app_publish,
             dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
           .setNeutralButton(R.string.app_update_check,
@@ -242,7 +180,7 @@ class ListActivity extends AppCompatActivity {
         val key = i.getStringExtra(SearchManager.QUERY)
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.saveRecentQuery(key, null)
-        ( s"""${HAcg.web}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
+        ( s"""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""", key)
       case _ => null
     }
     if (url == null) {
@@ -303,7 +241,7 @@ class ArticleFragment extends Fragment {
   }
 
   def defurl = getArguments.getString("url") match {
-    case uri if uri.startsWith("/") => s"${HAcg.web}$uri"
+    case uri if uri.startsWith("/") => s"${HAcg.wordpress}$uri"
     case uri => uri
   }
 
