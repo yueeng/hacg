@@ -119,14 +119,14 @@ class InfoFragment extends Fragment {
     activity.setSupportActionBar(root.findViewById(R.id.toolbar))
     activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
-    root.findViewById(R.id.toolbar_collapsing) match {
+    root.findViewById[View](R.id.toolbar_collapsing) match {
       case c: CollapsingToolbarLayout =>
         c.setExpandedTitleColor(Common.randomColor())
         c.setTitle(_article.title)
       case _ => activity.setTitle(_article.title)
     }
 
-    root.findViewById(R.id.toolbar_image) match {
+    root.findViewById[View](R.id.toolbar_image) match {
       case img: ImageView =>
         Picasso.`with`(getActivity).load(_article.img).error(R.drawable.placeholder).into(img)
         ViewCompat.setTransitionName(img, "image")
@@ -297,7 +297,7 @@ class InfoFragment extends Fragment {
   }
 
   def onBackPressed: Boolean = {
-    getView.findViewById(R.id.drawer) match {
+    getView.findViewById[View](R.id.drawer) match {
       case menu: DrawerLayout if menu.isDrawerOpen(GravityCompat.END) =>
         menu.closeDrawer(GravityCompat.END)
         true

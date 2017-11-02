@@ -92,8 +92,8 @@ class WebFragment extends Fragment {
     settings.setJavaScriptEnabled(true)
     settings.setUseWideViewPort(true)
     settings.setLoadWithOverviewMode(true)
-    val back = root.findViewById(R.id.button2)
-    val fore = root.findViewById(R.id.button3)
+    val back = root.findViewById[View](R.id.button2)
+    val fore = root.findViewById[View](R.id.button3)
     web.setWebViewClient(new WebViewClient() {
       override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
         view.loadUrl(url)
