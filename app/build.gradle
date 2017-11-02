@@ -3,7 +3,7 @@ apply plugin: "jp.leafytree.android-scala"
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "26.0.1"
+    buildToolsVersion "26.0.2"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"

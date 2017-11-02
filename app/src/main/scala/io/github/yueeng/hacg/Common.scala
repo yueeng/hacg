@@ -25,12 +25,14 @@ import android.widget.{EditText, Toast}
 import io.github.yueeng.hacg.Common._
 import okhttp3.{MultipartBody, OkHttpClient, Request}
 import okio.Okio
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.collection.{TraversableOnce, mutable}
+import scala.io.Source
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.ref.WeakReference
 import scala.util.Random
@@ -38,20 +40,77 @@ import scala.util.Random
 object HAcg {
   private val SYSTEM_HOST: String = "system.host"
   private val SYSTEM_HOSTS: String = "system.hosts"
+  private val SYSTEM_CATEGORY: String = "system.categoty"
 
-  val DEFAULT_HOSTS = List("www.hacg.me", "www.hacg.li", "www.hacg.be", "www.hacg.club", "www.hacg.lol")
+  private var default_config: JSONObject = _
+
+  def DEFAULT_CONFIG = synchronized {
+    if (default_config == null)
+      try HAcgApplication.instance.getAssets.open("config.json").using { s =>
+        default_config = new JSONObject(Source.fromInputStream(s).mkString)
+      } catch {
+        case _: Exception =>
+      }
+
+    default_config
+  }
+
+  def DEFAULT_HOSTS(cfg: Option[JSONObject] = None) = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("host").let { h =>
+    for (i <- 0 until h.length(); it = h.getString(i)) yield it
+  }
+  catch {
+    case _: Exception => List("www.hacg.me")
+  }
+
+  def DEFAULT_CATEGORY(cfg: Option[JSONObject] = None) = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("category").let { a =>
+    for (i <- 0 until a.length();
+         it = a.getJSONObject(i);
+         item = (it.getString("url"), it.getString("name")))
+      yield item
+  } catch {
+    case _: Exception => Nil
+  }
+
+  def update(f: (() => Unit) = null): Unit = {
+    //https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json
+    httpex("https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json").httpGet match {
+      case Some((json, _)) =>
+        val config = new JSONObject(json)
+        host = DEFAULT_HOSTS(Some(config)).head
+        hosts = DEFAULT_HOSTS(Some(config)).toSet
+        cateogty = DEFAULT_CATEGORY(Some(config))
+        if (f != null) f()
+      case _ =>
+    }
+  }
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
   private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
 
-  def host = config.getString(SYSTEM_HOST, DEFAULT_HOSTS.head)
+  def host = config.getString(SYSTEM_HOST, DEFAULT_HOSTS().head)
 
-  def host_=(host: String) = config.edit().putString(SYSTEM_HOST, host).commit()
+  def host_=(host: String) = config.edit().also { c =>
+    if (host.isNullOrEmpty) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
+  }.apply()
 
-  def hosts = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS.toSet[String]).toSet
+  def hosts = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS().toSet[String]).toSet
 
-  def hosts_=(hosts: Set[String]) = config.edit().putStringSet(SYSTEM_HOSTS, hosts).commit()
+  def hosts_=(hosts: Set[String]) = config.edit().also { c =>
+    if (hosts.isEmpty) c.remove(SYSTEM_HOSTS) else c.putStringSet(SYSTEM_HOSTS, hosts)
+  }.apply()
+
+  def cateogty: Seq[(String, String)] = config.getStringSet(SYSTEM_CATEGORY, null).let {
+    case null => DEFAULT_CATEGORY()
+    case s => s.map(_.split(":").let(x => (x.head, x.last))).toSeq
+  }
+
+  def cateogty_=(hosts: Seq[(String, String)]) = config.edit().also { c =>
+    if (hosts.isEmpty)
+      c.remove(SYSTEM_CATEGORY)
+    else
+      c.putStringSet(SYSTEM_CATEGORY, hosts.map(i => s"${i._1}:${i._2}").toSet[String])
+  }.apply()
 
   def web = s"http://$host"
 
@@ -111,7 +170,7 @@ object HAcg {
         if (ok != null) ok(host)
       },
       host => HAcg.hosts = HAcg.hosts + host,
-      () => HAcg.hosts = HAcg.DEFAULT_HOSTS.toSet
+      () => HAcg.hosts = Set.empty[String]
     )
   }
 }
@@ -196,6 +255,23 @@ object Common {
 
   def using[A, B <: {def close() : Unit}](closeable: B)(f: B => A): A = try f(closeable) finally {
     closeable.close()
+  }
+
+  def let[A, B](o: A)(f: A => B) = f(o)
+
+  def also[A](o: A)(f: A => Unit) = {
+    f(o)
+    o
+  }
+
+  implicit class anyex[A <: AnyRef](o: A) {
+    def let[B](f: A => B) = Common.let(o)(f)
+
+    def also(f: A => Unit) = Common.also(o)(f)
+  }
+
+  implicit class usingex[B <: {def close() : Unit}](closeable: B) {
+    def using[A](f: B => A): A = Common.using(closeable)(f)
   }
 
   implicit class digest2string(s: String) {

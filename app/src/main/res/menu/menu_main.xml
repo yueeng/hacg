@@ -21,6 +21,10 @@
         android:title="@string/settings_host"
         app:showAsAction="never" />
     <item
+        android:id="@+id/config"
+        android:title="@string/settings_config"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/about"
         android:title="@string/app_about"
         app:showAsAction="never" />

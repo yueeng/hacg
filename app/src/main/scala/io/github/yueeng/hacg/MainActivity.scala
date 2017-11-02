@@ -109,15 +109,14 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = List("/", "/anime.html", "/comic.html", "/game.html", "/age.html", "/op.html", "/book.html")
-    lazy val title = getResources.getStringArray(R.array.article_categories)
+    lazy val data = HAcg.cateogty
 
     override def getItem(position: Int): Fragment =
-      new ArticleFragment().arguments(new Bundle().string("url", data(position)))
+      new ArticleFragment().arguments(new Bundle().string("url", data(position)._1))
 
     override def getCount: Int = data.size
 
-    override def getPageTitle(position: Int): CharSequence = title(position)
+    override def getPageTitle(position: Int): CharSequence = data(position)._2
 
     var current: Fragment = _
 
@@ -141,6 +140,11 @@ class MainActivity extends AppCompatActivity {
       case R.id.search_clear =>
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
+        true
+      case R.id.config => HAcg.update(() => adapter.current match {
+        case f: ArticleFragment => f.reload()
+        case _ =>
+      })
         true
       case R.id.settings => HAcg.setHost(this, _ => adapter.current match {
         case f: ArticleFragment => f.reload()

@@ -12,15 +12,6 @@
     <string name="app_search">Search</string>
     <string name="app_search_clear">Clear search history</string>
     <string name="comment_failed">Submit failed</string>
-    <string-array name="article_categories">
-        <item>NEWS</item>
-        <item>ANIME</item>
-        <item>COMIC</item>
-        <item>GAMES</item>
-        <item>ARTICLE</item>
-        <item>MUSIC</item>
-        <item>Light Novel</item>
-    </string-array>
     <string name="comment_refresh">Refresh</string>
     <string name="comment_verify">Some fields are empty.</string>
     <string name="app_settings">Settings</string>
@@ -45,4 +36,5 @@
     <string name="app_share">Share</string>
     <string name="app_magnet">Magnetlink</string>
     <string name="app_open">Open</string>
+    <string name="settings_config">Download config</string>
 </resources>

@@ -1,0 +1,40 @@
+{
+  "host": [
+    "www.hacg.me",
+    "www.hacg.li",
+    "www.hacg.be",
+    "www.hacg.club",
+    "www.hacg.lol"
+  ],
+  "bbs": "/bbs",
+  "category": [
+    {
+      "name": "最新",
+      "url": "/"
+    },
+    {
+      "name": "动画",
+      "url": "/anime.html"
+    },
+    {
+      "name": "漫画",
+      "url": "/comic.html"
+    },
+    {
+      "name": "游戏",
+      "url": "/game.html"
+    },
+    {
+      "name": "文章",
+      "url": "/age.html"
+    },
+    {
+      "name": "音乐",
+      "url": "/op.html"
+    },
+    {
+      "name": "轻小说",
+      "url": "/book.html"
+    }
+  ]
+}

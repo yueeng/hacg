@@ -13,15 +13,6 @@
     <string name="app_search">搜索</string>
     <string name="app_search_clear">清除搜索记录</string>
     <string name="comment_failed">提交失败</string>
-    <string-array name="article_categories">
-        <item>最新投稿</item>
-        <item>动画</item>
-        <item>漫画</item>
-        <item>游戏</item>
-        <item>文章</item>
-        <item>音乐</item>
-        <item>轻小说</item>
-    </string-array>
     <string name="comment_refresh">刷新</string>
     <string name="comment_verify">部分字段为空。</string>
     <string name="app_settings">设置</string>
@@ -46,4 +37,5 @@
     <string name="app_share">分享</string>
     <string name="app_magnet">磁力链接</string>
     <string name="app_open">打开</string>
+    <string name="settings_config">下载配置</string>
 </resources>

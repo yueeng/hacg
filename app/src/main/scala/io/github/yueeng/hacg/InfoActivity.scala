@@ -356,7 +356,7 @@ class InfoFragment extends Fragment {
     def fill = {
       _post +=(AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-      preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).commit()
+      preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).apply()
     }
     new Builder(getActivity)
       .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
