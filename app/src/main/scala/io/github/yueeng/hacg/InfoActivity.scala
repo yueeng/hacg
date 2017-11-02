@@ -1,6 +1,7 @@
 package io.github.yueeng.hacg
 
 import java.text.SimpleDateFormat
+import java.util.concurrent.Future
 
 import android.app.DownloadManager
 import android.app.DownloadManager.Request
@@ -34,7 +35,7 @@ import scala.collection.JavaConversions._
   */
 
 class InfoActivity extends AppCompatActivity {
-  lazy val _article = getIntent.getParcelableExtra[Article]("article")
+  lazy val _article: Article = getIntent.getParcelableExtra[Article]("article")
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
@@ -66,7 +67,7 @@ class InfoActivity extends AppCompatActivity {
 }
 
 class InfoFragment extends Fragment {
-  lazy val _article = getArguments.getParcelable[Article]("article")
+  lazy val _article: Article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
   val _web = new ViewBinder[(String, String), WebView](null)((view, value) => view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null))
   val _error = new ErrorBinder(false) {
@@ -75,7 +76,7 @@ class InfoFragment extends Fragment {
   val _post = new scala.collection.mutable.HashMap[String, String]
   var _url: String = _
 
-  val _click = viewClick {
+  val _click: View.OnClickListener = viewClick {
     v => v.getTag match {
       case c: Comment => comment(c)
       case _ =>
@@ -169,14 +170,14 @@ class InfoFragment extends Fragment {
       menu.close(true)
     }
 
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById[View]).foreach {
       case b: FloatingActionButton =>
         b.setColorNormal(randomColor())
         b.setColorPressed(randomColor())
         b.setColorRipple(randomColor())
       case _ =>
     }
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById).foreach {
+    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById[View]).foreach {
       case b: FloatingActionButton =>
         b.setOnClickListener(click)
       case _ =>
@@ -202,12 +203,12 @@ class InfoFragment extends Fragment {
           .setTitle(R.string.app_magnet)
           .setSingleChoiceItems(_magnet().toArray[CharSequence], 0, null)
           .setNegativeButton(R.string.app_cancel, null)
-          .setPositiveButton(R.string.app_open, dialogClick { (d, w) =>
+          .setPositiveButton(R.string.app_open, dialogClick { (d, _) =>
             val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
             val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
             startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
           })
-          .setNeutralButton(R.string.app_copy, dialogClick { (d, w) =>
+          .setNeutralButton(R.string.app_copy, dialogClick { (d, _) =>
             val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
             val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
             val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
@@ -242,7 +243,7 @@ class InfoFragment extends Fragment {
     root
   }
 
-  def share(url: String) = {
+  def share(url: String): Future[Unit] = {
     url.httpDownloadAsync(getContext) {
       case Some(file) =>
         val title = _article.title
@@ -277,9 +278,9 @@ class InfoFragment extends Fragment {
         Picasso.`with`(getActivity).load(uri).placeholder(R.drawable.loading).into(image)
         val alert = new Builder(getActivity)
           .setView(image)
-          .setNeutralButton(R.string.app_share, dialogClick { (d, w) => share(url) })
+          .setNeutralButton(R.string.app_share, dialogClick { (_, _) => share(url) })
           .setPositiveButton(R.string.app_save,
-            dialogClick { (d, w) =>
+            dialogClick { (_, _) =>
               val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE).asInstanceOf[DownloadManager]
               val task = new Request(uri)
               task.allowScanningByMediaScanner()
@@ -290,7 +291,7 @@ class InfoFragment extends Fragment {
             })
           .setNegativeButton(R.string.app_cancel, null)
           .create()
-        image.setOnClickListener(viewClick { v => alert.dismiss() })
+        image.setOnClickListener(viewClick { _ => alert.dismiss() })
         alert.show()
       }
     }
@@ -315,10 +316,10 @@ class InfoFragment extends Fragment {
     val alert = new Builder(getActivity)
       .setTitle(c.user)
       .setMessage(c.content)
-      .setPositiveButton(R.string.comment_review, dialogClick { (d, w) => commenting(c) })
+      .setPositiveButton(R.string.comment_review, dialogClick { (_, _) => commenting(c) })
       .setNegativeButton(R.string.app_cancel, null)
       .setNeutralButton(R.string.app_copy,
-        dialogClick { (d, w) =>
+        dialogClick { (_, _) =>
           val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
           val clip = ClipData.newPlainText(c.user, c.content)
           clipboard.setPrimaryClip(clip)
@@ -353,7 +354,7 @@ class InfoFragment extends Fragment {
     email.setText(_post(EMAIL))
     content.setText(_post.getOrElse(COMMENT, ""))
     _post += ("comment_parent" -> (if (c != null) c.id.toString else "0"))
-    def fill = {
+    def fill() = {
       _post +=(AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
       preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).apply()
@@ -362,8 +363,8 @@ class InfoFragment extends Fragment {
       .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
       .setView(input)
       .setPositiveButton(R.string.comment_submit,
-        dialogClick { (d, w) =>
-          fill
+        dialogClick { (_, _) =>
+          fill()
           if (COMMENTURL.isEmpty || List(AUTHOR, EMAIL, COMMENT).map(_post.getOrElse(_, null)).exists(_.isNullOrEmpty)) {
             Toast.makeText(getActivity, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
           } else {
@@ -391,13 +392,13 @@ class InfoFragment extends Fragment {
           }
         })
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { d => fill })
+      .setOnDismissListener(dialogDismiss { _ => fill() })
       .create().show()
   }
 
   val QUERY_WEB = 1
-  val QUERY_COMMENT = QUERY_WEB << 1
-  val QUERY_ALL = QUERY_WEB | QUERY_COMMENT
+  val QUERY_COMMENT: Int = QUERY_WEB << 1
+  val QUERY_ALL: Int = QUERY_WEB | QUERY_COMMENT
 
   def query(url: String, op: Int): Unit = {
     if (_progress() || _progress2()) {
@@ -506,7 +507,7 @@ class InfoFragment extends Fragment {
     val image: ImageView = view.findViewById(R.id.image1)
     val list: RecyclerView = view.findViewById(R.id.list1)
     val adapter = new CommentAdapter
-    val context = view.getContext
+    val context: Context = view.getContext
     list.setAdapter(adapter)
     list.setLayoutManager(new LinearLayoutManager(context))
     list.setHasFixedSize(true)

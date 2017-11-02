@@ -1,5 +1,7 @@
 package io.github.yueeng.hacg
 
+import java.util.concurrent.Future
+
 import android.animation.ObjectAnimator
 import android.app.SearchManager
 import android.content._
@@ -9,7 +11,7 @@ import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
 import android.support.design.widget.{Snackbar, TabLayout}
 import android.support.v4.app._
-import android.support.v4.view.{MenuItemCompat, PagerAdapter, ViewPager}
+import android.support.v4.view.{PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
@@ -44,7 +46,7 @@ class MainActivity extends AppCompatActivity {
     tabs.setupWithViewPager(pager)
 
     if (state == null) {
-      checkVersion(false)
+      checkVersion()
     }
   }
 
@@ -57,7 +59,7 @@ class MainActivity extends AppCompatActivity {
       val image = new ImageView(container.getContext)
       image.setAdjustViewBounds(true)
       if (crop) image.setScaleType(ScaleType.CENTER_CROP)
-      image.setOnClickListener(viewClick { v => Common.openWeb(MainActivity.this, s"http://${HAcg.domain}/gg/${position + 1}") })
+      image.setOnClickListener(viewClick { _ => Common.openWeb(MainActivity.this, s"http://${HAcg.domain}/gg/${position + 1}") })
       Picasso.`with`(container.getContext).load(s"http://${HAcg.domain}/gg/${position + 1}.jpg").into(image)
       container.addView(image)
       image
@@ -70,20 +72,21 @@ class MainActivity extends AppCompatActivity {
 
   override def onBackPressed(): Unit = {
     Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
-      .setAction(R.string.app_exit, viewClick { v => ActivityCompat.finishAfterTransition(MainActivity.this) })
+      .setAction(R.string.app_exit, viewClick { _ => ActivityCompat.finishAfterTransition(MainActivity.this) })
       .show()
   }
 
-  def checkVersion(toast: Boolean = false) = {
+  def checkVersion(toast: Boolean = false): Future[Unit] = {
     async(this) { c =>
       val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup {
-        dom => (
-          dom.select(".css-truncate-target").text(),
-          dom.select(".markdown-body").text().trim,
-          dom.select(".release-downloads a[href$=.apk]").headOption match {
-            case Some(a) => a.attr("abs:href")
-            case _ => null
-          }
+        dom =>
+          (
+            dom.select(".css-truncate-target").text(),
+            dom.select(".markdown-body").text().trim,
+            dom.select(".release-downloads a[href$=.apk]").headOption match {
+              case Some(a) => a.attr("abs:href")
+              case _ => null
+            }
           )
       } match {
         case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
@@ -95,8 +98,8 @@ class MainActivity extends AppCompatActivity {
             new Builder(MainActivity.this)
               .setTitle(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
               .setMessage(t)
-              .setPositiveButton(R.string.app_update, dialogClick { (d, w) => openWeb(MainActivity.this, u) })
-              .setNeutralButton(R.string.app_publish, dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
+              .setPositiveButton(R.string.app_update, dialogClick { (_, _) => openWeb(MainActivity.this, u) })
+              .setNeutralButton(R.string.app_publish, dialogClick { (_, _) => openWeb(MainActivity.this, HAcg.RELEASE) })
               .setNegativeButton(R.string.app_cancel, null)
               .create().show()
           case _ =>
@@ -109,7 +112,7 @@ class MainActivity extends AppCompatActivity {
   }
 
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data = HAcg.cateogty
+    lazy val data: Seq[(String, String)] = HAcg.cateogty
 
     override def getItem(position: Int): Fragment =
       new ArticleFragment().arguments(new Bundle().string("url", data(position)._1))
@@ -128,7 +131,7 @@ class MainActivity extends AppCompatActivity {
 
   override def onCreateOptionsMenu(menu: Menu): Boolean = {
     getMenuInflater.inflate(R.menu.menu_main, menu)
-    val search = MenuItemCompat.getActionView(menu.findItem(R.id.search)).asInstanceOf[SearchView]
+    val search = menu.findItem(R.id.search).getActionView.asInstanceOf[SearchView]
     val manager = getSystemService(Context.SEARCH_SERVICE).asInstanceOf[SearchManager]
     val info = manager.getSearchableInfo(new ComponentName(this, classOf[ListActivity]))
     search.setSearchableInfo(info)
@@ -156,11 +159,11 @@ class MainActivity extends AppCompatActivity {
         new Builder(this)
           .setTitle(s"${getString(R.string.app_name)} ${Common.version(this)}")
           .setItems(Array[CharSequence](getString(R.string.app_name)),
-            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.wordpress) })
+            dialogClick { (_, _) => openWeb(MainActivity.this, HAcg.wordpress) })
           .setPositiveButton(R.string.app_publish,
-            dialogClick { (d, w) => openWeb(MainActivity.this, HAcg.RELEASE) })
+            dialogClick { (_, _) => openWeb(MainActivity.this, HAcg.RELEASE) })
           .setNeutralButton(R.string.app_update_check,
-            dialogClick { (d, w) => checkVersion(true) })
+            dialogClick { (_, _) => checkVersion(true) })
           .setNegativeButton(R.string.app_cancel, null)
           .create().show()
         true
@@ -244,7 +247,7 @@ class ArticleFragment extends Fragment {
     query(defurl)
   }
 
-  def defurl = getArguments.getString("url") match {
+  def defurl: String = getArguments.getString("url") match {
     case uri if uri.startsWith("/") => s"${HAcg.wordpress}$uri"
     case uri => uri
   }
@@ -292,14 +295,15 @@ class ArticleFragment extends Fragment {
     error <= false
     async(this) { c =>
       val result = uri.httpGet.jsoup {
-        dom => (dom.select("article").map(o => new Article(o)).toList,
-          dom.select("#wp_page_numbers a").lastOption match {
-            case Some(n) if ">" == n.text() => n.attr("abs:href")
-            case _ => dom.select("#nav-below .nav-previous a").headOption match {
-              case Some(p) => p.attr("abs:href")
-              case _ => null
-            }
-          })
+        dom =>
+          (dom.select("article").map(o => new Article(o)).toList,
+            dom.select("#wp_page_numbers a").lastOption match {
+              case Some(n) if ">" == n.text() => n.attr("abs:href")
+              case _ => dom.select("#nav-below .nav-previous a").headOption match {
+                case Some(p) => p.attr("abs:href")
+                case _ => null
+              }
+            })
       }
 
       c.ui { _ =>
@@ -332,7 +336,7 @@ class ArticleFragment extends Fragment {
 
   class ArticleHolder(val view: View) extends RecyclerView.ViewHolder(view) {
     view.setOnClickListener(click)
-    val context = view.getContext
+    val context: Context = view.getContext
     val text1: TextView = view.findViewById(R.id.text1)
     val text2: TextView = view.findViewById(R.id.text2)
     val text3: TextView = view.findViewById(R.id.text3)
@@ -391,9 +395,9 @@ class ArticleFragment extends Fragment {
       }
     }
 
-    var last = -1
+    var last: Int = -1
     val interpolator = new DecelerateInterpolator(3)
-    val from = getActivity.getWindowManager.getDefaultDisplay match {
+    val from: Int = getActivity.getWindowManager.getDefaultDisplay match {
       case d: Display =>
         val p = new Point()
         d.getSize(p)

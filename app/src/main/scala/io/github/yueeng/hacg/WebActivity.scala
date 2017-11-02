@@ -52,7 +52,7 @@ class WebFragment extends Fragment {
   val busy = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
   var uri: String = _
 
-  def defuri = getArguments match {
+  def defuri: String = getArguments match {
     case b: Bundle if b.containsKey("url") => b.getString("url")
     case _ => HAcg.philosophy
   }
@@ -129,7 +129,7 @@ class WebFragment extends Fragment {
       }
     }
     List(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
-      .map(root.findViewById).foreach(_.setOnClickListener(click))
+      .map(root.findViewById[View]).foreach(_.setOnClickListener(click))
 
     web.loadUrl(uri)
     root

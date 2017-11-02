@@ -9,6 +9,7 @@ import org.jsoup.nodes.Element
 
 import scala.collection.JavaConversions._
 import scala.language.implicitConversions
+import scala.util.matching.Regex
 
 case class Tag(name: String, url: String) extends Parcelable {
   def this(e: Element) = {
@@ -65,7 +66,7 @@ case class Comment(id: Int, content: String, user: String, face: String, moderat
 }
 
 object Comment {
-  val ID = """comment-(\d+)""".r
+  val ID: Regex = """comment-(\d+)""".r
   val CREATOR: Parcelable.Creator[Comment] = new Parcelable.Creator[Comment] {
     override def createFromParcel(source: Parcel): Comment = new Comment(
       source.readInt(),
@@ -95,9 +96,9 @@ case class Article(title: String,
                    tags: List[Tag]) extends Parcelable {
   private val defimg = s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
 
-  def img = if (image.isEmpty) defimg else image
+  def img: String = if (image.isEmpty) defimg else image
 
-  lazy val expend = tags ++ category ++ author
+  lazy val expend: List[Tag] = tags ++ category ++ author
 
   def this(e: Element) = {
     this(e.select("header .entry-title a").text().trim,

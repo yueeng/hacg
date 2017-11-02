@@ -31,7 +31,7 @@ import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
-import scala.collection.{TraversableOnce, mutable}
+import scala.collection.{TraversableOnce, immutable, mutable}
 import scala.io.Source
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.ref.WeakReference
@@ -44,7 +44,7 @@ object HAcg {
 
   private var default_config: JSONObject = _
 
-  def DEFAULT_CONFIG = synchronized {
+  def DEFAULT_CONFIG: JSONObject = synchronized {
     if (default_config == null)
       try HAcgApplication.instance.getAssets.open("config.json").using { s =>
         default_config = new JSONObject(Source.fromInputStream(s).mkString)
@@ -55,14 +55,13 @@ object HAcg {
     default_config
   }
 
-  def DEFAULT_HOSTS(cfg: Option[JSONObject] = None) = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("host").let { h =>
+  def DEFAULT_HOSTS(cfg: Option[JSONObject] = None): immutable.Seq[String] = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("host").let { h =>
     for (i <- 0 until h.length(); it = h.getString(i)) yield it
-  }
-  catch {
+  } catch {
     case _: Exception => List("www.hacg.me")
   }
 
-  def DEFAULT_CATEGORY(cfg: Option[JSONObject] = None) = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("category").let { a =>
+  def DEFAULT_CATEGORY(cfg: Option[JSONObject] = None): immutable.Seq[(String, String)] = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("category").let { a =>
     for (i <- 0 until a.length();
          it = a.getJSONObject(i);
          item = (it.getString("url"), it.getString("name")))
@@ -88,15 +87,15 @@ object HAcg {
 
   private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
 
-  def host = config.getString(SYSTEM_HOST, DEFAULT_HOSTS().head)
+  def host: String = config.getString(SYSTEM_HOST, DEFAULT_HOSTS().head)
 
-  def host_=(host: String) = config.edit().also { c =>
+  def host_=(host: String): Unit = config.edit().also { c =>
     if (host.isNullOrEmpty) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
   }.apply()
 
-  def hosts = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS().toSet[String]).toSet
+  def hosts: Set[String] = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS().toSet[String]).toSet
 
-  def hosts_=(hosts: Set[String]) = config.edit().also { c =>
+  def hosts_=(hosts: Set[String]): Unit = config.edit().also { c =>
     if (hosts.isEmpty) c.remove(SYSTEM_HOSTS) else c.putStringSet(SYSTEM_HOSTS, hosts)
   }.apply()
 
@@ -105,7 +104,7 @@ object HAcg {
     case s => s.map(_.split(":").let(x => (x.head, x.last))).toSeq
   }
 
-  def cateogty_=(hosts: Seq[(String, String)]) = config.edit().also { c =>
+  def cateogty_=(hosts: Seq[(String, String)]): Unit = config.edit().also { c =>
     if (hosts.isEmpty)
       c.remove(SYSTEM_CATEGORY)
     else
@@ -114,7 +113,7 @@ object HAcg {
 
   def web = s"http://$host"
 
-  def domain = host.indexOf('/') match {
+  def domain: String = host.indexOf('/') match {
     case i if i >= 0 => host.substring(0, i)
     case _ => host
   }
@@ -133,11 +132,11 @@ object HAcg {
       .setTitle(title)
       .setView(edit)
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { d => setHostx(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setOnDismissListener(dialogDismiss { _ => setHostx(context, title, hint, hostlist, cur, set, ok, reset) })
       .setNeutralButton(R.string.settings_host_reset,
-        dialogClick { (d, w) => reset() })
+        dialogClick { (_, _) => reset() })
       .setPositiveButton(R.string.app_ok,
-        dialogClick { (d, w) =>
+        dialogClick { (_, _) =>
           val host = edit.getText.toString
           if (host.isNonEmpty) {
             ok(host)
@@ -154,8 +153,8 @@ object HAcg {
       .setTitle(title)
       .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
       .setNegativeButton(R.string.app_cancel, null)
-      .setNeutralButton(R.string.settings_host_more, dialogClick { (d, w) => setHosts(context, title, hint, hostlist, cur, set, ok, reset) })
-      .setPositiveButton(R.string.app_ok, dialogClick { (d, w) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (_, _) => setHosts(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setPositiveButton(R.string.app_ok, dialogClick { (d, _) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
       .create().show()
   }
 
@@ -178,7 +177,7 @@ object HAcg {
 object HAcgApplication {
   private var _instance: HAcgApplication = _
 
-  def instance = _instance
+  def instance: HAcgApplication = _instance
 }
 
 class HAcgApplication extends MultiDexApplication {
@@ -217,7 +216,7 @@ object Common {
     new android.support.v4.util.Pair[F, S](p._1, p._2)
 
   implicit class fragmentex(f: Fragment) {
-    def arguments(b: Bundle) = {
+    def arguments(b: Bundle): Fragment = {
       if (b != null) {
         f.setArguments(b)
       }
@@ -226,21 +225,21 @@ object Common {
   }
 
   implicit class bundleex(b: Bundle) {
-    def string(key: String, value: String) = {
+    def string(key: String, value: String): Bundle = {
       b.putString(key, value)
       b
     }
 
-    def parcelable(key: String, value: Parcelable) = {
+    def parcelable(key: String, value: Parcelable): Bundle = {
       b.putParcelable(key, value)
       b
     }
   }
 
   implicit class StringUtil(s: String) {
-    def isNullOrEmpty = s == null || s.isEmpty
+    def isNullOrEmpty: Boolean = s == null || s.isEmpty
 
-    def isNonEmpty = !isNullOrEmpty
+    def isNonEmpty: Boolean = !isNullOrEmpty
   }
 
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
@@ -253,38 +252,40 @@ object Common {
 
   implicit def date2string(date: Date): String = datefmt.format(date)
 
-  def using[A, B <: {def close() : Unit}](closeable: B)(f: B => A): A = try f(closeable) finally {
-    closeable.close()
+  type Closable = {def close(): Unit}
+
+  def using[A, B <: Closable](closable: B)(f: B => A): A = try f(closable) finally {
+    closable.close()
   }
 
-  def let[A, B](o: A)(f: A => B) = f(o)
+  def let[A, B](o: A)(f: A => B): B = f(o)
 
-  def also[A](o: A)(f: A => Unit) = {
+  def also[A](o: A)(f: A => Unit): A = {
     f(o)
     o
   }
 
   implicit class anyex[A <: AnyRef](o: A) {
-    def let[B](f: A => B) = Common.let(o)(f)
+    def let[B](f: A => B): B = Common.let(o)(f)
 
-    def also(f: A => Unit) = Common.also(o)(f)
+    def also(f: A => Unit): A = Common.also(o)(f)
   }
 
-  implicit class usingex[B <: {def close() : Unit}](closeable: B) {
-    def using[A](f: B => A): A = Common.using(closeable)(f)
+  implicit class usingex[B <: Closable](closable: B) {
+    def using[A](f: B => A): A = Common.using(closable)(f)
   }
 
   implicit class digest2string(s: String) {
-    def md5 = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
+    def md5: String = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
 
-    def sha1 = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
+    def sha1: String = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
 
   private val img = List(".jpg", ".png", ".webp")
 
   object ContextHelper {
     val handler = new Handler(Looper.getMainLooper)
-    val mainThread = Looper.getMainLooper.getThread
+    val mainThread: Thread = Looper.getMainLooper.getThread
   }
 
   class AsyncScalaContext[T <: AnyRef](weak: WeakReference[T]) {
@@ -320,9 +321,9 @@ object Common {
   }
 
   implicit class httpex(url: String) {
-    def isImg = img.exists(url.toLowerCase.endsWith)
+    def isImg: Boolean = img.exists(url.toLowerCase.endsWith)
 
-    def httpGet = {
+    def httpGet: Option[(String, String)] = {
       try {
         val http = new OkHttpClient.Builder()
           .connectTimeout(15, TimeUnit.SECONDS)
@@ -336,7 +337,7 @@ object Common {
       }
     }
 
-    def httpPost(post: Map[String, String]) = {
+    def httpPost(post: Map[String, String]): Option[(String, String)] = {
       try {
         val http = new OkHttpClient.Builder()
           .connectTimeout(15, TimeUnit.SECONDS)
@@ -352,8 +353,9 @@ object Common {
       }
     }
 
-    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit) = async(context) {
-      c => val result = url.httpDownload(file)
+    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit): Future[Unit] = async(context) {
+      c =>
+        val result = url.httpDownload(file)
         c.ui(_ => fn(result))
     }
 
@@ -382,7 +384,7 @@ object Common {
   }
 
   implicit class jsoupex(html: Option[(String, String)]) {
-    def jsoup = html match {
+    def jsoup: Option[Document] = html match {
       case Some(h) => Option(Jsoup.parse(h._1, h._2))
       case _ => None
     }
@@ -416,12 +418,12 @@ object Common {
         return o.drop(l.length).exists(_ != 0)
       }
     } catch {
-      case e: Exception =>
+      case _: Exception =>
     }
     false
   }
 
-  def openWeb(context: Context, uri: String) =
+  def openWeb(context: Context, uri: String): Unit =
     context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 
   val random = new Random(System.currentTimeMillis())
@@ -481,9 +483,10 @@ class PersistCookieStore(context: Context) extends CookieStore {
   pref.getAll.collect { case (k: String, v: String) if !v.isEmpty => (k, v.split(",")) }
     .foreach { o =>
       map(URI.create(o._1)) = mutable.HashSet() ++= o._2.flatMap {
-        c => try HttpCookie.parse(c) catch {
-          case _: Throwable => Nil
-        }
+        c =>
+          try HttpCookie.parse(c) catch {
+            case _: Throwable => Nil
+          }
       }
     }
 
@@ -506,7 +509,7 @@ class PersistCookieStore(context: Context) extends CookieStore {
       return null
     }
     try new URI("http", uri.getHost, null, null) catch {
-      case e: URISyntaxException => uri
+      case _: URISyntaxException => uri
     }
   }
 
@@ -555,7 +558,7 @@ class PersistCookieStore(context: Context) extends CookieStore {
     map.keySet.filter(o => o != null).toList
   }
 
-  def expire(uri: URI, cookies: mutable.HashSet[HttpCookie], edit: SharedPreferences.Editor)(fn: HttpCookie => Boolean = c => true) = {
+  def expire(uri: URI, cookies: mutable.HashSet[HttpCookie], edit: SharedPreferences.Editor)(fn: HttpCookie => Boolean = _ => true): Unit = {
     cookies.filter(fn).filter(_.hasExpired) match {
       case ex if ex.nonEmpty =>
         cookies --= ex
@@ -611,7 +614,7 @@ object ViewBinder {
       this
     }
 
-    def views = synchronized(_views.filter(_.get.nonEmpty).map(_.get.get).toList)
+    def views: List[V] = synchronized(_views.filter(_.get.nonEmpty).map(_.get.get).toList)
   }
 
   abstract class ErrorBinder(value: Boolean) extends ViewBinder[Boolean, View](value)((v, t) => v.setVisibility(if (t) View.VISIBLE else View.INVISIBLE)) {
@@ -626,26 +629,26 @@ object ViewBinder {
 }
 
 abstract class DataAdapter[V, VH <: RecyclerView.ViewHolder] extends RecyclerView.Adapter[VH] {
-  val data = ListBuffer[V]()
+  val data: ListBuffer[V] = ListBuffer[V]()
 
   override def getItemCount: Int = size
 
-  def size = data.size
+  def size: Int = data.size
 
-  def clear() = {
+  def clear(): DataAdapter[V, VH] = {
     val size = data.size
     data.clear()
     notifyItemRangeRemoved(0, size)
     this
   }
 
-  def +=(v: V) = {
+  def +=(v: V): DataAdapter[V, VH] = {
     data += v
     notifyItemInserted(data.size)
     this
   }
 
-  def ++=(v: TraversableOnce[V]) = {
+  def ++=(v: TraversableOnce[V]): DataAdapter[V, VH] = {
     data ++= v
     notifyItemRangeInserted(data.size - v.size, v.size)
     this
