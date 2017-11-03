@@ -25,7 +25,7 @@ import android.widget.{EditText, Toast}
 import io.github.yueeng.hacg.Common._
 import okhttp3.{MultipartBody, OkHttpClient, Request}
 import okio.Okio
-import org.json.JSONObject
+import org.json.{JSONArray, JSONObject}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
@@ -42,26 +42,21 @@ object HAcg {
   private val SYSTEM_HOSTS: String = "system.hosts"
   private val SYSTEM_CATEGORY: String = "system.categoty"
 
-  private var default_config: JSONObject = _
-
-  def DEFAULT_CONFIG: JSONObject = synchronized {
-    if (default_config == null)
-      try HAcgApplication.instance.getAssets.open("config.json").using { s =>
-        default_config = new JSONObject(Source.fromInputStream(s).mkString)
-      } catch {
-        case _: Exception =>
-      }
-
-    default_config
+  private def default_config: JSONObject = synchronized {
+    try HAcgApplication.instance.getAssets.open("config.json").using { s =>
+      new JSONObject(Source.fromInputStream(s).mkString)
+    } catch {
+      case _: Exception => null
+    }
   }
 
-  def DEFAULT_HOSTS(cfg: Option[JSONObject] = None): immutable.Seq[String] = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("host").let { h =>
+  private def default_hosts(cfg: Option[JSONObject] = None): immutable.Seq[String] = try cfg.getOrElse(default_config).getJSONArray("host").let { h =>
     for (i <- 0 until h.length(); it = h.getString(i)) yield it
   } catch {
     case _: Exception => List("www.hacg.me")
   }
 
-  def DEFAULT_CATEGORY(cfg: Option[JSONObject] = None): immutable.Seq[(String, String)] = try cfg.getOrElse(DEFAULT_CONFIG).getJSONArray("category").let { a =>
+  private def default_category(cfg: Option[JSONObject] = None): immutable.Seq[(String, String)] = try cfg.getOrElse(default_config).getJSONArray("category").let { a =>
     for (i <- 0 until a.length();
          it = a.getJSONObject(i);
          item = (it.getString("url"), it.getString("name")))
@@ -70,46 +65,65 @@ object HAcg {
     case _: Exception => Nil
   }
 
-  def update(f: (() => Unit) = null): Unit = {
-    //https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json
-    httpex("https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json").httpGet match {
-      case Some((json, _)) =>
-        val config = new JSONObject(json)
-        host = DEFAULT_HOSTS(Some(config)).head
-        hosts = DEFAULT_HOSTS(Some(config)).toSet
-        cateogty = DEFAULT_CATEGORY(Some(config))
-        if (f != null) f()
-      case _ =>
-    }
-  }
-
-  val RELEASE = "https://github.com/yueeng/hacg/releases"
-
   private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
 
-  def host: String = config.getString(SYSTEM_HOST, DEFAULT_HOSTS().head)
+  private def _hosts: Seq[String] = try config.getString(SYSTEM_HOSTS, null).let {
+    s => new JSONArray(s).let { a => (0 until a.length()).map(k => a.getString(k)) }
+  } catch {
+    case _: Exception => Nil
+  }
+
+  def hosts: Seq[String] = _hosts.takeIf(_.nonEmpty).getOrElse(default_hosts())
+
+  def hosts_=(hosts: Seq[String]): Unit = config.edit().also { c =>
+    c.remove(SYSTEM_HOSTS)
+    if (hosts.nonEmpty)
+      c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, (new JSONArray() /: hosts.distinct) ((j, i) => j.put(i)).toString)
+  }.apply()
+
+  private def _host: String = config.getString(SYSTEM_HOST, null)
+
+  def host: String = _host.takeIf(_.isNonEmpty).getOrElse(hosts.head)
 
   def host_=(host: String): Unit = config.edit().also { c =>
     if (host.isNullOrEmpty) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
   }.apply()
 
-  def hosts: Set[String] = config.getStringSet(SYSTEM_HOSTS, DEFAULT_HOSTS().toSet[String]).toSet
-
-  def hosts_=(hosts: Set[String]): Unit = config.edit().also { c =>
-    if (hosts.isEmpty) c.remove(SYSTEM_HOSTS) else c.putStringSet(SYSTEM_HOSTS, hosts)
-  }.apply()
-
-  def cateogty: Seq[(String, String)] = config.getStringSet(SYSTEM_CATEGORY, null).let {
-    case null => DEFAULT_CATEGORY()
-    case s => s.map(_.split(":").let(x => (x.head, x.last))).toSeq
+  private def _category: Seq[(String, String)] = try config.getString(SYSTEM_CATEGORY, null).let {
+    s => new JSONObject(s).let { a => a.keys().map(k => (k, a.getString(k))).toSeq }
+  } catch {
+    case _: Exception => default_category()
   }
 
-  def cateogty_=(hosts: Seq[(String, String)]): Unit = config.edit().also { c =>
-    if (hosts.isEmpty)
-      c.remove(SYSTEM_CATEGORY)
-    else
-      c.putStringSet(SYSTEM_CATEGORY, hosts.map(i => s"${i._1}:${i._2}").toSet[String])
+  def category: Seq[(String, String)] = _category.takeIf(_.nonEmpty).getOrElse(default_category())
+
+  def category_=(hosts: Seq[(String, String)]): Unit = config.edit().also { c =>
+    c.remove(SYSTEM_CATEGORY)
+    if (hosts.nonEmpty)
+      c.remove(SYSTEM_CATEGORY).putString(SYSTEM_CATEGORY, (new JSONObject() /: hosts) ((j, i) => j.put(i._1, i._2)).toString)
   }.apply()
+
+  if (_hosts.isEmpty) hosts = default_hosts()
+  if (_host.isNullOrEmpty) host = hosts.head
+  if (_category.isEmpty) category = default_category()
+
+  def update(context: Context)(f: (() => Unit) = null): Unit = {
+    //https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json
+    "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAsync(context) {
+      case Some((json, _)) => try {
+        val config = new JSONObject(json)
+        host = default_hosts(Some(config)).head
+        hosts = default_hosts(Some(config))
+        category = default_category(Some(config))
+        if (f != null) f()
+      } catch {
+        case _: Exception =>
+      }
+      case _ =>
+    }
+  }
+
+  val RELEASE = "https://github.com/yueeng/hacg/releases"
 
   def web = s"http://$host"
 
@@ -122,7 +136,7 @@ object HAcg {
 
   def philosophy = s"$wordpress/bbs"
 
-  def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+  def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val edit = new EditText(context)
     if (hint != 0) {
       edit.setHint(hint)
@@ -147,7 +161,7 @@ object HAcg {
       .create().show()
   }
 
-  def setHostx(context: Context, title: Int, hint: Int, hostlist: () => Set[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+  def setHostx(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val hosts = hostlist().toList
     new Builder(context)
       .setTitle(title)
@@ -168,8 +182,8 @@ object HAcg {
         HAcg.host = host
         if (ok != null) ok(host)
       },
-      host => HAcg.hosts = HAcg.hosts + host,
-      () => HAcg.hosts = Set.empty[String]
+      host => HAcg.hosts = HAcg.hosts ++ Seq(host),
+      () => HAcg.hosts = Nil
     )
   }
 }
@@ -216,24 +230,13 @@ object Common {
     new android.support.v4.util.Pair[F, S](p._1, p._2)
 
   implicit class fragmentex(f: Fragment) {
-    def arguments(b: Bundle): Fragment = {
-      if (b != null) {
-        f.setArguments(b)
-      }
-      f
-    }
+    def arguments(b: Bundle): Fragment = if (b != null) f.also(_.setArguments(b)) else f
   }
 
   implicit class bundleex(b: Bundle) {
-    def string(key: String, value: String): Bundle = {
-      b.putString(key, value)
-      b
-    }
+    def string(key: String, value: String): Bundle = b.also(_.putString(key, value))
 
-    def parcelable(key: String, value: Parcelable): Bundle = {
-      b.putParcelable(key, value)
-      b
-    }
+    def parcelable(key: String, value: Parcelable): Bundle = b.also(_.putParcelable(key, value))
   }
 
   implicit class StringUtil(s: String) {
@@ -265,11 +268,21 @@ object Common {
     o
   }
 
+  def takeIf[A](o: A)(f: A => Boolean): Option[A] = if (f(o)) Option(o) else None
+
   implicit class anyex[A <: AnyRef](o: A) {
     def let[B](f: A => B): B = Common.let(o)(f)
 
     def also(f: A => Unit): A = Common.also(o)(f)
+
+    def takeIf(f: A => Boolean): Option[A] = Common.takeIf(o)(f)
   }
+
+  implicit val context: Context = HAcgApplication.instance
+
+  def toast(msg: Int)(implicit context: Context): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
+
+  def toast(msg: String)(implicit context: Context): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
 
   implicit class usingex[B <: Closable](closable: B) {
     def using[A](f: B => A): A = Common.using(closable)(f)
@@ -323,34 +336,37 @@ object Common {
   implicit class httpex(url: String) {
     def isImg: Boolean = img.exists(url.toLowerCase.endsWith)
 
-    def httpGet: Option[(String, String)] = {
-      try {
-        val http = new OkHttpClient.Builder()
-          .connectTimeout(15, TimeUnit.SECONDS)
-          .readTimeout(30, TimeUnit.SECONDS)
-          .build()
-        val request = new Request.Builder().get().url(url).build()
-        val response = http.newCall(request).execute()
-        Option(response.body().string(), response.request().url().toString)
-      } catch {
-        case _: Exception => None
+    def httpGet: Option[(String, String)] = try {
+      val http = new OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+      val request = new Request.Builder().get().url(url).build()
+      val response = http.newCall(request).execute()
+      Option(response.body().string(), response.request().url().toString)
+    } catch {
+      case e: Exception => e.printStackTrace(); None
+    }
+
+    def httpGetAsync(context: Context)(callback: Option[(String, String)] => Unit): Unit = {
+      async(context) { c =>
+        val result = url.httpGet
+        c.ui { _ => callback(result) }
       }
     }
 
-    def httpPost(post: Map[String, String]): Option[(String, String)] = {
-      try {
-        val http = new OkHttpClient.Builder()
-          .connectTimeout(15, TimeUnit.SECONDS)
-          .writeTimeout(30, TimeUnit.SECONDS)
-          .readTimeout(30, TimeUnit.SECONDS)
-          .build()
-        val data = (new MultipartBody.Builder /: post) ((b, o) => b.addFormDataPart(o._1, o._2)).build()
-        val request = new Request.Builder().url(url).post(data).build()
-        val response = http.newCall(request).execute()
-        Option(response.body().string(), response.request().url().toString)
-      } catch {
-        case _: Exception => None
-      }
+    def httpPost(post: Map[String, String]): Option[(String, String)] = try {
+      val http = new OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+      val data = (new MultipartBody.Builder /: post) ((b, o) => b.addFormDataPart(o._1, o._2)).build()
+      val request = new Request.Builder().url(url).post(data).build()
+      val response = http.newCall(request).execute()
+      Option(response.body().string(), response.request().url().toString)
+    } catch {
+      case _: Exception => None
     }
 
     def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit): Future[Unit] = async(context) {
@@ -397,30 +413,25 @@ object Common {
     }
   }
 
-  def version(context: Context): String = {
-    try context.getPackageManager.getPackageInfo(context.getPackageName, 0).versionName catch {
-      case e: Exception => e.printStackTrace(); ""
-    }
+  def version(context: Context): String = try context.getPackageManager.getPackageInfo(context.getPackageName, 0).versionName catch {
+    case e: Exception => e.printStackTrace(); ""
   }
 
-  def versionBefore(local: String, online: String): Boolean = {
-    try {
-      val l = local.split( """\.""").map(_.toInt).toList
-      val o = online.split( """\.""").map(_.toInt).toList
-      for (i <- 0 until Math.min(l.length, o.length)) {
-        l(i) - o(i) match {
-          case x if x > 0 => return false
-          case x if x < 0 => return true
-          case _ =>
-        }
+  def versionBefore(local: String, online: String): Boolean = try {
+    val l = local.split( """\.""").map(_.toInt).toList
+    val o = online.split( """\.""").map(_.toInt).toList
+    for (i <- 0 until Math.min(l.length, o.length)) {
+      l(i) - o(i) match {
+        case x if x > 0 => return false
+        case x if x < 0 => return true
+        case _ =>
       }
-      if (o.length > l.length) {
-        return o.drop(l.length).exists(_ != 0)
-      }
-    } catch {
-      case _: Exception =>
     }
-    false
+    if (o.length > l.length) {
+      o.drop(l.length).exists(_ != 0)
+    } else false
+  } catch {
+    case _: Exception => false
   }
 
   def openWeb(context: Context, uri: String): Unit =

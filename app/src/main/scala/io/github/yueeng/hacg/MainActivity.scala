@@ -24,16 +24,16 @@ import android.text.{SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View.OnClickListener
 import android.view._
 import android.view.animation.DecelerateInterpolator
-import android.widget.ImageView.ScaleType
 import android.widget._
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
 import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
+import scala.ref.WeakReference
 
 class MainActivity extends AppCompatActivity {
-  lazy val adapter = new ArticleFragmentAdapter(getSupportFragmentManager)
   lazy val pager: ViewPager = findViewById(R.id.container)
 
   protected override def onCreate(state: Bundle) {
@@ -42,31 +42,11 @@ class MainActivity extends AppCompatActivity {
     setSupportActionBar(findViewById(R.id.toolbar))
     getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     val tabs: TabLayout = findViewById(R.id.tab)
-    pager.setAdapter(adapter)
+    pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
     tabs.setupWithViewPager(pager)
 
     if (state == null) {
       checkVersion()
-    }
-  }
-
-  class AdAdapter(crop: Boolean) extends PagerAdapter {
-    override def isViewFromObject(view: View, `object`: scala.Any): Boolean = view == `object`
-
-    override def getCount: Int = 4
-
-    override def instantiateItem(container: ViewGroup, position: Int): AnyRef = {
-      val image = new ImageView(container.getContext)
-      image.setAdjustViewBounds(true)
-      if (crop) image.setScaleType(ScaleType.CENTER_CROP)
-      image.setOnClickListener(viewClick { _ => Common.openWeb(MainActivity.this, s"http://${HAcg.domain}/gg/${position + 1}") })
-      Picasso.`with`(container.getContext).load(s"http://${HAcg.domain}/gg/${position + 1}.jpg").into(image)
-      container.addView(image)
-      image
-    }
-
-    override def destroyItem(container: ViewGroup, position: Int, `object`: scala.Any): Unit = {
-      container.removeView(`object`.asInstanceOf[View])
     }
   }
 
@@ -111,8 +91,12 @@ class MainActivity extends AppCompatActivity {
     }
   }
 
+  def reload(): Unit = {
+    pager.setAdapter(new ArticleFragmentAdapter(getSupportFragmentManager))
+  }
+
   class ArticleFragmentAdapter(fm: FragmentManager) extends FragmentStatePagerAdapter(fm) {
-    lazy val data: Seq[(String, String)] = HAcg.cateogty
+    private val data = ListBuffer(HAcg.category: _*)
 
     override def getItem(position: Int): Fragment =
       new ArticleFragment().arguments(new Bundle().string("url", data(position)._1))
@@ -121,11 +105,13 @@ class MainActivity extends AppCompatActivity {
 
     override def getPageTitle(position: Int): CharSequence = data(position)._2
 
-    var current: Fragment = _
+    override def getItemPosition(`object`: scala.Any): Int = PagerAdapter.POSITION_NONE
+
+    var current: WeakReference[Fragment] = _
 
     override def setPrimaryItem(container: ViewGroup, position: Int, `object`: scala.Any): Unit = {
       super.setPrimaryItem(container, position, `object`)
-      current = `object`.asInstanceOf[Fragment]
+      current = WeakReference(`object`.asInstanceOf[Fragment])
     }
   }
 
@@ -144,15 +130,9 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.config => HAcg.update(() => adapter.current match {
-        case f: ArticleFragment => f.reload()
-        case _ =>
-      })
+      case R.id.config => HAcg.update(this)(() => reload())
         true
-      case R.id.settings => HAcg.setHost(this, _ => adapter.current match {
-        case f: ArticleFragment => f.reload()
-        case _ =>
-      })
+      case R.id.settings => HAcg.setHost(this, _ => reload())
         true
       case R.id.philosophy => startActivity(new Intent(this, classOf[WebActivity])); true
       case R.id.about =>
@@ -229,7 +209,7 @@ class ArticleFragment extends Fragment {
   lazy val adapter = new ArticleAdapter()
   var url: String = _
   val error = new ErrorBinder(false) {
-    override def retry(): Unit = query(defurl)
+    override def retry(): Unit = query(defurl, retry = true)
   }
 
   override def onCreate(saved: Bundle): Unit = {
@@ -289,7 +269,7 @@ class ArticleFragment extends Fragment {
     root
   }
 
-  def query(uri: String): Unit = {
+  def query(uri: String, retry: Boolean = false): Unit = {
     if (busy()) return
     busy <= true
     error <= false
@@ -313,6 +293,7 @@ class ArticleFragment extends Fragment {
             adapter ++= r._1
           case _ =>
             error <= (adapter.size == 0)
+            if (error()) if (retry) getActivity.openOptionsMenu() else toast(R.string.app_network_retry)
         }
         busy <= false
       }
