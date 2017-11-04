@@ -27,6 +27,7 @@
 
         <activity
             android:name=".ListActivity"
+            android:theme="@style/AppThemeTranslucent"
             android:windowSoftInputMode="adjustPan">
 
             <intent-filter>

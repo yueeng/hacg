@@ -27,4 +27,18 @@
          colorControlHighlight & colorSwitchThumbNormal. -->
     </style>
 
+    <style name="AppThemeTranslucent" parent="AppTheme">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <!--<item name="android:windowAnimationStyle">@style/DIY.Animation.SlidingBack</item>-->
+        <!--<item name="android:actionBarStyle">@style/DIYActionBar.Custom</item>-->
+    </style>
+
+    <style name="AppThemeDarkTranslucent" parent="AppThemeDark">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <!--<item name="android:windowAnimationStyle">@style/DIY.Animation.SlidingBack</item>-->
+        <!--<item name="android:actionBarStyle">@style/DIYActionBar.Custom</item>-->
+    </style>
+
 </resources>

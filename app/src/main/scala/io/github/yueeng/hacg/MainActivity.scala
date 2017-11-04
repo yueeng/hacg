@@ -149,7 +149,7 @@ class MainActivity extends AppCompatActivity {
   }
 }
 
-class ListActivity extends AppCompatActivity {
+class ListActivity extends BaseSlideCloseActivity {
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)

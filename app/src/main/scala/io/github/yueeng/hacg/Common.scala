@@ -16,13 +16,15 @@ import android.os._
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
-import android.support.v7.app.AlertDialog
+import android.support.v4.content.ContextCompat
+import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AlertDialog.Builder
+import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView
 import android.text.style.{ClickableSpan, ReplacementSpan}
 import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
-import android.view.View
 import android.view.View.OnLongClickListener
+import android.view.{View, ViewGroup}
 import android.widget.{EditText, Toast}
 import io.github.yueeng.hacg.Common._
 import okhttp3.{MultipartBody, OkHttpClient, Request}
@@ -732,4 +734,59 @@ object SpanUtil {
     }
     span
   }
+}
+
+class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.PanelSlideListener {
+
+  override def onCreate(state: Bundle) {
+    swipe()
+    super.onCreate(state)
+  }
+
+  private def swipe() {
+    val swipe = new SlidingPaneLayout(this)
+    // 通过反射改变mOverhangSize的值为0，
+    // 这个mOverhangSize值为菜单到右边屏幕的最短距离，
+    // 默认是32dp，现在给它改成0
+    try {
+      val overhang = classOf[SlidingPaneLayout].getDeclaredField("mOverhangSize")
+      overhang.setAccessible(true)
+      overhang.set(swipe, 0)
+    } catch {
+      case e: Exception => e.printStackTrace()
+    }
+
+    swipe.setPanelSlideListener(this)
+    swipe.setSliderFadeColor(ContextCompat.getColor(this, android.R.color.transparent))
+
+    // 左侧的透明视图
+    val leftView = new View(this)
+    leftView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    swipe.addView(leftView, 0)
+
+    val decorView = getWindow.getDecorView.asInstanceOf[ViewGroup]
+
+
+    // 右侧的内容视图
+    val decorChild = decorView.getChildAt(0).asInstanceOf[ViewGroup]
+    decorChild.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
+    decorView.removeView(decorChild)
+    decorView.addView(swipe)
+
+    // 为 SlidingPaneLayout 添加内容视图
+    swipe.addView(decorChild, 1)
+  }
+
+  override def onPanelSlide(panel: View, slideOffset: Float) {
+
+  }
+
+  override def onPanelOpened(panel: View) {
+    finish()
+  }
+
+  override def onPanelClosed(panel: View) {
+
+  }
+
 }
