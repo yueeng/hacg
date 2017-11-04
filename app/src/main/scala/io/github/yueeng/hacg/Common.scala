@@ -41,6 +41,7 @@ object HAcg {
   private val SYSTEM_HOST: String = "system.host"
   private val SYSTEM_HOSTS: String = "system.hosts"
   private val SYSTEM_CATEGORY: String = "system.categoty"
+  private val SYSTEM_BBS: String = "system.bbs"
 
   private def default_config: JSONObject = synchronized {
     try HAcgApplication.instance.getAssets.open("config.json").using { s =>
@@ -63,6 +64,10 @@ object HAcg {
       yield item
   } catch {
     case _: Exception => Nil
+  }
+
+  private def default_bbs(cfg: Option[JSONObject] = None): String = try cfg.getOrElse(default_config).getString("bbs") catch {
+    case _: Exception => "/wp/bbs"
   }
 
   private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
@@ -89,6 +94,14 @@ object HAcg {
     if (host.isNullOrEmpty) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
   }.apply()
 
+  private def _bbs: String = config.getString(SYSTEM_BBS, null)
+
+  def bbs: String = _bbs.takeIf(_.isNonEmpty).getOrElse(default_bbs())
+
+  def bbs_=(bbs: String): Unit = config.edit().also { c =>
+    if (bbs.isNullOrEmpty) c.remove(SYSTEM_BBS) else c.putString(SYSTEM_BBS, bbs)
+  }.apply()
+
   private def _category: Seq[(String, String)] = try config.getString(SYSTEM_CATEGORY, null).let {
     s => new JSONObject(s).let { a => a.keys().map(k => (k, a.getString(k))).toSeq }
   } catch {
@@ -106,15 +119,17 @@ object HAcg {
   if (_hosts.isEmpty) hosts = default_hosts()
   if (_host.isNullOrEmpty) host = hosts.head
   if (_category.isEmpty) category = default_category()
+  if (_bbs.isNullOrEmpty) bbs = default_bbs()
 
   def update(context: Context)(f: (() => Unit) = null): Unit = {
     //https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json
     "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAsync(context) {
       case Some((json, _)) => try {
         val config = new JSONObject(json)
-        host = default_hosts(Some(config)).head
-        hosts = default_hosts(Some(config))
-        category = default_category(Some(config))
+        host = default_hosts(Option(config)).head
+        hosts = default_hosts(Option(config))
+        category = default_category(Option(config))
+        bbs = default_bbs(Option(config))
         if (f != null) f()
       } catch {
         case _: Exception =>
@@ -132,9 +147,9 @@ object HAcg {
     case _ => host
   }
 
-  def wordpress = s"$web/wp"
+  def wordpress: String = web
 
-  def philosophy = s"$wordpress/bbs"
+  def philosophy = s"$wordpress$bbs"
 
   def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val edit = new EditText(context)

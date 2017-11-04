@@ -1,37 +1,37 @@
 {
   "host": [
-    "www.hacg.me",
-    "www.llss.fun"
+    "www.llss.fun",
+    "www.hacg.me"
   ],
-  "bbs": "/bbs",
+  "bbs": "/wp/bbs",
   "category": [
     {
       "name": "最新",
-      "url": "/"
+      "url": "/wp/"
     },
     {
       "name": "动画",
-      "url": "/anime.html"
+      "url": "/wp/anime.html"
     },
     {
       "name": "漫画",
-      "url": "/comic.html"
+      "url": "/wp/comic.html"
     },
     {
       "name": "游戏",
-      "url": "/game.html"
+      "url": "/wp/game.html"
     },
     {
       "name": "文章",
-      "url": "/age.html"
+      "url": "/wp/age.html"
     },
     {
       "name": "音乐",
-      "url": "/op.html"
+      "url": "/wp/op.html"
     },
     {
       "name": "轻小说",
-      "url": "/book.html"
+      "url": "/wp/book.html"
     }
   ]
 }
