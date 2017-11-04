@@ -10,6 +10,7 @@ import java.util.concurrent._
 
 import android.content.DialogInterface.OnDismissListener
 import android.content.{Context, DialogInterface, Intent, SharedPreferences}
+import android.graphics.{Canvas, Paint, RectF}
 import android.net.Uri
 import android.os._
 import android.preference.PreferenceManager
@@ -18,7 +19,8 @@ import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.widget.RecyclerView
-import android.text.InputType
+import android.text.style.{ClickableSpan, ReplacementSpan}
+import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
 import android.view.View
 import android.view.View.OnLongClickListener
 import android.widget.{EditText, Toast}
@@ -678,5 +680,56 @@ abstract class DataAdapter[V, VH <: RecyclerView.ViewHolder] extends RecyclerVie
     data ++= v
     notifyItemRangeInserted(data.size - v.size, v.size)
     this
+  }
+}
+
+object SpanUtil {
+
+  class RoundedBackgroundColorSpan(private val backgroundColor: Int) extends ReplacementSpan() {
+    private var linePadding = 2f // play around with these as needed
+    private var sidePadding = 5f // play around with these as needed
+    private def MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float = {
+      paint.measureText(text, start, end)
+    }
+
+    override def getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt): Int = {
+      Math.round(MeasureText(paint, text, start, end) + (2 * sidePadding))
+    }
+
+    override def draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
+      System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
+      val rect = new RectF(x, y + paint.getFontMetrics.top - linePadding,
+        x + getSize(paint, text, start, end, paint.getFontMetricsInt()),
+        y + paint.getFontMetrics.bottom + linePadding)
+      paint.setColor(backgroundColor)
+      canvas.drawRoundRect(rect, 5F, 5F, paint)
+      paint.setColor(0xFFFFFFFF)
+      canvas.drawText(text, start, end, x + sidePadding, y * 1F, paint)
+    }
+
+  }
+
+  class TagClickableSpan[T](private val tag: T, private val call: ((T) => Unit) = null) extends ClickableSpan() {
+    override def onClick(widget: View) {
+      if (call != null) call(tag)
+    }
+
+    override def updateDrawState(ds: TextPaint) {
+      ds.setColor(0xFFFFFFFF)
+      ds.setUnderlineText(false)
+    }
+  }
+
+  def spannable[T](list: List[T])(separator: String = " ", t2str: ((T) => String) = { s: T => s"$s" }, call: ((T) => Unit) = null): SpannableStringBuilder = {
+    val tags = list.map(t2str(_)).mkString(separator)
+    val span = new SpannableStringBuilder(tags)
+    list.foldLeft(0) { (i, it) =>
+      val p = tags.indexOf(t2str(it), i)
+      val e = p + t2str(it).length
+      if (call != null) span.setSpan(new TagClickableSpan(it, call), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+      span.setSpan(new RoundedBackgroundColorSpan(randomColor(0xBF)), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+      e
+    }
+    span
   }
 }

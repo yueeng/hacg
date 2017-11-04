@@ -31,6 +31,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|top"
                 android:gravity="end"
+                android:lineSpacingExtra="6dp"
                 android:padding="5dp"
                 android:text="@string/app_name"
                 android:textSize="@dimen/text_size_title" />

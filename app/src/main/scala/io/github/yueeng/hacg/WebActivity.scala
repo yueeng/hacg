@@ -122,11 +122,11 @@ class WebFragment extends Fragment {
 
     val click = viewClick {
       _.getId match {
-          case R.id.button1 => web.loadUrl(defuri)
-          case R.id.button2 => if (web.canGoBack) web.goBack()
-          case R.id.button3 => if (web.canGoForward) web.goForward()
-          case R.id.button4 => web.loadUrl(uri)
-        }
+        case R.id.button1 => web.loadUrl(defuri)
+        case R.id.button2 => if (web.canGoBack) web.goBack()
+        case R.id.button3 => if (web.canGoForward) web.goForward()
+        case R.id.button4 => web.loadUrl(uri)
+      }
     }
     List(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
       .map(root.findViewById[View]).foreach(_.setOnClickListener(click))

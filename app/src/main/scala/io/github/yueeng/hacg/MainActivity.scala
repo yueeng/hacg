@@ -19,9 +19,6 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
-import android.text.style.{BackgroundColorSpan, ClickableSpan}
-import android.text.{SpannableStringBuilder, Spanned, TextPaint}
-import android.view.View.OnClickListener
 import android.view._
 import android.view.animation.DecelerateInterpolator
 import android.widget._
@@ -300,18 +297,14 @@ class ArticleFragment extends Fragment {
     }
   }
 
-  val click = new OnClickListener {
-    override def onClick(v: View): Unit = {
-      v.getTag match {
-        case h: ArticleHolder =>
-          //          val article = v.getTag.asInstanceOf[Article]
-          //          startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", article.asInstanceOf[Parcelable]))
-          ActivityCompat.startActivityForResult(getActivity,
-            new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
-            0,
-            ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
-        case _ =>
-      }
+  private val click = viewClick {
+    _.getTag match {
+      case h: ArticleHolder =>
+        ActivityCompat.startActivityForResult(getActivity,
+          new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
+          0,
+          ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
+      case _ =>
     }
   }
 
@@ -327,20 +320,6 @@ class ArticleFragment extends Fragment {
     text3.setMovementMethod(LinkMovementMethod.getInstance())
   }
 
-  class TagClickableSpan(tag: Tag) extends ClickableSpan {
-    override def onClick(widget: View): Unit = {
-      startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name))
-      //      ActivityCompat.startActivity(getActivity,
-      //        new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name),
-      //        ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, widget, "tag").toBundle)
-    }
-
-    override def updateDrawState(ds: TextPaint): Unit = {
-      ds.setColor(0xFFFFFFFF)
-      ds.setUnderlineText(false)
-    }
-  }
-
   class ArticleAdapter extends DataAdapter[Article, ArticleHolder] {
 
     override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
@@ -351,17 +330,8 @@ class ArticleFragment extends Fragment {
       holder.text1.setTextColor(Common.randomColor())
       holder.text2.setText(item.content)
       holder.text2.setVisibility(if (item.content.isNonEmpty) View.VISIBLE else View.GONE)
-      val w = " "
-      val tags = item.expend.map(o => s"$w${o.name}$w").mkString(" ")
-      val span = new SpannableStringBuilder(tags)
-      for {tag <- item.expend
-           pw = tags.indexOf(s"$w${tag.name}$w")
-           p = pw + w.length
-           e = p + tag.name.length
-           ew = e + w.length} {
-        span.setSpan(new TagClickableSpan(tag), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        span.setSpan(new BackgroundColorSpan(Common.randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-      }
+
+      val span = SpanUtil.spannable(item.expend)(t2str = _.name, call = { tag => startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name)) })
       holder.text3.setText(span)
       holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
