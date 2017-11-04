@@ -77,7 +77,7 @@ class InfoFragment extends Fragment {
   var _url: String = _
 
   val _click: View.OnClickListener = viewClick {
-    v => v.getTag match {
+    _.getTag match {
       case c: Comment => comment(c)
       case _ =>
     }
@@ -95,7 +95,7 @@ class InfoFragment extends Fragment {
     setHasOptionsMenu(true)
     setRetainInstance(true)
     val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
-    _post +=(AUTHOR -> preference.getString(CONFIG_AUTHOR, ""), EMAIL -> preference.getString(CONFIG_EMAIL, ""))
+    _post += (AUTHOR -> preference.getString(CONFIG_AUTHOR, ""), EMAIL -> preference.getString(CONFIG_EMAIL, ""))
     query(_article.link, QUERY_ALL)
   }
 
@@ -332,6 +332,7 @@ class InfoFragment extends Fragment {
           case Nil =>
           case a +: b => rr(a); r(b)
         }
+
         def rr(v: View): Unit = v match {
           case tv: TextView if !tv.isInstanceOf[Button] =>
             tv.setTextIsSelectable(true)
@@ -339,6 +340,7 @@ class InfoFragment extends Fragment {
             r(for (i <- 0 until vg.getChildCount; sv = vg.getChildAt(i)) yield sv)
           case _ =>
         }
+
         rr(alert.getWindow.getDecorView)
       }
     })
@@ -354,11 +356,13 @@ class InfoFragment extends Fragment {
     email.setText(_post(EMAIL))
     content.setText(_post.getOrElse(COMMENT, ""))
     _post += ("comment_parent" -> (if (c != null) c.id.toString else "0"))
+
     def fill() = {
-      _post +=(AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
+      _post += (AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
       preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).apply()
     }
+
     new Builder(getActivity)
       .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
       .setView(input)
@@ -465,7 +469,7 @@ class InfoFragment extends Fragment {
             dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
             dom.select("#commentform").attr("abs:action"),
             if (content) entry.text() else null
-            )
+          )
       }
 
       c.ui { _ =>
@@ -473,7 +477,7 @@ class InfoFragment extends Fragment {
           case Some(data) =>
             if (content) {
               _magnet <= """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList
-              _web <=(data._1, url)
+              _web <= (data._1, url)
             }
             if (comment) {
               data._2.filter(_.moderation.isNonEmpty).foreach(println)
