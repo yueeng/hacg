@@ -10,11 +10,10 @@ import android.content._
 import android.net.Uri
 import android.os.{Build, Bundle}
 import android.preference.PreferenceManager
-import android.support.design.widget.CollapsingToolbarLayout
 import android.support.v4.app.Fragment
-import android.support.v4.view.{GravityCompat, ViewCompat}
+import android.support.v4.view.{PagerAdapter, ViewPager}
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
-import android.support.v4.widget.{DrawerLayout, SwipeRefreshLayout}
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView.OnScrollListener
@@ -34,7 +33,7 @@ import scala.collection.JavaConversions._
   * Created by Rain on 2015/5/12.
   */
 
-class InfoActivity extends AppCompatActivity {
+class InfoActivity extends BaseSlideCloseActivity {
   lazy val _article: Article = getIntent.getParcelableExtra[Article]("article")
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
@@ -113,134 +112,151 @@ class InfoFragment extends Fragment {
     _web.views.foreach(_.destroy())
   }
 
-  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
-    val root = inflater.inflate(R.layout.fragment_info, container, false)
+  override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View =
+    inflater.inflate(R.layout.fragment_info, container, false)
+
+  override def onViewCreated(view: View, state: Bundle): Unit = {
+    val root = view
 
     val activity = getActivity.asInstanceOf[AppCompatActivity]
     activity.setSupportActionBar(root.findViewById(R.id.toolbar))
     activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
-    root.findViewById[View](R.id.toolbar_collapsing) match {
-      case c: CollapsingToolbarLayout =>
-        c.setExpandedTitleColor(Common.randomColor())
-        c.setTitle(_article.title)
-      case _ => activity.setTitle(_article.title)
+    //    root.findViewById[View](R.id.toolbar_collapsing) match {
+    //      case c: CollapsingToolbarLayout =>
+    //        c.setExpandedTitleColor(Common.randomColor())
+    //        c.setTitle(_article.title)
+    //      case _ => activity.setTitle(_article.title)
+    //    }
+    activity.setTitle(_article.title)
+    //    root.findViewById[View](R.id.toolbar_image) match {
+    //      case img: ImageView =>
+    //        Picasso.`with`(getActivity).load(_article.img).error(R.drawable.placeholder).into(img)
+    //        ViewCompat.setTransitionName(img, "image")
+    //      case _ =>
+    //    }
+
+    root.findViewById[ViewPager](R.id.container).setAdapter(new InfoAdapter)
+  }
+
+  class InfoAdapter extends PagerAdapter {
+    override def getCount: Int = 2
+
+    override def isViewFromObject(view: View, `object`: scala.Any): Boolean = view == `object`
+
+    override def destroyItem(container: ViewGroup, position: Int, `object`: scala.Any): Unit = {
+      container.removeView(`object`.asInstanceOf[View])
     }
 
-    root.findViewById[View](R.id.toolbar_image) match {
-      case img: ImageView =>
-        Picasso.`with`(getActivity).load(_article.img).error(R.drawable.placeholder).into(img)
-        ViewCompat.setTransitionName(img, "image")
-      case _ =>
-    }
-
-    _error += root.findViewById(R.id.image1)
-    val list: RecyclerView = root.findViewById(R.id.list1)
-    list.setLayoutManager(new LinearLayoutManager(getActivity))
-    list.setHasFixedSize(true)
-    list.setAdapter(_adapter)
-
-    val drawer: DrawerLayout = root.findViewById(R.id.drawer)
-    list.addOnScrollListener(new OnScrollListener {
-      override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
-        (state, _url, list.getLayoutManager) match {
-          case (RecyclerView.SCROLL_STATE_IDLE, url, staggered: LinearLayoutManager)
-            if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.size - 1 =>
-            query(url, QUERY_COMMENT)
+    override def instantiateItem(container: ViewGroup, position: Int): AnyRef = also(position match {
+      case 0 => also(container.inflate(R.layout.fragment_info_web)) { root =>
+        _error += root.findViewById(R.id.image1)
+        val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
+        menu.setMenuButtonColorNormal(randomColor())
+        menu.setMenuButtonColorPressed(randomColor())
+        menu.setMenuButtonColorRipple(randomColor())
+        val click = viewClick { v =>
+          v.getId match {
+            case R.id.button1 => Common.openWeb(getActivity, _article.link)
+            case R.id.button2 => getView.findViewById[ViewPager](R.id.container).setCurrentItem(1)
+            case R.id.button4 => share(_article.image)
+          }
+          getView.findViewById[FloatingActionMenu](R.id.menu1).close(true)
+        }
+        List(R.id.button1, R.id.button2, R.id.button4).map(root.findViewById[View]).foreach {
+          case b: FloatingActionButton =>
+            b.setOnClickListener(click)
           case _ =>
         }
-        state match {
-          case RecyclerView.SCROLL_STATE_IDLE => drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
-          case _ => drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN)
+
+        _progress += root.findViewById(R.id.progress)
+        _magnet += root.findViewById(R.id.button5)
+        _magnet.views.head.setOnClickListener(new View.OnClickListener {
+          val max = 3
+          var magnet = 0
+          var toast: Toast = _
+
+          override def onClick(v: View): Unit = magnet match {
+            case `max` if _magnet() != null && _magnet().nonEmpty => new Builder(getActivity)
+              .setTitle(R.string.app_magnet)
+              .setSingleChoiceItems(_magnet().toArray[CharSequence], 0, null)
+              .setNegativeButton(R.string.app_cancel, null)
+              .setPositiveButton(R.string.app_open, dialogClick { (d, _) =>
+                val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
+                val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
+                startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
+              })
+              .setNeutralButton(R.string.app_copy, dialogClick { (d, _) =>
+                val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
+                val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
+                val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+                val clip = ClipData.newPlainText(getString(R.string.app_magnet), link)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, link), Toast.LENGTH_SHORT).show()
+              }).create().show()
+              menu.close(true)
+            case _ if magnet < max => magnet += 1
+              if (toast != null) toast.cancel()
+              toast = Toast.makeText(getActivity, (0 until magnet).map(_ => "...").mkString, Toast.LENGTH_SHORT)
+              toast.show()
+            case _ =>
+          }
+        })
+
+        val web: WebView = root.findViewById(R.id.web)
+        val settings = web.getSettings
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
         }
+        settings.setJavaScriptEnabled(true)
+        web.setWebViewClient(new WebViewClient {
+          override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
+            val uri = Uri.parse(url)
+            startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.getScheme))
+            true
+          }
+        })
+        web.addJavascriptInterface(new JsFace(), "hacg")
+        _web += web
       }
-    })
+      case 1 => also(container.inflate(R.layout.fragment_info_list)) { root =>
+        val list: RecyclerView = root.findViewById(R.id.list1)
+        list.setLayoutManager(new LinearLayoutManager(getActivity))
+        list.setHasFixedSize(true)
+        list.setAdapter(_adapter)
 
-    val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
-    menu.setMenuButtonColorNormal(randomColor())
-    menu.setMenuButtonColorPressed(randomColor())
-    menu.setMenuButtonColorRipple(randomColor())
-    val click = viewClick { v =>
-      v.getId match {
-        case R.id.button1 => Common.openWeb(getActivity, _article.link)
-        case R.id.button2 => drawer.openDrawer(GravityCompat.END)
-        case R.id.button3 => comment(null)
-        case R.id.button4 => share(_article.image)
+        list.addOnScrollListener(new OnScrollListener {
+          override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
+            (state, _url, list.getLayoutManager) match {
+              case (RecyclerView.SCROLL_STATE_IDLE, url, staggered: LinearLayoutManager)
+                if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.size - 1 =>
+                query(url, QUERY_COMMENT)
+              case _ =>
+            }
+          }
+        })
+
+        _progress2 += root.findViewById(R.id.swipe)
+        _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
+          override def onRefresh(): Unit = {
+            _url = null
+            _adapter.clear()
+            query(_article.link, QUERY_COMMENT)
+          }
+        })
+        root.findViewById[View](R.id.button3).setOnClickListener(viewClick(_ => comment(null)))
       }
-      menu.close(true)
-    }
-
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById[View]).foreach {
-      case b: FloatingActionButton =>
-        b.setColorNormal(randomColor())
-        b.setColorPressed(randomColor())
-        b.setColorRipple(randomColor())
-      case _ =>
-    }
-    List(R.id.button1, R.id.button2, R.id.button3, R.id.button4).map(root.findViewById[View]).foreach {
-      case b: FloatingActionButton =>
-        b.setOnClickListener(click)
-      case _ =>
-    }
-    _progress += root.findViewById(R.id.progress)
-    _progress2 += root.findViewById(R.id.swipe)
-
-    _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
-      override def onRefresh(): Unit = {
-        _url = null
-        _adapter.clear()
-        query(_article.link, QUERY_COMMENT)
-      }
-    })
-    _magnet += root.findViewById(R.id.button5)
-    _magnet.views.head.setOnClickListener(new View.OnClickListener {
-      val max = 3
-      var magnet = 0
-      var toast: Toast = _
-
-      override def onClick(v: View): Unit = magnet match {
-        case `max` if _magnet() != null && _magnet().nonEmpty => new Builder(getActivity)
-          .setTitle(R.string.app_magnet)
-          .setSingleChoiceItems(_magnet().toArray[CharSequence], 0, null)
-          .setNegativeButton(R.string.app_cancel, null)
-          .setPositiveButton(R.string.app_open, dialogClick { (d, _) =>
-            val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-            val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
-            startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
-          })
-          .setNeutralButton(R.string.app_copy, dialogClick { (d, _) =>
-            val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-            val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
-            val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
-            val clip = ClipData.newPlainText(getString(R.string.app_magnet), link)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, link), Toast.LENGTH_SHORT).show()
-          }).create().show()
-          menu.close(true)
-        case _ if magnet < max => magnet += 1
-          if (toast != null) toast.cancel()
-          toast = Toast.makeText(getActivity, (0 until magnet).map(_ => "...").mkString, Toast.LENGTH_SHORT)
-          toast.show()
+      case _ => throw new IllegalAccessException()
+    }) { root =>
+      List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById[View]).foreach {
+        case b: FloatingActionButton =>
+          b.setColorNormal(randomColor())
+          b.setColorPressed(randomColor())
+          b.setColorRipple(randomColor())
         case _ =>
       }
-    })
-
-    val web: WebView = root.findViewById(R.id.web)
-    val settings = web.getSettings
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
+      container.addView(root)
     }
-    settings.setJavaScriptEnabled(true)
-    web.setWebViewClient(new WebViewClient {
-      override def shouldOverrideUrlLoading(view: WebView, url: String): Boolean = {
-        val uri = Uri.parse(url)
-        startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.getScheme))
-        true
-      }
-    })
-    web.addJavascriptInterface(new JsFace(), "hacg")
-    _web += web
-    root
   }
 
   def share(url: String): Future[Unit] = {
@@ -298,12 +314,12 @@ class InfoFragment extends Fragment {
   }
 
   def onBackPressed: Boolean = {
-    getView.findViewById[View](R.id.drawer) match {
-      case menu: DrawerLayout if menu.isDrawerOpen(GravityCompat.END) =>
-        menu.closeDrawer(GravityCompat.END)
+    getView.findViewById[View](R.id.container /*drawer*/) match {
+      case menu: ViewPager if menu.getCurrentItem > 0 =>
+        menu.setCurrentItem(0)
         true
       case _ =>
-        _web.views.foreach(_.setVisibility(View.INVISIBLE))
+//        _web.views.foreach(_.setVisibility(View.INVISIBLE))
         false
     }
   }

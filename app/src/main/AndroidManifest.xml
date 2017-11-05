@@ -41,6 +41,7 @@
 
         <activity
             android:name=".InfoActivity"
+            android:theme="@style/AppThemeTranslucent"
             android:windowSoftInputMode="adjustPan" />
 
         <activity

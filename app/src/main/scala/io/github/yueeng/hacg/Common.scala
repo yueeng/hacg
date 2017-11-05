@@ -23,8 +23,9 @@ import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.RecyclerView
 import android.text.style.{ClickableSpan, ReplacementSpan}
 import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
+import android.util.AttributeSet
 import android.view.View.OnLongClickListener
-import android.view.{View, ViewGroup}
+import android.view._
 import android.widget.{EditText, Toast}
 import io.github.yueeng.hacg.Common._
 import okhttp3.{MultipartBody, OkHttpClient, Request}
@@ -289,7 +290,9 @@ object Common {
 
   def takeIf[A](o: A)(f: A => Boolean): Option[A] = if (f(o)) Option(o) else None
 
-  implicit class anyex[A <: AnyRef](o: A) {
+  implicit def any2ex[A](o: A): anyex[A] = new anyex(o)
+
+  class anyex[A](o: A) {
     def let[B](f: A => B): B = Common.let(o)(f)
 
     def also(f: A => Unit): A = Common.also(o)(f)
@@ -312,6 +315,11 @@ object Common {
 
     def sha1: String = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
+
+  implicit class viewgroupex(container: ViewGroup) {
+    def inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(container.getContext).inflate(layout, container, attach)
+  }
+
 
   private val img = List(".jpg", ".png", ".webp")
 
@@ -688,8 +696,8 @@ abstract class DataAdapter[V, VH <: RecyclerView.ViewHolder] extends RecyclerVie
 object SpanUtil {
 
   class RoundedBackgroundColorSpan(private val backgroundColor: Int) extends ReplacementSpan() {
-    private var linePadding = 2f // play around with these as needed
-    private var sidePadding = 5f // play around with these as needed
+    private val linePadding = 2f // play around with these as needed
+    private val sidePadding = 5f // play around with these as needed
     private def MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float = {
       paint.measureText(text, start, end)
     }
@@ -736,6 +744,41 @@ object SpanUtil {
   }
 }
 
+class PagerSlidingPaneLayout(context: Context, attrs: AttributeSet, defStyle: Int) extends SlidingPaneLayout(context, attrs, defStyle) {
+  def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
+
+  def this(context: Context) = this(context, null)
+
+  private var mInitialMotionX: Float = 0F
+  private var mInitialMotionY: Float = 0F
+  private val mEdgeSlop: Float = ViewConfiguration.get(context).getScaledEdgeSlop
+  var isSwipeEnabled: Boolean = true
+
+  override def onTouchEvent(ev: MotionEvent): Boolean = {
+    !isSwipeEnabled || super.onTouchEvent(ev)
+  }
+
+  override def onInterceptTouchEvent(ev: MotionEvent): Boolean = {
+    if (!isSwipeEnabled) return false
+    ev.getAction match {
+      case MotionEvent.ACTION_DOWN =>
+        mInitialMotionX = ev.getX
+        mInitialMotionY = ev.getY
+      case MotionEvent.ACTION_MOVE =>
+        val x = ev.getX
+        val y = ev.getY
+        if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
+          Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
+          return super.onInterceptTouchEvent(MotionEvent.obtain(ev).also { me =>
+            me.setAction(MotionEvent.ACTION_CANCEL)
+          })
+        }
+      case _ =>
+    }
+    super.onInterceptTouchEvent(ev)
+  }
+}
+
 class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.PanelSlideListener {
 
   override def onCreate(state: Bundle) {
@@ -744,7 +787,7 @@ class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.
   }
 
   private def swipe() {
-    val swipe = new SlidingPaneLayout(this)
+    val swipe = new PagerSlidingPaneLayout(this)
     // 通过反射改变mOverhangSize的值为0，
     // 这个mOverhangSize值为菜单到右边屏幕的最短距离，
     // 默认是32dp，现在给它改成0

@@ -300,10 +300,11 @@ class ArticleFragment extends Fragment {
   private val click = viewClick {
     _.getTag match {
       case h: ArticleHolder =>
-        ActivityCompat.startActivityForResult(getActivity,
-          new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
-          0,
-          ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
+        startActivity(new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]))
+      //        ActivityCompat.startActivityForResult(getActivity,
+      //          new Intent(getActivity, classOf[InfoActivity]).putExtra("article", h.article.asInstanceOf[Parcelable]),
+      //          0,
+      //          ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity, (h.image1, "image")).toBundle)
       case _ =>
     }
   }
