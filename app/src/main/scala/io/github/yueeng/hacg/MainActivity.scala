@@ -9,7 +9,7 @@ import android.graphics.Point
 import android.net.Uri
 import android.os.{Bundle, Parcelable}
 import android.provider.SearchRecentSuggestions
-import android.support.design.widget.{Snackbar, TabLayout}
+import android.support.design.widget.TabLayout
 import android.support.v4.app._
 import android.support.v4.view.{PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
@@ -47,10 +47,18 @@ class MainActivity extends AppCompatActivity {
     }
   }
 
+  private var last = 0L
+
   override def onBackPressed(): Unit = {
-    Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
-      .setAction(R.string.app_exit, viewClick { _ => ActivityCompat.finishAfterTransition(MainActivity.this) })
-      .show()
+    if (System.currentTimeMillis() - last > 1500) {
+      last = System.currentTimeMillis()
+      toast(R.string.app_exit_confirm)
+      return
+    }
+    finish()
+    //    Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
+    //      .setAction(R.string.app_exit, viewClick { _ => ActivityCompat.finishAfterTransition(MainActivity.this) })
+    //      .show()
   }
 
   def checkVersion(toast: Boolean = false): Future[Unit] = {
