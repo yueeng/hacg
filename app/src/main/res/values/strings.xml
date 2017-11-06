@@ -34,7 +34,7 @@
     <string name="app_exit">exit</string>
     <string name="app_save">Save</string>
     <string name="app_share">Share</string>
-    <string name="app_magnet">Magnetlink</string>
+    <string name="app_magnet">Link</string>
     <string name="app_open">Open</string>
     <string name="settings_config">Download network config</string>
     <string name="app_network_retry">Request hacg failed, click black cat to retry, or chagne host in menu.</string>

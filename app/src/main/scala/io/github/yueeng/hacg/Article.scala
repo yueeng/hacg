@@ -120,7 +120,6 @@ case class Article(title: String,
       e.select("footer .tag-links a").map(o => new Tag(o)).toList)
   }
 
-
   override def describeContents() = 0
 
   override def writeToParcel(dest: Parcel, flags: Int) {

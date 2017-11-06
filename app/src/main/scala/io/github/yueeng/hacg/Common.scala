@@ -9,7 +9,7 @@ import java.util.Date
 import java.util.concurrent._
 
 import android.content.DialogInterface.OnDismissListener
-import android.content.{Context, DialogInterface, Intent, SharedPreferences}
+import android.content._
 import android.graphics.{Canvas, Paint, RectF}
 import android.net.Uri
 import android.os._
@@ -318,6 +318,13 @@ object Common {
 
   implicit class viewgroupex(container: ViewGroup) {
     def inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(container.getContext).inflate(layout, container, attach)
+  }
+
+  def clipboard(label: String, text: String)(implicit context: Context): Unit = {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+    val clip = ClipData.newPlainText(label, text)
+    clipboard.setPrimaryClip(clip)
+    toast(context.getString(R.string.app_copied, text))
   }
 
   class Once {

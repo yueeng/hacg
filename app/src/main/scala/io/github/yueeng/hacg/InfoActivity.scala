@@ -178,20 +178,23 @@ class InfoFragment extends Fragment {
           override def onClick(v: View): Unit = magnet match {
             case `max` if _magnet() != null && _magnet().nonEmpty => new Builder(getActivity)
               .setTitle(R.string.app_magnet)
-              .setSingleChoiceItems(_magnet().toArray[CharSequence], 0, null)
+              .setSingleChoiceItems(_magnet().map(m => s"${if (m.contains(",")) "baidu" else "magnet"}:$m").toArray[CharSequence], 0, null)
               .setNegativeButton(R.string.app_cancel, null)
               .setPositiveButton(R.string.app_open, dialogClick { (d, _) =>
                 val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-                val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
+                val item = _magnet()(pos)
+                val link = if (item.contains(",")) {
+                  val baidu = item.split(",")
+                  clipboard(getString(R.string.app_magnet), baidu.last)
+                  s"https://yun.baidu.com/s/${baidu.head}"
+                } else s"magnet:?xt=urn:btih:${_magnet()(pos)}"
                 startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
               })
               .setNeutralButton(R.string.app_copy, dialogClick { (d, _) =>
                 val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
-                val link = s"magnet:?xt=urn:btih:${_magnet()(pos)}"
-                val clipboard = getActivity.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
-                val clip = ClipData.newPlainText(getString(R.string.app_magnet), link)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, link), Toast.LENGTH_SHORT).show()
+                val item = _magnet()(pos)
+                val link = if (item.contains(",")) s"https://yun.baidu.com/s/${item.split(",").head}" else s"magnet:?xt=urn:btih:${_magnet()(pos)}"
+                clipboard(getString(R.string.app_magnet), link)
               }).create().show()
               menu.close(true)
             case _ if magnet < max => magnet += 1
@@ -480,7 +483,9 @@ class InfoFragment extends Fragment {
         result match {
           case Some(data) =>
             if (content) {
-              _magnet <= """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList
+              _magnet <=
+                """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".r.findAllIn(data._6).toList ++
+                  """\b([a-zA-Z0-9]{8})\b\s+\b([a-zA-Z0-9]{4})\b""".r.findAllMatchIn(data._6).map(m => s"${m.group(1)},${m.group(2)}")
               _web <= (data._1, url)
             }
             if (comment) {
