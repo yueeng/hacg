@@ -94,9 +94,11 @@ case class Article(title: String,
                    author: Option[Tag],
                    category: Option[Tag],
                    tags: List[Tag]) extends Parcelable {
+  def this(msg: String) = this(msg, null, null, null, None, 0, None, None, Nil)
+
   private val defimg = s"${ContentResolver.SCHEME_ANDROID_RESOURCE}://${getClass.getPackage.getName}/drawable/placeholder"
 
-  def img: String = if (image.isEmpty) defimg else image
+  def img: String = if (image.isNullOrEmpty) defimg else image
 
   lazy val expend: List[Tag] = tags ++ category ++ author
 

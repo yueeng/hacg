@@ -20,7 +20,7 @@ import android.support.v4.content.ContextCompat
 import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
-import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.{GridLayoutManager, LinearLayoutManager, RecyclerView, StaggeredGridLayoutManager}
 import android.text.style.{ClickableSpan, ReplacementSpan}
 import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
 import android.util.AttributeSet
@@ -320,6 +320,50 @@ object Common {
     def inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(container.getContext).inflate(layout, container, attach)
   }
 
+  class Once {
+    private var init = false
+
+    def run(call: () => Unit) {
+      init.synchronized {
+        if (init) return
+        init = true
+      }
+      call()
+    }
+  }
+
+  implicit class recyclerex(list: RecyclerView) {
+    def loading(last: Int = 1)(call: () => Unit) {
+      list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        def load(recycler: RecyclerView) {
+          val layout = recycler.getLayoutManager
+          layout match {
+            case layout: StaggeredGridLayoutManager =>
+              val vis = layout.findLastVisibleItemPositions(null)
+              val v = if (vis.nonEmpty) vis.max else 0
+              if (v >= list.getAdapter.getItemCount - last) call()
+            case layout: GridLayoutManager =>
+              if (layout.findLastVisibleItemPosition() >= list.getAdapter.getItemCount - last) call()
+            case layout: LinearLayoutManager =>
+              if (layout.findLastVisibleItemPosition() >= list.getAdapter.getItemCount - last) call()
+          }
+        }
+
+        val once = new Once()
+
+        override def onScrolled(recycler: RecyclerView, dx: Int, dy: Int) {
+          once.run { () =>
+            load(recycler)
+          }
+        }
+
+        override def onScrollStateChanged(recycler: RecyclerView, state: Int) {
+          if (state != RecyclerView.SCROLL_STATE_IDLE) return
+          load(recycler)
+        }
+      })
+    }
+  }
 
   private val img = List(".jpg", ".png", ".webp")
 
@@ -396,10 +440,9 @@ object Common {
       case _: Exception => None
     }
 
-    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit): Future[Unit] = async(context) {
-      c =>
-        val result = url.httpDownload(file)
-        c.ui(_ => fn(result))
+    def httpDownloadAsync(context: Context, file: String = null)(fn: Option[File] => Unit): Future[Unit] = async(context) { c =>
+      val result = url.httpDownload(file)
+      c.ui(_ => fn(result))
     }
 
     def httpDownload(file: String = null): Option[File] = try {
@@ -520,11 +563,10 @@ class PersistCookieStore(context: Context) extends CookieStore {
 
   pref.getAll.collect { case (k: String, v: String) if !v.isEmpty => (k, v.split(",")) }
     .foreach { o =>
-      map(URI.create(o._1)) = mutable.HashSet() ++= o._2.flatMap {
-        c =>
-          try HttpCookie.parse(c) catch {
-            case _: Throwable => Nil
-          }
+      map(URI.create(o._1)) = mutable.HashSet() ++= o._2.flatMap { c =>
+        try HttpCookie.parse(c) catch {
+          case _: Throwable => Nil
+        }
       }
     }
 

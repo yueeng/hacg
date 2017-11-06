@@ -16,7 +16,6 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
 import android.text.method.LinkMovementMethod
 import android.view._
@@ -63,16 +62,15 @@ class MainActivity extends AppCompatActivity {
 
   def checkVersion(toast: Boolean = false): Future[Unit] = {
     async(this) { c =>
-      val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup {
-        dom =>
-          (
-            dom.select(".css-truncate-target").text(),
-            dom.select(".markdown-body").text().trim,
-            dom.select(".release-downloads a[href$=.apk]").headOption match {
-              case Some(a) => a.attr("abs:href")
-              case _ => null
-            }
-          )
+      val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup { dom =>
+        (
+          dom.select(".css-truncate-target").text(),
+          dom.select(".markdown-body").text().trim,
+          dom.select(".release-downloads a[href$=.apk]").headOption match {
+            case Some(a) => a.attr("abs:href")
+            case _ => null
+          }
+        )
       } match {
         case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
         case _ => None
@@ -262,40 +260,39 @@ class ArticleFragment extends Fragment {
     recycler.setLayoutManager(layout)
     recycler.setHasFixedSize(true)
     recycler.setAdapter(adapter)
-    recycler.addOnScrollListener(new OnScrollListener {
-      override def onScrollStateChanged(recycler: RecyclerView, state: Int): Unit =
-        (state, url, recycler.getLayoutManager) match {
-          case (RecyclerView.SCROLL_STATE_IDLE, url: String, staggered: StaggeredGridLayoutManager) if url.isNonEmpty && staggered.findLastVisibleItemPositions(null).max >= adapter.size - 1 =>
-            query(url)
-          case _ =>
-        }
-    })
+    recycler.loading() { () => query(url) }
 
     root
   }
 
   def query(uri: String, retry: Boolean = false): Unit = {
-    if (busy()) return
+    if (busy() || uri.isNullOrEmpty) return
     busy <= true
     error <= false
     async(this) { c =>
-      val result = uri.httpGet.jsoup {
-        dom =>
-          (dom.select("article").map(o => new Article(o)).toList,
-            dom.select("#wp_page_numbers a").lastOption match {
-              case Some(n) if ">" == n.text() => n.attr("abs:href")
-              case _ => dom.select("#nav-below .nav-previous a").headOption match {
-                case Some(p) => p.attr("abs:href")
-                case _ => null
-              }
-            })
+      val result = uri.httpGet.jsoup { dom =>
+        (dom.select("article").map(o => new Article(o)).toList,
+          dom.select("#wp_page_numbers a").lastOption match {
+            case Some(n) if ">" == n.text() => n.attr("abs:href")
+            case _ => dom.select("#nav-below .nav-previous a").headOption match {
+              case Some(p) => p.attr("abs:href")
+              case _ => null
+            }
+          })
       }
 
       c.ui { _ =>
         result match {
           case Some(r) =>
             url = r._2
+            adapter.data --= adapter.data.filter(_.link.isNullOrEmpty)
             adapter ++= r._1
+            val msg = (adapter.data.isEmpty, url.isNullOrEmpty) match {
+              case (true, true) => R.string.app_list_empty
+              case (false, true) => R.string.app_list_complete
+              case (_, false) => R.string.app_list_loading
+            }
+            adapter += new Article(getString(msg))
           case _ =>
             error <= (adapter.size == 0)
             if (error()) if (retry) getActivity.openOptionsMenu() else toast(R.string.app_network_retry)
@@ -329,23 +326,35 @@ class ArticleFragment extends Fragment {
     text3.setMovementMethod(LinkMovementMethod.getInstance())
   }
 
-  class ArticleAdapter extends DataAdapter[Article, ArticleHolder] {
+  class MsgHolder(view: View) extends RecyclerView.ViewHolder(view) {
+    val text1: TextView = view.findViewById(R.id.text1)
+  }
 
-    override def onBindViewHolder(holder: ArticleHolder, position: Int): Unit = {
-      val item = data(position)
-      holder.article = item
-      holder.text1.setText(item.title)
-      holder.text1.setVisibility(if (item.title.isNonEmpty) View.VISIBLE else View.GONE)
-      holder.text1.setTextColor(Common.randomColor())
-      holder.text2.setText(item.content)
-      holder.text2.setVisibility(if (item.content.isNonEmpty) View.VISIBLE else View.GONE)
+  object ArticleType extends Enumeration {
+    val Article = Value
+    val Msg = Value
+  }
 
-      val span = SpanUtil.spannable(item.expend)(t2str = _.name, call = { tag => startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name)) })
-      holder.text3.setText(span)
-      holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
+  class ArticleAdapter extends DataAdapter[Article, RecyclerView.ViewHolder] {
+    override def onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int): Unit = {
+      holder match {
+        case holder: ArticleHolder =>
+          val item = data(position)
+          holder.article = item
+          holder.text1.setText(item.title)
+          holder.text1.setVisibility(if (item.title.isNonEmpty) View.VISIBLE else View.GONE)
+          holder.text1.setTextColor(Common.randomColor())
+          holder.text2.setText(item.content)
+          holder.text2.setVisibility(if (item.content.isNonEmpty) View.VISIBLE else View.GONE)
 
-      Picasso.`with`(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
+          val span = SpanUtil.spannable(item.expend)(t2str = _.name, call = { tag => startActivity(new Intent(getActivity, classOf[ListActivity]).putExtra("url", tag.url).putExtra("name", tag.name)) })
+          holder.text3.setText(span)
+          holder.text3.setVisibility(if (item.tags.nonEmpty) View.VISIBLE else View.GONE)
 
+          Picasso.`with`(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
+        case holder: MsgHolder =>
+          holder.text1.setText(data(position).title)
+      }
       if (position > last) {
         last = position
         val anim = ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0)
@@ -365,8 +374,15 @@ class ArticleFragment extends Fragment {
       case _ => 300;
     }
 
-    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
-      new ArticleHolder(LayoutInflater.from(parent.getContext).inflate(R.layout.article_item, parent, false))
+    override def getItemViewType(position: Int): Int = data(position) match {
+      case a if a.link.isNonEmpty => ArticleType.Article.id
+      case _ => ArticleType.Msg.id
+    }
+
+    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = ArticleType(viewType) match {
+      case ArticleType.Article => new ArticleHolder(LayoutInflater.from(parent.getContext).inflate(R.layout.article_item, parent, false))
+      case _ => new MsgHolder(parent.inflate(R.layout.list_msg_item))
+    }
   }
 
 }

@@ -39,4 +39,7 @@
     <string name="app_open">打开</string>
     <string name="settings_config">下载网络配置</string>
     <string name="app_network_retry">请求失败，点击黑猫重试，或从菜单更换域名。</string>
+    <string name="app_list_empty">列表空</string>
+    <string name="app_list_loading">加载中…</string>
+    <string name="app_list_complete">没有更多了</string>
 </resources>

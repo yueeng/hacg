@@ -16,7 +16,6 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
-import android.support.v7.widget.RecyclerView.OnScrollListener
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.view._
 import android.webkit._
@@ -224,17 +223,7 @@ class InfoFragment extends Fragment {
         list.setLayoutManager(new LinearLayoutManager(getActivity))
         list.setHasFixedSize(true)
         list.setAdapter(_adapter)
-
-        list.addOnScrollListener(new OnScrollListener {
-          override def onScrollStateChanged(recyclerView: RecyclerView, state: Int): Unit = {
-            (state, _url, list.getLayoutManager) match {
-              case (RecyclerView.SCROLL_STATE_IDLE, url, staggered: LinearLayoutManager)
-                if url != null && !url.isEmpty && staggered.findLastVisibleItemPosition() >= _adapter.size - 1 =>
-                query(url, QUERY_COMMENT)
-              case _ =>
-            }
-          }
-        })
+        list.loading() { () => query(_url, QUERY_COMMENT) }
 
         _progress2 += root.findViewById(R.id.swipe)
         _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
@@ -319,7 +308,7 @@ class InfoFragment extends Fragment {
         menu.setCurrentItem(0)
         true
       case _ =>
-//        _web.views.foreach(_.setVisibility(View.INVISIBLE))
+        //        _web.views.foreach(_.setVisibility(View.INVISIBLE))
         false
     }
   }
@@ -421,7 +410,7 @@ class InfoFragment extends Fragment {
   val QUERY_ALL: Int = QUERY_WEB | QUERY_COMMENT
 
   def query(url: String, op: Int): Unit = {
-    if (_progress() || _progress2()) {
+    if (_progress() || _progress2() || url.isNullOrEmpty) {
       return
     }
     _error <= false
@@ -430,62 +419,61 @@ class InfoFragment extends Fragment {
     _progress <= content
     _progress2 <= true
     async(this) { c =>
-      val result = url.httpGet.jsoup {
-        dom =>
-          val entry = dom.select(".entry-content")
-          entry.select(".toggle-box").foreach(_.removeAttr("style"))
-          entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
-          entry.select(".wp-polls-loading").remove()
-          entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
-          entry.select(".wp-polls").foreach(div => {
-            val node = if (div.parent.attr("class") != "entry-content") div.parent else div
-            val name = div.select("strong").headOption match {
-              case Some(strong) => strong.text()
-              case _ => "投票推荐"
-            }
-            node.after( s"""<a href="$url">$name</a>""")
-            node.remove()
-          })
+      val result = url.httpGet.jsoup { dom =>
+        val entry = dom.select(".entry-content")
+        entry.select(".toggle-box").foreach(_.removeAttr("style"))
+        entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
+        entry.select(".wp-polls-loading").remove()
+        entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
+        entry.select(".wp-polls").foreach(div => {
+          val node = if (div.parent.attr("class") != "entry-content") div.parent else div
+          val name = div.select("strong").headOption match {
+            case Some(strong) => strong.text()
+            case _ => "投票推荐"
+          }
+          node.after( s"""<a href="$url">$name</a>""")
+          node.remove()
+        })
 
-          entry.select("*").removeAttr("class").removeAttr("style")
-          entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
-          entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
-          entry.select("embed").unwrap()
-          entry.select("img").foreach(i => {
-            val src = i.attr("src")
-            i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
-              case Some(a) =>
-                a.attr("href") match {
-                  case href if src.equals(href) =>
-                    a.attr("href", s"javascript:hacg.save('$src');")
-                  case href if href.isImg =>
-                    a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
-                  case _ =>
-                }
-              case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
-            }
-            i.attr("data-original", src)
-              .addClass("lazy")
-              .removeAttr("src")
-              .removeAttr("width")
-              .removeAttr("height")
-          })
-          (
-            if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
-              reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
-              //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
-              //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
-              //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
-            } else null,
-            if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
-            dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
-              case Some(a) => a.attr("abs:href")
-              case _ => null
-            },
-            dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
-            dom.select("#commentform").attr("abs:action"),
-            if (content) entry.text() else null
-          )
+        entry.select("*").removeAttr("class").removeAttr("style")
+        entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
+        entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
+        entry.select("embed").unwrap()
+        entry.select("img").foreach(i => {
+          val src = i.attr("src")
+          i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
+            case Some(a) =>
+              a.attr("href") match {
+                case href if src.equals(href) =>
+                  a.attr("href", s"javascript:hacg.save('$src');")
+                case href if href.isImg =>
+                  a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
+                case _ =>
+              }
+            case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
+          }
+          i.attr("data-original", src)
+            .addClass("lazy")
+            .removeAttr("src")
+            .removeAttr("width")
+            .removeAttr("height")
+        })
+        (
+          if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
+            reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
+            //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
+            //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
+            //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
+          } else null,
+          if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
+          dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
+            case Some(a) => a.attr("abs:href")
+            case _ => null
+          },
+          dom.select("#commentform").select("textarea,input").map(o => (o.attr("name"), o.attr("value"))).toMap,
+          dom.select("#commentform").attr("abs:action"),
+          if (content) entry.text() else null
+        )
       }
 
       c.ui { _ =>
@@ -496,10 +484,15 @@ class InfoFragment extends Fragment {
               _web <= (data._1, url)
             }
             if (comment) {
-              data._2.filter(_.moderation.isNonEmpty).foreach(println)
-              _adapter ++= data._2
-
               _url = data._3
+              data._2.filter(_.moderation.isNonEmpty).foreach(println)
+              _adapter.data --= _adapter.data.filter(_.isInstanceOf[String])
+              _adapter ++= data._2
+              _adapter += ((_adapter.data.isEmpty, _url.isNullOrEmpty) match {
+                case (true, true) => getString(R.string.app_list_empty)
+                case (false, true) => getString(R.string.app_list_complete)
+                case (_, false) => getString(R.string.app_list_loading)
+              })
             }
             COMMENT = data._4.find(o => o._1.matches(COMMENTPREFIX)) match {
               case Some(s) => s._1
@@ -534,29 +527,51 @@ class InfoFragment extends Fragment {
     view.setOnClickListener(_click)
   }
 
-  class CommentAdapter extends DataAdapter[Comment, CommentHolder] {
+  class MsgHolder(view: View) extends RecyclerView.ViewHolder(view) {
+    val text1: TextView = view.findViewById(R.id.text1)
+  }
 
-    override def onBindViewHolder(holder: CommentHolder, position: Int): Unit = {
-      val item = data(position)
-      holder.itemView.setTag(item)
-      holder.text1.setText(item.user)
-      holder.text2.setText(item.content)
-      holder.text3.setText(item.time.map(datafmt.format).orNull)
-      holder.text3.setVisibility(if (item.time.isEmpty) View.GONE else View.VISIBLE)
-      holder.text4.setText(item.moderation)
-      holder.text4.setVisibility(if (item.moderation.isNullOrEmpty) View.GONE else View.VISIBLE)
-      holder.adapter.clear ++= item.children
+  class CommentAdapter extends DataAdapter[AnyRef, RecyclerView.ViewHolder] {
 
-      if (item.face.isEmpty) {
-        holder.image.setImageResource(R.mipmap.ic_launcher)
-      } else {
-        Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
+    override def onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int): Unit = {
+      holder match {
+        case holder: CommentHolder =>
+          val item = data(position).asInstanceOf[Comment]
+          holder.itemView.setTag(item)
+          holder.text1.setText(item.user)
+          holder.text2.setText(item.content)
+          holder.text3.setText(item.time.map(datafmt.format).orNull)
+          holder.text3.setVisibility(if (item.time.isEmpty) View.GONE else View.VISIBLE)
+          holder.text4.setText(item.moderation)
+          holder.text4.setVisibility(if (item.moderation.isNullOrEmpty) View.GONE else View.VISIBLE)
+          holder.adapter.clear ++= item.children
+
+          if (item.face.isEmpty) {
+            holder.image.setImageResource(R.mipmap.ic_launcher)
+          } else {
+            Picasso.`with`(holder.context).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
+          }
+        case holder: MsgHolder =>
+          holder.text1.setText(data(position).asInstanceOf[String])
       }
 
     }
 
-    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentHolder =
-      new CommentHolder(LayoutInflater.from(parent.getContext).inflate(R.layout.comment_item, parent, false))
+    object CommentType extends Enumeration {
+      val Comment = Value
+      val Msg = Value
+    }
+
+    override def getItemViewType(position: Int): Int = data(position) match {
+      case _: Comment => CommentType.Comment.id
+      case _ => CommentType.Msg.id
+    }
+
+    override def onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = CommentType(viewType) match {
+      case CommentType.Comment => new CommentHolder(parent.inflate(R.layout.comment_item))
+      case _ => new MsgHolder(parent.inflate(R.layout.list_msg_item))
+    }
+
   }
 
 }
