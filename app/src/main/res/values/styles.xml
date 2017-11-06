@@ -1,7 +1,7 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="AppThemeBase" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <!-- colorPrimary is used for the default action bar background -->
         <item name="colorPrimary">@color/primary</item>
@@ -12,29 +12,13 @@
         <item name="colorAccent">@color/accent</item>
         <!-- You can also set colorControlNormal, colorControlActivated
          colorControlHighlight & colorSwitchThumbNormal. -->
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorBackground">@color/background</item>
     </style>
-    <!-- Base application theme. -->
-    <style name="AppThemeDark" parent="Theme.AppCompat.NoActionBar">
-        <!-- Customize your theme here. -->
-        <!-- colorPrimary is used for the default action bar background -->
-        <item name="colorPrimary">@color/primary</item>
-        <!-- colorPrimaryDark is used for the status bar -->
-        <item name="colorPrimaryDark">@color/primary_dark</item>
-        <!-- colorAccent is used as the default value for colorControlActivated
-         which is used to tint widgets -->
-        <item name="colorAccent">@color/accent</item>
-        <!-- You can also set colorControlNormal, colorControlActivated
-         colorControlHighlight & colorSwitchThumbNormal. -->
-    </style>
+
+    <style name="AppTheme" parent="AppThemeBase" />
 
     <style name="AppThemeTranslucent" parent="AppTheme">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <!--<item name="android:windowAnimationStyle">@style/DIY.Animation.SlidingBack</item>-->
-        <!--<item name="android:actionBarStyle">@style/DIYActionBar.Custom</item>-->
-    </style>
-
-    <style name="AppThemeDarkTranslucent" parent="AppThemeDark">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <!--<item name="android:windowAnimationStyle">@style/DIY.Animation.SlidingBack</item>-->

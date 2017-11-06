@@ -861,7 +861,7 @@ class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.
 
     // 右侧的内容视图
     val decorChild = decorView.getChildAt(0).asInstanceOf[ViewGroup]
-    decorChild.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
+    decorChild.setBackgroundColor(ContextCompat.getColor(this, R.color.background))
     decorView.removeView(decorChild)
     decorView.addView(swipe)
 

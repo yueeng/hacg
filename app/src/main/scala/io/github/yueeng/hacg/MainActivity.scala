@@ -181,7 +181,7 @@ class ListActivity extends BaseSlideCloseActivity {
     val transaction = getSupportFragmentManager.beginTransaction()
 
     val fragment = getSupportFragmentManager.findFragmentById(R.id.container) match {
-      case fragment: InfoFragment => fragment
+      case fragment: ArticleFragment => fragment
       case _ => new ArticleFragment().arguments(new Bundle().string("url", url))
     }
 
