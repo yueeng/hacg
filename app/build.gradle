@@ -3,14 +3,14 @@ apply plugin: "jp.leafytree.android-scala"
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    buildToolsVersion "26.0.3"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 26
-        versionCode 21
-        versionName "1.2.0"
+        versionCode 22
+        versionName "1.2.1"
         multiDexEnabled true
         testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
     }

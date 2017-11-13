@@ -8,6 +8,7 @@ import java.util
 import java.util.Date
 import java.util.concurrent._
 
+import android.app
 import android.content.DialogInterface.OnDismissListener
 import android.content._
 import android.graphics.{Canvas, Paint, RectF}
@@ -377,15 +378,26 @@ object Common {
   object ContextHelper {
     val handler = new Handler(Looper.getMainLooper)
     val mainThread: Thread = Looper.getMainLooper.getThread
+
+    def ui(call: () => Unit): Unit = if (mainThread == Thread.currentThread()) call()
+    else handler.post(() => call())
   }
 
   class AsyncScalaContext[T <: AnyRef](weak: WeakReference[T]) {
     def ui(func: T => Unit): Boolean = weak.get match {
       case None => false
       case Some(ref) =>
-        if (ContextHelper.mainThread == Thread.currentThread()) func(ref)
-        else ContextHelper.handler.post(() => func(ref))
-        true
+        if (ref match {
+          case f: Fragment if !f.isAdded => false
+          case f: app.Fragment if !f.isAdded => false
+          case _ => true
+        }) try {
+          ContextHelper.ui(() => func(ref))
+          true
+        } catch {
+          case _: Throwable => false
+        }
+        else false
     }
   }
 
