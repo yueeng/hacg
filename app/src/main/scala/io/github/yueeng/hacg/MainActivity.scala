@@ -65,8 +65,8 @@ class MainActivity extends AppCompatActivity {
       val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup { dom =>
         (
           dom.select(".css-truncate-target").text(),
-          dom.select(".markdown-body").text().trim,
-          dom.select(".release-downloads a[href$=.apk]").headOption match {
+          dom.select(".markdown-body").html().trim,
+          dom.select(".release a[href$=.apk]").headOption match {
             case Some(a) => a.attr("abs:href")
             case _ => null
           }
@@ -80,7 +80,7 @@ class MainActivity extends AppCompatActivity {
           case Some((v: String, t: String, u: String)) =>
             new Builder(MainActivity.this)
               .setTitle(getString(R.string.app_update_new, Common.version(MainActivity.this), v))
-              .setMessage(t)
+              .setMessage(t.html)
               .setPositiveButton(R.string.app_update, dialogClick { (_, _) => openWeb(MainActivity.this, u) })
               .setNeutralButton(R.string.app_publish, dialogClick { (_, _) => openWeb(MainActivity.this, HAcg.RELEASE) })
               .setNegativeButton(R.string.app_cancel, null)

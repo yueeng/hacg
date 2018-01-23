@@ -23,7 +23,7 @@ import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.{GridLayoutManager, LinearLayoutManager, RecyclerView, StaggeredGridLayoutManager}
 import android.text.style.{ClickableSpan, ReplacementSpan}
-import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
+import android.text.{Html, InputType, SpannableStringBuilder, Spanned, TextPaint}
 import android.util.AttributeSet
 import android.view.View.OnLongClickListener
 import android.view._
@@ -264,6 +264,11 @@ object Common {
     def isNullOrEmpty: Boolean = s == null || s.isEmpty
 
     def isNonEmpty: Boolean = !isNullOrEmpty
+
+    def html: Spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+      Html.fromHtml(s, Html.FROM_HTML_MODE_COMPACT)
+    else
+      Html.fromHtml(s)
   }
 
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
