@@ -146,7 +146,7 @@ object HAcg {
 
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
-  def web = s"http://$host"
+  def web = s"https://$host"
 
   def domain: String = host.indexOf('/') match {
     case i if i >= 0 => host.substring(0, i)

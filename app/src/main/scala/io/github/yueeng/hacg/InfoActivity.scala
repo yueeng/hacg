@@ -425,9 +425,9 @@ class InfoFragment extends Fragment {
       val result = url.httpGet.jsoup { dom =>
         val entry = dom.select(".entry-content")
         entry.select(".toggle-box").foreach(_.removeAttr("style"))
-        entry.select("*[style*=display]").filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
+        entry.select("*[style*=display]").toList.filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
         entry.select(".wp-polls-loading").remove()
-        entry.select("script").filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
+        entry.select("script").toList.filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
         entry.select(".wp-polls").foreach(div => {
           val node = if (div.parent.attr("class") != "entry-content") div.parent else div
           val name = div.select("strong").headOption match {
