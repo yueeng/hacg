@@ -9,8 +9,8 @@ android {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 27
-        versionCode 23
-        versionName "1.2.2"
+        versionCode 24
+        versionName "1.2.3"
         multiDexEnabled true
         testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
     }
