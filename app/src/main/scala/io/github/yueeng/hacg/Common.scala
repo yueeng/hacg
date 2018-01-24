@@ -225,7 +225,7 @@ class HAcgApplication extends MultiDexApplication {
 }
 
 object Common {
-  implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
+//  implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
 
   implicit def viewClick(func: View => Unit): View.OnClickListener = new View.OnClickListener {
     override def onClick(view: View): Unit = func(view)

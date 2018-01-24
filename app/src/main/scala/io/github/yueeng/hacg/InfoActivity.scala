@@ -121,20 +121,7 @@ class InfoFragment extends Fragment {
     activity.setSupportActionBar(root.findViewById(R.id.toolbar))
     activity.getSupportActionBar.setLogo(R.mipmap.ic_launcher)
     activity.getSupportActionBar.setDisplayHomeAsUpEnabled(true)
-    //    root.findViewById[View](R.id.toolbar_collapsing) match {
-    //      case c: CollapsingToolbarLayout =>
-    //        c.setExpandedTitleColor(Common.randomColor())
-    //        c.setTitle(_article.title)
-    //      case _ => activity.setTitle(_article.title)
-    //    }
     activity.setTitle(_article.title)
-    //    root.findViewById[View](R.id.toolbar_image) match {
-    //      case img: ImageView =>
-    //        Picasso.`with`(getActivity).load(_article.img).error(R.drawable.placeholder).into(img)
-    //        ViewCompat.setTransitionName(img, "image")
-    //      case _ =>
-    //    }
-
     root.findViewById[ViewPager](R.id.container).setAdapter(new InfoAdapter)
   }
 
@@ -147,8 +134,8 @@ class InfoFragment extends Fragment {
       container.removeView(`object`.asInstanceOf[View])
     }
 
-    override def instantiateItem(container: ViewGroup, position: Int): AnyRef = also(position match {
-      case 0 => also(container.inflate(R.layout.fragment_info_web)) { root =>
+    override def instantiateItem(container: ViewGroup, position: Int): AnyRef = (position match {
+      case 0 => container.inflate(R.layout.fragment_info_web).also { root =>
         _error += root.findViewById(R.id.image1)
         val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
         menu.setMenuButtonColorNormal(randomColor())
@@ -221,7 +208,7 @@ class InfoFragment extends Fragment {
         web.addJavascriptInterface(new JsFace(), "hacg")
         _web += web
       }
-      case 1 => also(container.inflate(R.layout.fragment_info_list)) { root =>
+      case 1 => container.inflate(R.layout.fragment_info_list).also { root =>
         val list: RecyclerView = root.findViewById(R.id.list1)
         list.setLayoutManager(new LinearLayoutManager(getActivity))
         list.setHasFixedSize(true)
@@ -239,7 +226,7 @@ class InfoFragment extends Fragment {
         root.findViewById[View](R.id.button3).setOnClickListener(viewClick(_ => comment(null)))
       }
       case _ => throw new IllegalAccessException()
-    }) { root =>
+    }).also { root =>
       List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById[View]).foreach {
         case b: FloatingActionButton =>
           b.setColorNormal(randomColor())
