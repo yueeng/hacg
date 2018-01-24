@@ -3,35 +3,52 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp">
+    android:paddingLeft="20dp"
+    android:paddingRight="20dp">
 
-
-    <EditText
-        android:id="@+id/edit1"
+    <android.support.design.widget.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="top"
-        android:hint="@string/comment_author"
-        android:inputType="text" />
+        android:hint="@string/comment_author">
 
-    <EditText
-        android:id="@+id/edit2"
+        <android.support.design.widget.TextInputEditText
+            android:id="@+id/edit1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:imeOptions="actionNext"
+            android:inputType="text" />
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="top"
-        android:hint="@string/comment_email"
-        android:inputType="text" />
+        android:hint="@string/comment_email">
 
-    <EditText
-        android:id="@+id/edit3"
+        <EditText
+            android:id="@+id/edit2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:imeOptions="actionNext"
+            android:inputType="text" />
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="top"
-        android:hint="@string/comment_content"
-        android:inputType="textMultiLine"
-        android:minLines="4">
+        android:hint="@string/comment_content">
 
-        <requestFocus />
-    </EditText>
+        <EditText
+            android:id="@+id/edit3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:imeOptions="actionNext"
+            android:inputType="textMultiLine"
+            android:minLines="4">
+
+            <requestFocus />
+        </EditText>
+    </android.support.design.widget.TextInputLayout>
 </LinearLayout>
