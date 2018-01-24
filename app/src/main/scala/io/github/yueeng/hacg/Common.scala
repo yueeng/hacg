@@ -24,10 +24,10 @@ import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.{GridLayoutManager, LinearLayoutManager, RecyclerView, StaggeredGridLayoutManager}
 import android.text.style.{ClickableSpan, ReplacementSpan}
 import android.text.{Html, InputType, SpannableStringBuilder, Spanned, TextPaint}
-import android.util.AttributeSet
+import android.util.{AttributeSet, DisplayMetrics}
 import android.view.View.OnLongClickListener
 import android.view._
-import android.widget.{EditText, Toast}
+import android.widget.{EditText, FrameLayout, Toast}
 import io.github.yueeng.hacg.Common._
 import okhttp3.{MultipartBody, OkHttpClient, Request}
 import okio.Okio
@@ -225,7 +225,7 @@ class HAcgApplication extends MultiDexApplication {
 }
 
 object Common {
-//  implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
+  //  implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
 
   implicit def viewClick(func: View => Unit): View.OnClickListener = new View.OnClickListener {
     override def onClick(view: View): Unit = func(view)
@@ -872,12 +872,16 @@ class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.
     val leftView = new View(this)
     leftView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     swipe.addView(leftView, 0)
-
+    swipe.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).also { lp =>
+      lp.bottomMargin = getSoftButtonsBarHeight
+    })
     val decorView = getWindow.getDecorView.asInstanceOf[ViewGroup]
-
 
     // 右侧的内容视图
     val decorChild = decorView.getChildAt(0).asInstanceOf[ViewGroup]
+    getTheme.obtainStyledAttributes(Array[Int](android.R.attr.colorBackground)).also { ta =>
+      decorChild.setBackgroundColor(ta.getColor(0, 0))
+    }.recycle()
     decorChild.setBackgroundColor(ContextCompat.getColor(this, R.color.background))
     decorView.removeView(decorChild)
     decorView.addView(swipe)
@@ -885,6 +889,18 @@ class BaseSlideCloseActivity extends AppCompatActivity() with SlidingPaneLayout.
     // 为 SlidingPaneLayout 添加内容视图
     swipe.addView(decorChild, 1)
   }
+
+  private def getSoftButtonsBarHeight: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    val metrics = new DisplayMetrics()
+    getWindowManager.getDefaultDisplay.getMetrics(metrics)
+    val usableHeight = metrics.heightPixels
+    getWindowManager.getDefaultDisplay.getRealMetrics(metrics)
+    val realHeight = metrics.heightPixels
+    if (realHeight > usableHeight)
+      realHeight - usableHeight
+    else
+      0
+  } else 0
 
   override def onPanelSlide(panel: View, slideOffset: Float) {
 
