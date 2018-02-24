@@ -77,7 +77,18 @@ object HAcg {
     case _: Exception => "/wp/bbs"
   }
 
-  private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance)
+  private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance).also { c =>
+    val AVC = "app.version.code"
+    if (c.getInt(AVC, 0) < BuildConfig.VERSION_CODE) {
+      c.edit()
+        .remove(SYSTEM_HOST)
+        .remove(SYSTEM_HOSTS)
+        .remove(SYSTEM_BBS)
+        .remove(SYSTEM_CATEGORY)
+        .putInt(AVC, BuildConfig.VERSION_CODE)
+        .apply()
+    }
+  }
 
   private def _hosts: Seq[String] = try config.getString(SYSTEM_HOSTS, null).let {
     s => new JSONArray(s).let { a => (0 until a.length()).map(k => a.getString(k)) }
@@ -162,17 +173,15 @@ object HAcg {
     case _ => s"$wordpress$bbs"
   }
 
-  def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
-    val edit = new EditText(context)
-    if (hint != 0) {
-      edit.setHint(hint)
-    }
+  def setHosts(context: Context, title: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null, false)
+    val edit = view.findViewById[EditText](R.id.edit1)
     edit.setInputType(InputType.TYPE_TEXT_VARIATION_URI)
     new Builder(context)
       .setTitle(title)
-      .setView(edit)
+      .setView(view)
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { _ => setHostx(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setOnDismissListener(dialogDismiss { _ => setHostx(context, title, hostlist, cur, set, ok, reset) })
       .setNeutralButton(R.string.settings_host_reset,
         dialogClick { (_, _) => reset() })
       .setPositiveButton(R.string.app_ok,
@@ -180,20 +189,18 @@ object HAcg {
           val host = edit.getText.toString
           if (host.isNonEmpty) {
             ok(host)
-          } else {
-            Toast.makeText(context, hint, Toast.LENGTH_SHORT).show()
           }
         })
       .create().show()
   }
 
-  def setHostx(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+  def setHostx(context: Context, title: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val hosts = hostlist().toList
     new Builder(context)
       .setTitle(title)
       .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
       .setNegativeButton(R.string.app_cancel, null)
-      .setNeutralButton(R.string.settings_host_more, dialogClick { (_, _) => setHosts(context, title, hint, hostlist, cur, set, ok, reset) })
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (_, _) => setHosts(context, title, hostlist, cur, set, ok, reset) })
       .setPositiveButton(R.string.app_ok, dialogClick { (d, _) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
       .create().show()
   }
@@ -201,7 +208,6 @@ object HAcg {
   def setHost(context: Context, ok: String => Unit = null): Unit = {
     setHostx(context,
       R.string.settings_host,
-      R.string.settings_host_sample,
       () => HAcg.hosts,
       () => HAcg.host,
       host => {
