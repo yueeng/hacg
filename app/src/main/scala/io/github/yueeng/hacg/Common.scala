@@ -276,6 +276,7 @@ object Common {
 
     def isNonEmpty: Boolean = !isNullOrEmpty
 
+    //noinspection ScalaDeprecation
     def html: Spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
       Html.fromHtml(s, Html.FROM_HTML_MODE_COMPACT)
     else
@@ -481,7 +482,7 @@ object Common {
     }
 
     def httpDownload(file: String = null): Option[File] = try {
-      System.out.println(url)
+//      System.out.println(url)
       val http = new OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .build()
@@ -784,7 +785,7 @@ object SpanUtil {
     }
 
     override def draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-      System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
+//      System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
       val rect = new RectF(x, y + paint.getFontMetrics.top - linePadding,
         x + getSize(paint, text, start, end, paint.getFontMetricsInt()),
         y + paint.getFontMetrics.bottom + linePadding)

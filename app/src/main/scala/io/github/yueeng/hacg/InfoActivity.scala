@@ -477,7 +477,7 @@ class InfoFragment extends Fragment {
             }
             if (comment) {
               _url = data._3
-              data._2.filter(_.moderation.isNonEmpty).foreach(println)
+//              data._2.filter(_.moderation.isNonEmpty).foreach(println)
               _adapter.data --= _adapter.data.filter(_.isInstanceOf[String])
               _adapter ++= data._2
               _adapter += ((_adapter.data.isEmpty, _url.isNullOrEmpty) match {
