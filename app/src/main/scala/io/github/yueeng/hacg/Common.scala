@@ -42,6 +42,7 @@ import scala.io.Source
 import scala.language.{implicitConversions, postfixOps, reflectiveCalls}
 import scala.ref.WeakReference
 import scala.util.Random
+import scala.util.matching.Regex
 
 object HAcg {
   private val SYSTEM_HOST: String = "system.host"
@@ -144,6 +145,7 @@ object HAcg {
     }
   }
 
+  val IsHttp: Regex = """^https?://.*$""".r
   val RELEASE = "https://github.com/yueeng/hacg/releases"
 
   def web = s"https://$host"
@@ -155,7 +157,10 @@ object HAcg {
 
   def wordpress: String = web
 
-  def philosophy = s"$wordpress$bbs"
+  def philosophy: String = bbs match {
+    case IsHttp() => bbs
+    case _ => s"$wordpress$bbs"
+  }
 
   def setHosts(context: Context, title: Int, hint: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val edit = new EditText(context)

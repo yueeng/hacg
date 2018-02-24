@@ -1,10 +1,11 @@
 {
   "host": [
+    "www.llss.dog",
     "www.hacg.love",
     "www.hacg.ch",
     "www.hacg.me"
   ],
-  "bbs": "/wp/bbs",
+  "bbs": "http://liulishe.com/",
   "category": [
     {
       "name": "最新",
@@ -12,27 +13,27 @@
     },
     {
       "name": "动画",
-      "url": "/wp/anime.html"
+      "url": "/wp/category/all/anime/"
     },
     {
       "name": "漫画",
-      "url": "/wp/comic.html"
+      "url": "/wp/category/all/comic/"
     },
     {
       "name": "游戏",
-      "url": "/wp/game.html"
+      "url": "/wp/category/all/game/"
     },
     {
       "name": "文章",
-      "url": "/wp/age.html"
+      "url": "/wp/category/all/age/"
     },
     {
       "name": "音乐",
-      "url": "/wp/op.html"
+      "url": "/wp/category/all/op/"
     },
     {
       "name": "轻小说",
-      "url": "/wp/book.html"
+      "url": "/wp/category/all/轻小说/"
     }
   ]
 }
