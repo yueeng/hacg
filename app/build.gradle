@@ -9,8 +9,8 @@ android {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 27
-        versionCode 25
-        versionName "1.2.5"
+        versionCode 26
+        versionName "1.2.6"
         multiDexEnabled true
         testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
     }
@@ -36,14 +36,14 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile "com.android.support:multidex:1.0.2"
+    compile "com.android.support:multidex:1.0.3"
     compile "com.android.support:design:$android_support_version"
     compile "com.android.support:appcompat-v7:$android_support_version"
     compile "com.android.support:cardview-v7:$android_support_version"
     compile "com.android.support:recyclerview-v7:$android_support_version"
     compile 'com.github.clans:fab:1.6.4'
     compile 'org.scala-lang:scala-library:2.11.11'
-    compile 'com.squareup.okhttp3:okhttp:3.9.1'
+    compile 'com.squareup.okhttp3:okhttp:3.10.0'
     compile 'com.squareup.picasso:picasso:2.5.2'
     compile 'org.jsoup:jsoup:1.11.2'
     androidTestCompile "com.android.support:multidex-instrumentation:1.0.2", { exclude module: "multidex" }

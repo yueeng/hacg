@@ -6,7 +6,7 @@
     "www.hacg.ch",
     "www.hacg.me"
   ],
-  "bbs": "http://liulishe.com/",
+  "bbs": "/wp/bbs",
   "category": [
     {
       "name": "最新",
@@ -14,27 +14,27 @@
     },
     {
       "name": "动画",
-      "url": "/wp/category/all/anime/"
+      "url": "/wp/anime.html"
     },
     {
       "name": "漫画",
-      "url": "/wp/category/all/comic/"
+      "url": "/wp/comic.html"
     },
     {
       "name": "游戏",
-      "url": "/wp/category/all/game/"
+      "url": "/wp/game.html"
     },
     {
       "name": "文章",
-      "url": "/wp/category/all/age/"
+      "url": "/wp/age.html"
     },
     {
       "name": "音乐",
-      "url": "/wp/category/all/op/"
+      "url": "/wp/op.html"
     },
     {
       "name": "轻小说",
-      "url": "/wp/category/all/轻小说/"
+      "url": "/wp/book.html"
     }
   ]
 }

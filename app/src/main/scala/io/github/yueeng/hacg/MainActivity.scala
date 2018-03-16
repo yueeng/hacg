@@ -231,7 +231,7 @@ class ArticleFragment extends Fragment {
   }
 
   def defurl: String = getArguments.getString("url") match {
-    case uri if uri.startsWith("/") => s"${HAcg.wordpress}$uri"
+    case uri if uri.startsWith("/") => s"${HAcg.web}$uri"
     case uri => uri
   }
 

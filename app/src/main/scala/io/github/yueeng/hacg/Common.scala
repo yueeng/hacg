@@ -166,11 +166,11 @@ object HAcg {
     case _ => host
   }
 
-  def wordpress: String = web
+  def wordpress: String = s"$web/wp"
 
   def philosophy: String = bbs match {
     case IsHttp() => bbs
-    case _ => s"$wordpress$bbs"
+    case _ => s"$web$bbs"
   }
 
   def setHosts(context: Context, title: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
