@@ -35,18 +35,18 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile "com.android.support:multidex:1.0.3"
-    compile "com.android.support:design:$android_support_version"
-    compile "com.android.support:appcompat-v7:$android_support_version"
-    compile "com.android.support:cardview-v7:$android_support_version"
-    compile "com.android.support:recyclerview-v7:$android_support_version"
-    compile 'com.github.clans:fab:1.6.4'
-    compile 'org.scala-lang:scala-library:2.11.11'
-    compile 'com.squareup.okhttp3:okhttp:3.10.0'
-    compile 'com.squareup.picasso:picasso:2.5.2'
-    compile 'org.jsoup:jsoup:1.11.2'
-    androidTestCompile "com.android.support:multidex-instrumentation:1.0.2", { exclude module: "multidex" }
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "com.android.support:multidex:1.0.3"
+    implementation "com.android.support:design:$android_support_version"
+    implementation "com.android.support:appcompat-v7:$android_support_version"
+    implementation "com.android.support:cardview-v7:$android_support_version"
+    implementation "com.android.support:recyclerview-v7:$android_support_version"
+    implementation 'com.github.clans:fab:1.6.4'
+    implementation 'org.scala-lang:scala-library:2.11.11'
+    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.squareup.picasso:picasso:2.5.2'
+    implementation 'org.jsoup:jsoup:1.11.2'
+    androidTestImplementation "com.android.support:multidex-instrumentation:1.0.2", { exclude module: "multidex" }
 }
 
 tasks.withType(ScalaCompile) {
