@@ -43,7 +43,7 @@ dependencies {
     implementation "com.android.support:recyclerview-v7:$android_support_version"
     implementation 'com.github.clans:fab:1.6.4'
     implementation 'org.scala-lang:scala-library:2.11.12'
-    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'org.jsoup:jsoup:1.11.3'
     androidTestImplementation "com.android.support:multidex-instrumentation:1.0.2", { exclude module: "multidex" }
