@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AppCompatActivity
 import android.view._
 import android.webkit.{WebChromeClient, WebView, WebViewClient}
@@ -84,9 +83,7 @@ class WebFragment extends Fragment {
     val web: WebView = root.findViewById(R.id.web)
 
     busy += root.findViewById(R.id.swipe)
-    busy.views.head.setOnRefreshListener(new OnRefreshListener {
-      override def onRefresh(): Unit = web.loadUrl(uri)
-    })
+    busy.views.head.setOnRefreshListener(() => web.loadUrl(uri))
 
     val settings = web.getSettings
     settings.setJavaScriptEnabled(true)
@@ -129,7 +126,7 @@ class WebFragment extends Fragment {
       }
     }
     List(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
-      .map(root.findViewById[View]).foreach(_.setOnClickListener(click))
+      .map(root.findViewById[View]).foreach { it: View => it.setOnClickListener(click) }
 
     web.loadUrl(uri)
     root

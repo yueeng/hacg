@@ -13,7 +13,6 @@ import android.support.design.widget.TabLayout
 import android.support.v4.app._
 import android.support.v4.view.{PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.{RecyclerView, SearchView, StaggeredGridLayoutManager}
@@ -211,7 +210,7 @@ class ArticleFragment extends Fragment {
   var busy = new ViewBinder[Boolean, SwipeRefreshLayout](false)((view, value) => view.post(() => view.setRefreshing(value)))
   lazy val adapter = new ArticleAdapter()
   var url: String = _
-  val error = new ErrorBinder(false) {
+  private val error = new ErrorBinder(false) {
     override def retry(): Unit = query(defurl, retry = true)
   }
 
@@ -249,11 +248,9 @@ class ArticleFragment extends Fragment {
     val root = inflater.inflate(R.layout.fragment_list, container, false)
     error += root.findViewById(R.id.image1)
     busy += root.findViewById(R.id.swipe)
-    busy.views.head.setOnRefreshListener(new OnRefreshListener {
-      override def onRefresh(): Unit = {
-        adapter.clear()
-        query(defurl)
-      }
+    busy.views.head.setOnRefreshListener(() => {
+      adapter.clear()
+      query(defurl)
     })
     val recycler: RecyclerView = root.findViewById(R.id.recycler)
     val layout = new StaggeredGridLayoutManager(getResources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
@@ -331,8 +328,9 @@ class ArticleFragment extends Fragment {
   }
 
   object ArticleType extends Enumeration {
-    val Article = Value
-    val Msg = Value
+    type ArticleType = Value
+    val Article: ArticleType = Value
+    val Msg: ArticleType = Value
   }
 
   class ArticleAdapter extends DataAdapter[Article, RecyclerView.ViewHolder] {

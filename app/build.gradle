@@ -29,8 +29,8 @@ android {
         javaMaxHeapSize "2g"
     }
     compileOptions {
-        sourceCompatibility 1.7
-        targetCompatibility 1.7
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
     }
 }
 
@@ -53,5 +53,5 @@ tasks.withType(ScalaCompile) {
     // Suppress deprecation warnings
     scalaCompileOptions.deprecation = false
     // Additional parameters
-    scalaCompileOptions.additionalParameters = ["-feature"]
+    scalaCompileOptions.additionalParameters = ["-feature","-Xexperimental"]
 }

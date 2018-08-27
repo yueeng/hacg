@@ -9,7 +9,6 @@ import java.util.Date
 import java.util.concurrent._
 
 import android.app
-import android.content.DialogInterface.OnDismissListener
 import android.content._
 import android.graphics.{Canvas, Paint, RectF}
 import android.net.Uri
@@ -25,7 +24,6 @@ import android.support.v7.widget.{GridLayoutManager, LinearLayoutManager, Recycl
 import android.text.style.{ClickableSpan, ReplacementSpan}
 import android.text.{Html, InputType, SpannableStringBuilder, Spanned, TextPaint}
 import android.util.{AttributeSet, DisplayMetrics}
-import android.view.View.OnLongClickListener
 import android.view._
 import android.widget.{EditText, FrameLayout, Toast}
 import io.github.yueeng.hacg.Common._
@@ -238,25 +236,13 @@ class HAcgApplication extends MultiDexApplication {
 object Common {
   //  implicit def viewTo[T <: View](view: View): T = view.asInstanceOf[T]
 
-  implicit def viewClick(func: View => Unit): View.OnClickListener = new View.OnClickListener {
-    override def onClick(view: View): Unit = func(view)
-  }
+  implicit def viewClick(func: View => Unit): View.OnClickListener = (view: View) => func(view)
 
-  implicit def viewLongClick(func: View => Boolean): View.OnLongClickListener = new OnLongClickListener {
-    override def onLongClick(v: View): Boolean = func(v)
-  }
+  implicit def viewLongClick(func: View => Boolean): View.OnLongClickListener = (v: View) => func(v)
 
-  implicit def dialogClick(func: (DialogInterface, Int) => Unit): DialogInterface.OnClickListener = new DialogInterface.OnClickListener {
-    override def onClick(dialog: DialogInterface, which: Int): Unit = func(dialog, which)
-  }
+  implicit def dialogClick(func: (DialogInterface, Int) => Unit): DialogInterface.OnClickListener = (dialog: DialogInterface, which: Int) => func(dialog, which)
 
-  implicit def dialogDismiss(func: DialogInterface => Unit): DialogInterface.OnDismissListener = new OnDismissListener {
-    override def onDismiss(dialog: DialogInterface): Unit = func(dialog)
-  }
-
-  implicit def runnable(func: () => _): Runnable = new Runnable {
-    override def run(): Unit = func()
-  }
+  implicit def dialogDismiss(func: DialogInterface => Unit): DialogInterface.OnDismissListener = (dialog: DialogInterface) => func(dialog)
 
   implicit def pair[F, S](p: (F, S)): android.support.v4.util.Pair[F, S] =
     new android.support.v4.util.Pair[F, S](p._1, p._2)
@@ -306,7 +292,7 @@ object Common {
     o
   }
 
-  def takeIf[A](o: A)(f: A => Boolean): Option[A] = if (f(o)) Option(o) else None
+  def takeIf[A](o: A)(f: A => Boolean): Option[A] = Option(o).filter(f)
 
   implicit def any2ex[A](o: A): anyex[A] = new anyex(o)
 
@@ -429,15 +415,11 @@ object Common {
     }
   }
 
-  implicit def callable[T](task: () => T): Callable[T] = new Callable[T] {
-    override def call(): T = task()
-  }
-
   object BackgroundExecutor {
     val executor: ExecutorService =
       Executors.newScheduledThreadPool(2 * Runtime.getRuntime.availableProcessors())
 
-    def submit[T](task: () => T): Future[T] = executor.submit(callable(task))
+    def submit[T](task: () => T): Future[T] = executor.submit(() => task())
   }
 
   implicit class httpex(url: String) {
@@ -482,7 +464,7 @@ object Common {
     }
 
     def httpDownload(file: String = null): Option[File] = try {
-//      System.out.println(url)
+      //      System.out.println(url)
       val http = new OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .build()
@@ -545,7 +527,7 @@ object Common {
 
   val random = new Random(System.currentTimeMillis())
 
-  def randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, Array[Float](random.nextInt(360), 1, 0.5F))
+  def randomColor(alpha: Int = 0xFF): Int = android.graphics.Color.HSVToColor(alpha, Array[Float](random.nextInt(360), 1, 0.5F))
 
 }
 
@@ -785,7 +767,7 @@ object SpanUtil {
     }
 
     override def draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-//      System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
+      //      System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
       val rect = new RectF(x, y + paint.getFontMetrics.top - linePadding,
         x + getSize(paint, text, start, end, paint.getFontMetricsInt()),
         y + paint.getFontMetrics.bottom + linePadding)

@@ -5,7 +5,6 @@ import java.util.concurrent.Future
 
 import android.app.DownloadManager
 import android.app.DownloadManager.Request
-import android.content.DialogInterface.OnShowListener
 import android.content._
 import android.net.Uri
 import android.os.{Build, Bundle}
@@ -13,7 +12,6 @@ import android.preference.PreferenceManager
 import android.support.v4.app.Fragment
 import android.support.v4.view.{PagerAdapter, ViewPager}
 import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
@@ -68,7 +66,7 @@ class InfoFragment extends Fragment {
   lazy val _article: Article = getArguments.getParcelable[Article]("article")
   lazy val _adapter = new CommentAdapter
   val _web = new ViewBinder[(String, String), WebView](null)((view, value) => view.loadDataWithBaseURL(value._2, value._1, "text/html", "utf-8", null))
-  val _error = new ErrorBinder(false) {
+  private val _error = new ErrorBinder(false) {
     override def retry(): Unit = query(_article.link, QUERY_ALL)
   }
   val _post = new scala.collection.mutable.HashMap[String, String]
@@ -149,7 +147,8 @@ class InfoFragment extends Fragment {
           }
           getView.findViewById[FloatingActionMenu](R.id.menu1).close(true)
         }
-        List(R.id.button1, R.id.button2, R.id.button4).map(root.findViewById[View]).foreach {
+        List(R.id.button1, R.id.button2, R.id.button4)
+          .map(root.findViewById[View]).map(_.asInstanceOf[View]).foreach {
           case b: FloatingActionButton =>
             b.setOnClickListener(click)
           case _ =>
@@ -216,18 +215,17 @@ class InfoFragment extends Fragment {
         list.loading() { () => query(_url, QUERY_COMMENT) }
 
         _progress2 += root.findViewById(R.id.swipe)
-        _progress2.views.head.setOnRefreshListener(new OnRefreshListener {
-          override def onRefresh(): Unit = {
-            _url = null
-            _adapter.clear()
-            query(_article.link, QUERY_COMMENT)
-          }
+        _progress2.views.head.setOnRefreshListener(() => {
+          _url = null
+          _adapter.clear()
+          query(_article.link, QUERY_COMMENT)
         })
         root.findViewById[View](R.id.button3).setOnClickListener(viewClick(_ => comment(null)))
       }
       case _ => throw new IllegalAccessException()
     }).also { root =>
-      List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5).map(root.findViewById[View]).foreach {
+      List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5)
+        .map(root.findViewById[View]).map(_.asInstanceOf[View]).foreach {
         case b: FloatingActionButton =>
           b.setColorNormal(randomColor())
           b.setColorPressed(randomColor())
@@ -321,23 +319,21 @@ class InfoFragment extends Fragment {
           Toast.makeText(getActivity, getActivity.getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
         })
       .create()
-    alert.setOnShowListener(new OnShowListener {
-      override def onShow(dialog: DialogInterface): Unit = {
-        def r(v: Seq[View]): Unit = v match {
-          case Nil =>
-          case a +: b => rr(a); r(b)
-        }
-
-        def rr(v: View): Unit = v match {
-          case tv: TextView if !tv.isInstanceOf[Button] =>
-            tv.setTextIsSelectable(true)
-          case vg: ViewGroup =>
-            r(for (i <- 0 until vg.getChildCount; sv = vg.getChildAt(i)) yield sv)
-          case _ =>
-        }
-
-        rr(alert.getWindow.getDecorView)
+    alert.setOnShowListener((_: DialogInterface) => {
+      def r(v: Seq[View]): Unit = v match {
+        case Nil =>
+        case a +: b => rr(a); r(b)
       }
+
+      def rr(v: View): Unit = v match {
+        case tv: TextView if !tv.isInstanceOf[Button] =>
+          tv.setTextIsSelectable(true)
+        case vg: ViewGroup =>
+          r(for (i <- 0 until vg.getChildCount; sv = vg.getChildAt(i)) yield sv)
+        case _ =>
+      }
+
+      rr(alert.getWindow.getDecorView)
     })
     alert.show()
   }
@@ -352,7 +348,7 @@ class InfoFragment extends Fragment {
     content.setText(_post.getOrElse(COMMENT, ""))
     _post += ("comment_parent" -> (if (c != null) c.id.toString else "0"))
 
-    def fill() = {
+    def fill(): Unit = {
       _post += (AUTHOR -> author.getText.toString, EMAIL -> email.getText.toString, COMMENT -> content.getText.toString)
       val preference = PreferenceManager.getDefaultSharedPreferences(getActivity)
       preference.edit().putString(CONFIG_AUTHOR, _post(AUTHOR)).putString(CONFIG_EMAIL, _post(EMAIL)).apply()
@@ -477,7 +473,7 @@ class InfoFragment extends Fragment {
             }
             if (comment) {
               _url = data._3
-//              data._2.filter(_.moderation.isNonEmpty).foreach(println)
+              //              data._2.filter(_.moderation.isNonEmpty).foreach(println)
               _adapter.data --= _adapter.data.filter(_.isInstanceOf[String])
               _adapter ++= data._2
               _adapter += ((_adapter.data.isEmpty, _url.isNullOrEmpty) match {
@@ -550,8 +546,9 @@ class InfoFragment extends Fragment {
     }
 
     object CommentType extends Enumeration {
-      val Comment = Value
-      val Msg = Value
+      type CommentType = Value
+      val Comment: CommentType = Value
+      val Msg: CommentType = Value
     }
 
     override def getItemViewType(position: Int): Int = data(position) match {
