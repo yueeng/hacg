@@ -9,8 +9,8 @@ android {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
         targetSdkVersion 27
-        versionCode 26
-        versionName "1.2.6"
+        versionCode 27
+        versionName "1.2.7"
         multiDexEnabled true
         testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
     }
@@ -46,12 +46,14 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'org.jsoup:jsoup:1.11.3'
-    androidTestImplementation "com.android.support:multidex-instrumentation:1.0.2", { exclude module: "multidex" }
+    androidTestImplementation "com.android.support:multidex-instrumentation:1.0.2", {
+        exclude module: "multidex"
+    }
 }
 
 tasks.withType(ScalaCompile) {
     // Suppress deprecation warnings
     scalaCompileOptions.deprecation = false
     // Additional parameters
-    scalaCompileOptions.additionalParameters = ["-feature","-Xexperimental"]
+    scalaCompileOptions.additionalParameters = ["-feature", "-Xexperimental"]
 }
