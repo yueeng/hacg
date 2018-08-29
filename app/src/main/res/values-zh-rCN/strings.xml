@@ -39,7 +39,10 @@
     <string name="comment_title">评论</string>
     <string name="comment_verify">部分字段为空。</string>
 
-    <string name="settings_config">下载网络配置</string>
+    <string name="settings_config">检测域名配置</string>
+    <string name="settings_config_updating">有新的域名配置文件</string>
+    <string name="settings_config_newest">配置文件已经是最新了</string>
+    <string name="settings_config_update">更新</string>
     <string name="settings_host">神社备用域名网址</string>
     <string name="settings_host_more">变更域名网址</string>
     <string name="settings_host_reset">重置所有</string>

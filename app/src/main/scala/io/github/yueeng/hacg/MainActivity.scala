@@ -50,25 +50,19 @@ class MainActivity extends AppCompatActivity {
   override def onBackPressed(): Unit = {
     if (System.currentTimeMillis() - last > 1500) {
       last = System.currentTimeMillis()
-      toast(R.string.app_exit_confirm)
+      this.toast(R.string.app_exit_confirm)
       return
     }
     finish()
-    //    Snackbar.make(findViewById(R.id.coordinator), R.string.app_exit_confirm, Snackbar.LENGTH_SHORT)
-    //      .setAction(R.string.app_exit, viewClick { _ => ActivityCompat.finishAfterTransition(MainActivity.this) })
-    //      .show()
   }
 
   def checkVersion(toast: Boolean = false): Future[Unit] = {
     async(this) { c =>
       val result = s"${HAcg.RELEASE}/latest".httpGet.jsoup { dom =>
         (
-          dom.select(".css-truncate-target").text(),
+          dom.select("span.css-truncate-target").headOption.map(_.text()).getOrElse(""),
           dom.select(".markdown-body").html().trim,
-          dom.select(".release a[href$=.apk]").headOption match {
-            case Some(a) => a.attr("abs:href")
-            case _ => null
-          }
+          dom.select(".release a[href$=.apk]").headOption.map(_.attr("abs:href")).orNull
         )
       } match {
         case Some((v: String, t: String, u: String)) if Common.versionBefore(Common.version(MainActivity.this), v) => Option(v, t, u)
@@ -88,9 +82,14 @@ class MainActivity extends AppCompatActivity {
             if (toast) {
               Toast.makeText(MainActivity.this, getString(R.string.app_update_none, Common.version(MainActivity.this)), Toast.LENGTH_SHORT).show()
             }
+            checkConfig()
         }
       }
     }
+  }
+
+  def checkConfig(toast: Boolean = false): Unit = HAcg.update(this, toast) {
+    reload()
   }
 
   def reload(): Unit = {
@@ -132,7 +131,7 @@ class MainActivity extends AppCompatActivity {
         val suggestions = new SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
         suggestions.clearHistory()
         true
-      case R.id.config => HAcg.update(this)(() => reload())
+      case R.id.config => checkConfig(true)
         true
       case R.id.settings => HAcg.setHost(this, _ => reload())
         true
@@ -292,7 +291,7 @@ class ArticleFragment extends Fragment {
             adapter += new Article(getString(msg))
           case _ =>
             error <= (adapter.size == 0)
-            if (error()) if (retry) getActivity.openOptionsMenu() else toast(R.string.app_network_retry)
+            if (error()) if (retry) getActivity.openOptionsMenu() else getActivity.toast(R.string.app_network_retry)
         }
         busy <= false
       }

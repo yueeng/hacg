@@ -39,7 +39,10 @@
     <string name="comment_title">Comment</string>
     <string name="comment_verify">Some fields are empty.</string>
 
-    <string name="settings_config">Download network config</string>
+    <string name="settings_config">Check network config</string>
+    <string name="settings_config_updating">A new network config.</string>
+    <string name="settings_config_newest">The config is newest.</string>
+    <string name="settings_config_update">Update</string>
     <string name="settings_host">HAcg alternate host url</string>
     <string name="settings_host_more">Change</string>
     <string name="settings_host_reset">Reset all</string>

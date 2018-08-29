@@ -1,6 +1,6 @@
 package io.github.yueeng.hacg
 
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.net._
 import java.security.MessageDigest
 import java.text.{ParseException, SimpleDateFormat}
@@ -9,11 +9,13 @@ import java.util.Date
 import java.util.concurrent._
 
 import android.app
+import android.app.Activity
 import android.content._
 import android.graphics.{Canvas, Paint, RectF}
 import android.net.Uri
 import android.os._
 import android.preference.PreferenceManager
+import android.support.design.widget.{CoordinatorLayout, Snackbar}
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
@@ -45,13 +47,19 @@ import scala.util.matching.Regex
 object HAcg {
   private val SYSTEM_HOST: String = "system.host"
   private val SYSTEM_HOSTS: String = "system.hosts"
-  private val SYSTEM_CATEGORY: String = "system.categoty"
-  private val SYSTEM_BBS: String = "system.bbs"
+
+  private def config_file: File = new File(HAcgApplication.instance.getFilesDir, "config.json")
+
+  private def config_string: String = synchronized {
+    if (config_file.exists())
+      Source.fromFile(config_file).using(_.mkString)
+    else HAcgApplication.instance.getAssets.open("config.json").using { s =>
+      Source.fromInputStream(s).mkString
+    }
+  }
 
   private def default_config: JSONObject = synchronized {
-    try HAcgApplication.instance.getAssets.open("config.json").using { s =>
-      new JSONObject(Source.fromInputStream(s).mkString)
-    } catch {
+    try new JSONObject(config_string) catch {
       case _: Exception => null
     }
   }
@@ -81,26 +89,25 @@ object HAcg {
       c.edit()
         .remove(SYSTEM_HOST)
         .remove(SYSTEM_HOSTS)
-        .remove(SYSTEM_BBS)
-        .remove(SYSTEM_CATEGORY)
         .putInt(AVC, BuildConfig.VERSION_CODE)
         .apply()
+      config_file.delete()
     }
   }
 
-  private def _hosts: Seq[String] = try config.getString(SYSTEM_HOSTS, null).let {
+  private def save_hosts: Seq[String] = try config.getString(SYSTEM_HOSTS, null).let {
     s => new JSONArray(s).let { a => (0 until a.length()).map(k => a.getString(k)) }
   } catch {
     case _: Exception => Nil
   }
 
-  def hosts: Seq[String] = _hosts.takeIf(_.nonEmpty).getOrElse(default_hosts())
-
-  def hosts_=(hosts: Seq[String]): Unit = config.edit().also { c =>
+  def save_hosts_=(hosts: Seq[String]): Unit = config.edit().also { c =>
     c.remove(SYSTEM_HOSTS)
     if (hosts.nonEmpty)
       c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, (new JSONArray() /: hosts.distinct) ((j, i) => j.put(i)).toString)
   }.apply()
+
+  def hosts: Seq[String] = (save_hosts ++ default_hosts()).distinct
 
   private def _host: String = config.getString(SYSTEM_HOST, null)
 
@@ -110,46 +117,30 @@ object HAcg {
     if (host.isNullOrEmpty) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
   }.apply()
 
-  private def _bbs: String = config.getString(SYSTEM_BBS, null)
+  def bbs: String = default_bbs()
 
-  def bbs: String = _bbs.takeIf(_.isNonEmpty).getOrElse(default_bbs())
+  def category: Seq[(String, String)] = default_category()
 
-  def bbs_=(bbs: String): Unit = config.edit().also { c =>
-    if (bbs.isNullOrEmpty) c.remove(SYSTEM_BBS) else c.putString(SYSTEM_BBS, bbs)
-  }.apply()
-
-  private def _category: Seq[(String, String)] = try config.getString(SYSTEM_CATEGORY, null).let {
-    s => new JSONObject(s).let { a => a.keys().map(k => (k, a.getString(k))).toSeq }
-  } catch {
-    case _: Exception => default_category()
-  }
-
-  def category: Seq[(String, String)] = _category.takeIf(_.nonEmpty).getOrElse(default_category())
-
-  def category_=(hosts: Seq[(String, String)]): Unit = config.edit().also { c =>
-    c.remove(SYSTEM_CATEGORY)
-    if (hosts.nonEmpty)
-      c.remove(SYSTEM_CATEGORY).putString(SYSTEM_CATEGORY, (new JSONObject() /: hosts) ((j, i) => j.put(i._1, i._2)).toString)
-  }.apply()
-
-  if (_hosts.isEmpty) hosts = default_hosts()
   if (_host.isNullOrEmpty) host = hosts.head
-  if (_category.isEmpty) category = default_category()
-  if (_bbs.isNullOrEmpty) bbs = default_bbs()
 
-  def update(context: Context)(f: (() => Unit) = null): Unit = {
-    //https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json
+  def update(context: Activity, tip: Boolean)(f: => Unit): Unit = {
     "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAsync(context) {
-      case Some((json, _)) => try {
-        val config = new JSONObject(json)
-        host = default_hosts(Option(config)).head
-        hosts = default_hosts(Option(config))
-        category = default_category(Option(config))
-        bbs = default_bbs(Option(config))
-        if (f != null) f()
-      } catch {
-        case _: Exception =>
-      }
+      case Some((json, _)) =>
+        if (json != config_string) {
+          context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
+            .setAction(R.string.settings_config_update, viewClick { _ =>
+              try {
+                val config = new JSONObject(json)
+                host = default_hosts(Option(config)).head
+                new PrintWriter(config_file).using(_.write(json))
+                f
+              } catch {
+                case _: Exception =>
+              }
+            }).show()
+        } else {
+          if (tip) context.toast(R.string.settings_config_newest)
+        }
       case _ =>
     }
   }
@@ -171,7 +162,7 @@ object HAcg {
     case _ => s"$web$bbs"
   }
 
-  def setHosts(context: Context, title: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+  def setHostEdit(context: Context, title: Int, list: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
     val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null, false)
     val edit = view.findViewById[EditText](R.id.edit1)
     edit.setInputType(InputType.TYPE_TEXT_VARIATION_URI)
@@ -179,7 +170,7 @@ object HAcg {
       .setTitle(title)
       .setView(view)
       .setNegativeButton(R.string.app_cancel, null)
-      .setOnDismissListener(dialogDismiss { _ => setHostx(context, title, hostlist, cur, set, ok, reset) })
+      .setOnDismissListener(dialogDismiss { _ => setHostList(context, title, list, cur, set, ok, reset) })
       .setNeutralButton(R.string.settings_host_reset,
         dialogClick { (_, _) => reset() })
       .setPositiveButton(R.string.app_ok,
@@ -192,19 +183,19 @@ object HAcg {
       .create().show()
   }
 
-  def setHostx(context: Context, title: Int, hostlist: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
-    val hosts = hostlist().toList
+  def setHostList(context: Context, title: Int, list: () => Seq[String], cur: () => String, set: String => Unit, ok: String => Unit, reset: () => Unit): Unit = {
+    val hosts = list().toList
     new Builder(context)
       .setTitle(title)
       .setSingleChoiceItems(hosts.map(_.asInstanceOf[CharSequence]).toArray, hosts.indexOf(cur()) match { case -1 => 0 case x => x }, null)
       .setNegativeButton(R.string.app_cancel, null)
-      .setNeutralButton(R.string.settings_host_more, dialogClick { (_, _) => setHosts(context, title, hostlist, cur, set, ok, reset) })
+      .setNeutralButton(R.string.settings_host_more, dialogClick { (_, _) => setHostEdit(context, title, list, cur, set, ok, reset) })
       .setPositiveButton(R.string.app_ok, dialogClick { (d, _) => set(hosts(d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition).toString) })
       .create().show()
   }
 
   def setHost(context: Context, ok: String => Unit = null): Unit = {
-    setHostx(context,
+    setHostList(context,
       R.string.settings_host,
       () => HAcg.hosts,
       () => HAcg.host,
@@ -212,8 +203,8 @@ object HAcg {
         HAcg.host = host
         if (ok != null) ok(host)
       },
-      host => HAcg.hosts = HAcg.hosts ++ Seq(host),
-      () => HAcg.hosts = Nil
+      host => HAcg.save_hosts = HAcg.save_hosts ++ Seq(host),
+      () => HAcg.save_hosts = Nil
     )
   }
 }
@@ -279,6 +270,7 @@ object Common {
 
   implicit def date2string(date: Date): String = datefmt.format(date)
 
+  //noinspection ScalaUnusedSymbol
   type Closable = {def close(): Unit}
 
   def using[A, B <: Closable](closable: B)(f: B => A): A = try f(closable) finally {
@@ -304,12 +296,6 @@ object Common {
     def takeIf(f: A => Boolean): Option[A] = Common.takeIf(o)(f)
   }
 
-  implicit val context: Context = HAcgApplication.instance
-
-  def toast(msg: Int)(implicit context: Context): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
-
-  def toast(msg: String)(implicit context: Context): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
-
   implicit class usingex[B <: Closable](closable: B) {
     def using[A](f: B => A): A = Common.using(closable)(f)
   }
@@ -320,15 +306,48 @@ object Common {
     def sha1: String = MessageDigest.getInstance("SHA1").digest(s.getBytes).map("%02X".format(_)).mkString
   }
 
+  implicit class contextex(context: Context) {
+
+    def toast(msg: Int): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
+
+    def toast(msg: String): Toast = Toast.makeText(context, msg, Toast.LENGTH_SHORT).also(_.show())
+
+    def clipboard(label: String, text: String): Unit = {
+      val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
+      val clip = ClipData.newPlainText(label, text)
+      clipboard.setPrimaryClip(clip)
+      context.toast(context.getString(R.string.app_copied, text))
+    }
+  }
+
   implicit class viewgroupex(container: ViewGroup) {
     def inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(container.getContext).inflate(layout, container, attach)
   }
 
-  def clipboard(label: String, text: String)(implicit context: Context): Unit = {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE).asInstanceOf[ClipboardManager]
-    val clip = ClipData.newPlainText(label, text)
-    clipboard.setPrimaryClip(clip)
-    toast(context.getString(R.string.app_copied, text))
+  implicit class viewex(view: View) {
+    def childrenRecursiveSequence(): Seq[View] = {
+      view match {
+        case vg: ViewGroup =>
+          for (i <- 0 until vg.getChildCount;
+               v = vg.getChildAt(i);
+               vv <- Seq(v) ++ v.childrenRecursiveSequence())
+            yield vv
+        case _ => Seq.empty
+      }
+    }
+
+    import scala.reflect.ClassTag
+
+    def findViewByViewType[T <: View](id: Int = 0)(implicit tag: ClassTag[T]): Seq[View] = view.childrenRecursiveSequence()
+      .filter { it => tag.runtimeClass.isInstance(it) }.filter { it => id == 0 || id == it.getId }
+  }
+
+  implicit class activityex(activity: Activity) {
+
+    def snack(text: CharSequence, duration: Int = Snackbar.LENGTH_SHORT): Snackbar = activity.getWindow.getDecorView.let { view =>
+      view.findViewByViewType[CoordinatorLayout]().headOption.getOrElse(view)
+    }.let { it => Snackbar.make(it, text, duration) }
+
   }
 
   class Once {

@@ -171,7 +171,7 @@ class InfoFragment extends Fragment {
                 val item = _magnet()(pos)
                 val link = if (item.contains(",")) {
                   val baidu = item.split(",")
-                  clipboard(getString(R.string.app_magnet), baidu.last)
+                  getContext.clipboard(getString(R.string.app_magnet), baidu.last)
                   s"https://yun.baidu.com/s/${baidu.head}"
                 } else s"magnet:?xt=urn:btih:${_magnet()(pos)}"
                 startActivity(Intent.createChooser(new Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
@@ -180,7 +180,7 @@ class InfoFragment extends Fragment {
                 val pos = d.asInstanceOf[AlertDialog].getListView.getCheckedItemPosition
                 val item = _magnet()(pos)
                 val link = if (item.contains(",")) s"https://yun.baidu.com/s/${item.split(",").head}" else s"magnet:?xt=urn:btih:${_magnet()(pos)}"
-                clipboard(getString(R.string.app_magnet), link)
+                getContext.clipboard(getString(R.string.app_magnet), link)
               }).create().show()
               menu.close(true)
             case _ if magnet < max => magnet += 1
