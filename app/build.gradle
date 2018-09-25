@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: "jp.leafytree.android-scala"
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion "27.0.3"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 14
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 27
         versionName "1.2.7"
         multiDexEnabled true
