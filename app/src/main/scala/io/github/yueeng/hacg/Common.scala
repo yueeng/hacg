@@ -19,12 +19,13 @@ import android.support.design.widget.{CoordinatorLayout, Snackbar}
 import android.support.multidex.MultiDexApplication
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
+import android.support.v4.text.HtmlCompat
 import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AlertDialog.Builder
 import android.support.v7.app.{AlertDialog, AppCompatActivity}
 import android.support.v7.widget.{GridLayoutManager, LinearLayoutManager, RecyclerView, StaggeredGridLayoutManager}
 import android.text.style.{ClickableSpan, ReplacementSpan}
-import android.text.{Html, InputType, SpannableStringBuilder, Spanned, TextPaint}
+import android.text.{InputType, SpannableStringBuilder, Spanned, TextPaint}
 import android.util.{AttributeSet, DisplayMetrics}
 import android.view._
 import android.widget.{EditText, FrameLayout, Toast}
@@ -253,11 +254,7 @@ object Common {
 
     def isNonEmpty: Boolean = !isNullOrEmpty
 
-    //noinspection ScalaDeprecation
-    def html: Spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-      Html.fromHtml(s, Html.FROM_HTML_MODE_COMPACT)
-    else
-      Html.fromHtml(s)
+    def html: Spanned = HtmlCompat.fromHtml(s, HtmlCompat.FROM_HTML_MODE_COMPACT)
   }
 
   private val datefmt = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ")
@@ -409,6 +406,7 @@ object Common {
     def ui(func: T => Unit): Boolean = weak.get match {
       case None => false
       case Some(ref) =>
+        //noinspection ScalaDeprecation
         if (ref match {
           case f: Fragment if !f.isAdded => false
           case f: app.Fragment if !f.isAdded => false
@@ -798,7 +796,7 @@ object SpanUtil {
 
   }
 
-  class TagClickableSpan[T](private val tag: T, private val call: ((T) => Unit) = null) extends ClickableSpan() {
+  class TagClickableSpan[T](private val tag: T, private val call: T => Unit = null) extends ClickableSpan() {
     override def onClick(widget: View) {
       if (call != null) call(tag)
     }
@@ -809,7 +807,7 @@ object SpanUtil {
     }
   }
 
-  def spannable[T](list: List[T])(separator: String = " ", t2str: ((T) => String) = { s: T => s"$s" }, call: ((T) => Unit) = null): SpannableStringBuilder = {
+  def spannable[T](list: List[T])(separator: String = " ", t2str: T => String = { s: T => s"$s" }, call: T => Unit = null): SpannableStringBuilder = {
     val tags = list.map(t2str(_)).mkString(separator)
     val span = new SpannableStringBuilder(tags)
     list.foldLeft(0) { (i, it) =>

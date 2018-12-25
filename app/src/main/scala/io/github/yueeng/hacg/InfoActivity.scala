@@ -148,7 +148,7 @@ class InfoFragment extends Fragment {
           getView.findViewById[FloatingActionMenu](R.id.menu1).close(true)
         }
         List(R.id.button1, R.id.button2, R.id.button4)
-          .map(root.findViewById[View]).map(_.asInstanceOf[View]).foreach {
+          .map(root.findViewById[View]).foreach {
           case b: FloatingActionButton =>
             b.setOnClickListener(click)
           case _ =>
@@ -225,7 +225,7 @@ class InfoFragment extends Fragment {
       case _ => throw new IllegalAccessException()
     }).also { root =>
       List(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5)
-        .map(root.findViewById[View]).map(_.asInstanceOf[View]).foreach {
+        .map(root.findViewById[View]).foreach {
         case b: FloatingActionButton =>
           b.setColorNormal(randomColor())
           b.setColorPressed(randomColor())
