@@ -135,6 +135,19 @@ class MainActivity extends AppCompatActivity {
         true
       case R.id.settings => HAcg.setHost(this, _ => reload())
         true
+      case R.id.auto => async(this) { c =>
+        val good = HAcg.hosts.par.map(u => (u, u.test())).filter(_._2._1).seq.sortBy(_._2._2).headOption
+        c.ui { _ =>
+          if (good.nonEmpty) {
+            HAcg.host = good.get._1
+            this.toast(getString(R.string.settings_config_auto_choose, good.get._1))
+            reload()
+          } else {
+            this.toast(R.string.settings_config_auto_failed)
+          }
+        }
+      }
+        true
       case R.id.philosophy => startActivity(new Intent(this, classOf[WebActivity])); true
       case R.id.about =>
         new Builder(this)

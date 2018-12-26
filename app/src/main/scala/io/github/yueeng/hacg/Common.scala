@@ -444,8 +444,8 @@ object Common {
 
     def httpGet: Option[(String, String)] = try {
       val http = new OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
         .build()
       val request = new Request.Builder().get().url(url).build()
       val response = http.newCall(request).execute()
@@ -463,9 +463,9 @@ object Common {
 
     def httpPost(post: Map[String, String]): Option[(String, String)] = try {
       val http = new OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
         .build()
       val data = (new MultipartBody.Builder /: post) ((b, o) => b.addFormDataPart(o._1, o._2)).build()
       val request = new Request.Builder().url(url).post(data).build()
@@ -483,7 +483,7 @@ object Common {
     def httpDownload(file: String = null): Option[File] = try {
       //      System.out.println(url)
       val http = new OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
         .build()
       val request = new Request.Builder().get().url(url).build()
       val response = http.newCall(request).execute()
@@ -501,6 +501,20 @@ object Common {
       Option(target)
     } catch {
       case e: Exception => e.printStackTrace(); None
+    }
+
+    def test(timeout: Int = 1000): (Boolean, Int) = try {
+      val uri = new URL(s"https://$url")
+      import java.net.Socket
+      using(new Socket) { socket =>
+        import java.net.{InetAddress, InetSocketAddress}
+        val address = new InetSocketAddress(InetAddress.getByName(uri.getHost), Some(uri.getPort).filter(_ != -1).getOrElse(80))
+        val begin = System.currentTimeMillis()
+        socket.connect(address, timeout)
+        (socket.isConnected, (System.currentTimeMillis() - begin).toInt)
+      }
+    } catch {
+      case e: Exception => e.printStackTrace(); (false, 0)
     }
   }
 

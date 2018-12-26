@@ -25,6 +25,10 @@
         android:title="@string/settings_config"
         app:showAsAction="never" />
     <item
+        android:id="@+id/auto"
+        android:title="@string/settings_config_auto"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/about"
         android:title="@string/app_about"
         app:showAsAction="never" />
