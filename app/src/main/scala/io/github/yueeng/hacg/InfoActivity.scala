@@ -420,7 +420,8 @@ class InfoFragment extends Fragment {
           node.after( s"""<a href="$url">$name</a>""")
           node.remove()
         })
-
+        entry.select("style").foreach(_.remove())
+        entry.select("button").foreach(_.remove())
         entry.select("*").removeAttr("class").removeAttr("style")
         entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
         entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
