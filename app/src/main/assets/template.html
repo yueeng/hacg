@@ -54,32 +54,6 @@
                 placeholder: "file:///android_res/drawable/loading.jpg"
             });
         });
-        var tip = true;
-        function addVideo(w, h, s, n, d) {
-            var prefix = "file=";
-            if (s.substr(0, prefix.length) == prefix) {
-                var src = s.substr(prefix.length, s.length - prefix.length);
-                var pos = src.indexOf("&amp;");
-                if (pos >= 0 && src.substr(0, pos).indexOf("?") == -1) {
-                    src = src.substr(0, pos) + "?" + src.substr(pos + 5, src.length - pos - 5);
-                }
-                var root = $("#video");
-                if (root.size() == 0) {
-                    root = $('<div id="video"></div>');
-                    $('body>div').prepend(root);
-                }
-                if (tip) {
-                    tip = false;
-                    root.append('<p>是否能在线播放视频取决于手机对该视频格式的支持，不能在线播放可直接下载视频文件。</p>');
-                }
-                root.append('<h5>播放：<a href="javascript:window.hacg.play(\'' + n + '\', \'' + src + '\')">' + n + '</a>&nbsp;[<a href="' + src + '">下载</a>]</h5>');
-                if (d.length > 0) {
-                    root.append('<p>' + d + '</p>');
-                }
-            }
-        }
-        function renderVideo() {
-        }
     </script>
 </head>
 <body>

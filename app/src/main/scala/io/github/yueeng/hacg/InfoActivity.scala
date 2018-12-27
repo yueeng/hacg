@@ -22,6 +22,8 @@ import com.github.clans.fab.{FloatingActionButton, FloatingActionMenu}
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.Common._
 import io.github.yueeng.hacg.ViewBinder.{ErrorBinder, ViewBinder}
+import org.jsoup.Jsoup
+import org.jsoup.safety.Whitelist
 
 import scala.collection.JavaConversions._
 
@@ -406,51 +408,26 @@ class InfoFragment extends Fragment {
     _progress2 <= true
     async(this) { c =>
       val result = url.httpGet.jsoup { dom =>
-        val entry = dom.select(".entry-content")
-        entry.select(".toggle-box").foreach(_.removeAttr("style"))
-        entry.select("*[style*=display]").toList.filter(i => i.attr("style").matches("display: ?none;?")).foreach(_.remove())
-        entry.select(".wp-polls-loading").remove()
-        entry.select("script").toList.filter { e => !e.html().contains("renderVideo();") }.foreach(_.remove())
-        entry.select(".wp-polls").foreach(div => {
-          val node = if (div.parent.attr("class") != "entry-content") div.parent else div
-          val name = div.select("strong").headOption match {
-            case Some(strong) => strong.text()
-            case _ => "投票推荐"
+        val entry = dom.select(".entry-content").let { entry =>
+          val clean = Jsoup.clean(entry.html(), url, Whitelist.basicWithImages()
+            .addTags("audio", "video", "source")
+            .addAttributes("audio", "controls", "src")
+            .addAttributes("video", "controls", "src")
+            .addAttributes("source", "type", "src", "media"))
+
+          Jsoup.parse(clean, url).select("body").also { entry =>
+            entry.select("[width],[height]").foreach(_.removeAttr("width").removeAttr("height"))
+            entry.select("img[src]").foreach { it =>
+              it.attr("data-original", it.attr("src"))
+                .addClass("lazy")
+                .removeAttr("src")
+                .after(s"""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
+            }
           }
-          node.after( s"""<a href="$url">$name</a>""")
-          node.remove()
-        })
-        entry.select("style").foreach(_.remove())
-        entry.select("button").foreach(_.remove())
-        entry.select("*").removeAttr("class").removeAttr("style")
-        entry.select("a[href=#]").foreach(i => i.attr("href", "javascript:void(0)"))
-        entry.select("a[href$=#]").foreach(i => i.attr("href", i.attr("href").replaceAll("(.*?)#*", "$1")))
-        entry.select("embed").unwrap()
-        entry.select("img").foreach(i => {
-          val src = i.attr("src")
-          i.parents().find(_.tagName().equalsIgnoreCase("a")) match {
-            case Some(a) =>
-              a.attr("href") match {
-                case href if src.equals(href) =>
-                  a.attr("href", s"javascript:hacg.save('$src');")
-                case href if href.isImg =>
-                  a.attr("href", s"javascript:hacg.save('$src');").after( s"""<a href="javascript:hacg.save('$href');"><img data-original="$href" class="lazy" /></a>""")
-                case _ =>
-              }
-            case _ => i.wrap( s"""<a href="javascript:hacg.save('$src');"></a>""")
-          }
-          i.attr("data-original", src)
-            .addClass("lazy")
-            .removeAttr("src")
-            .removeAttr("width")
-            .removeAttr("height")
-        })
+        }
         (
           if (content) using(scala.io.Source.fromInputStream(HAcgApplication.instance.getAssets.open("template.html"))) {
             reader => reader.mkString.replace("{{title}}", _article.title).replace("{{body}}", entry.html())
-            //                  .replaceAll( """(?<!/|:)\b[a-zA-Z0-9]{40}\b""", """magnet:?xt=urn:btih:$0""")
-            //                  .replaceAll( """(?<!['"=])magnet:\?xt=urn:btih:\b[a-zA-Z0-9]{40}\b""", """<a href="$0">$0</a>""")
-            //                  .replaceAll( """\b([a-zA-Z0-9]{8})\b(\s)\b([a-zA-Z0-9]{4})\b""", """<a href="http://pan.baidu.com/s/$1">baidu:$1</a>$2$3""")
           } else null,
           if (comment) dom.select("#comments .commentlist>li").map(e => new Comment(e)).toList else null,
           dom.select("#comments #comment-nav-below #comments-nav .next").headOption match {
@@ -474,7 +451,6 @@ class InfoFragment extends Fragment {
             }
             if (comment) {
               _url = data._3
-              //              data._2.filter(_.moderation.isNonEmpty).foreach(println)
               _adapter.data --= _adapter.data.filter(_.isInstanceOf[String])
               _adapter ++= data._2
               _adapter += ((_adapter.data.isEmpty, _url.isNullOrEmpty) match {
