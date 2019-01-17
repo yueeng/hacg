@@ -7,3 +7,6 @@
 /captures
 /googleplay
 */build
+.project
+.settings
+.classpath
