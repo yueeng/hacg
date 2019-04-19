@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="MagicTextView">
-        <attr name="innerShadowColor" format="color"/>
-        <attr name="innerShadowRadius" format="dimension"/>
-        <attr name="innerShadowDx" format="dimension"/>
-        <attr name="innerShadowDy" format="dimension"/>
+        <attr name="innerShadowColor" format="color" />
+        <attr name="innerShadowRadius" format="dimension" />
+        <attr name="innerShadowDx" format="dimension" />
+        <attr name="innerShadowDy" format="dimension" />
 
-        <attr name="outerShadowColor" format="color"/>
-        <attr name="outerShadowRadius" format="dimension"/>
-        <attr name="outerShadowDx" format="dimension"/>
-        <attr name="outerShadowDy" format="dimension"/>
+        <attr name="outerShadowColor" format="color" />
+        <attr name="outerShadowRadius" format="dimension" />
+        <attr name="outerShadowDx" format="dimension" />
+        <attr name="outerShadowDy" format="dimension" />
 
         <attr name="typeface" format="string" />
 
