@@ -162,14 +162,13 @@ class InfoFragment : Fragment() {
                     _progress + root.findViewById(R.id.progress)
                     _magnet + root.findViewById<View>(R.id.button5).also {
 
-
                         it.setOnClickListener(object : View.OnClickListener {
                             val max = 3
                             var magnet = 0
                             var toast: Toast? = null
 
                             override fun onClick(v: View): Unit = when {
-                                _magnet().isNotEmpty() -> {
+                                magnet == max && _magnet().isNotEmpty() -> {
                                     Builder(activity!!)
                                             .setTitle(R.string.app_magnet)
                                             .setSingleChoiceItems(_magnet().map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
@@ -197,8 +196,7 @@ class InfoFragment : Fragment() {
                                     toast?.cancel()
                                     toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
                                 }
-                                else -> {
-                                }
+                                else -> Unit
                             }
                         })
                     }
