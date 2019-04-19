@@ -13,7 +13,7 @@ android {
         versionCode 28
         versionName "1.2.8"
         multiDexEnabled true
-        testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -25,10 +25,7 @@ android {
     androidExtensions {
         experimental = true
     }
-    dexOptions {
-        preDexLibraries false
-        javaMaxHeapSize "2g"
-    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -37,17 +34,16 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "com.android.support:multidex:1.0.3"
-    implementation "com.android.support:design:$android_support_version"
-    implementation "com.android.support:appcompat-v7:$android_support_version"
-    implementation "com.android.support:cardview-v7:$android_support_version"
-    implementation "com.android.support:recyclerview-v7:$android_support_version"
+    implementation 'com.google.android.material:material:1.1.0-alpha05'
+    implementation 'androidx.appcompat:appcompat:1.1.0-alpha04'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0-alpha04'
     implementation 'com.github.clans:fab:1.6.4'
     implementation 'com.squareup.okhttp3:okhttp:3.13.1'
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'org.jetbrains.anko:anko-sdk15:0.10.8'
-    androidTestImplementation "com.android.support:multidex-instrumentation:1.0.2", {
+    androidTestImplementation 'androidx.multidex:multidex-instrumentation:2.0.0', {
         exclude module: "multidex"
     }
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

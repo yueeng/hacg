@@ -1,3 +1,5 @@
+@file:Suppress("PrivatePropertyName")
+
 package io.github.yueeng.hacg
 
 import android.annotation.SuppressLint
@@ -8,21 +10,21 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.support.v4.app.Fragment
-import android.support.v4.view.PagerAdapter
-import android.support.v4.view.ViewPager
-import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AlertDialog.Builder
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.*
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AlertDialog.Builder
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
 import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
 import com.squareup.picasso.Picasso
@@ -31,6 +33,7 @@ import org.jetbrains.anko.doAsync
 import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
 import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.Future
 
 /**
@@ -191,7 +194,7 @@ class InfoFragment : Fragment() {
                                 magnet < max -> {
                                     magnet += 1
                                     toast?.cancel()
-                                    toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { it.show() }
+                                    toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
                                 }
                                 else -> {
                                 }
@@ -263,6 +266,7 @@ class InfoFragment : Fragment() {
         }
     }
 
+    @Suppress("unused")
     inner class JsFace {
         @JavascriptInterface
         fun play(name: String, url: String) {
@@ -368,7 +372,7 @@ class InfoFragment : Fragment() {
                 .setView(input)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
                     fill()
-                    if (COMMENTURL.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post.get(it) }.any { it.isNullOrEmpty() }) {
+                    if (COMMENTURL.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post[it] }.any { it.isNullOrEmpty() }) {
                         Toast.makeText(activity!!, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
                     } else {
                         _progress2 * true
@@ -396,10 +400,10 @@ class InfoFragment : Fragment() {
     }
 
     private val QUERY_WEB = 1
-    val QUERY_COMMENT: Int = QUERY_WEB shl 1
-    val QUERY_ALL: Int = QUERY_WEB or QUERY_COMMENT
+    private val QUERY_COMMENT: Int = QUERY_WEB shl 1
+    private val QUERY_ALL: Int = QUERY_WEB or QUERY_COMMENT
 
-    fun query(url: String?, op: Int): Unit {
+    fun query(url: String?, op: Int) {
         if (_progress() || _progress2() || url.isNullOrEmpty()) {
             return
         }
@@ -417,9 +421,9 @@ class InfoFragment : Fragment() {
                             .addAttributes("video", "controls", "src")
                             .addAttributes("source", "type", "src", "media"))
 
-                    Jsoup.parse(clean, url).select("body").also { entry ->
-                        entry.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
-                        entry.select("img[src]").forEach {
+                    Jsoup.parse(clean, url).select("body").also { e ->
+                        e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
+                        e.select("img[src]").forEach {
                             it.attr("data-original", it.attr("src"))
                                     .addClass("lazy")
                                     .removeAttr("src")
@@ -435,7 +439,7 @@ class InfoFragment : Fragment() {
                             }
                         } else null,
                         if (comment) dom.select("#comments .commentlist>li").map { e -> Comment(e) }.toList() else null,
-                        dom.select("#comments #comment-nav-below #comments-nav .next").firstOrNull()?.let { it.attr("abs:href") },
+                        dom.select("#comments #comment-nav-below #comments-nav .next").firstOrNull()?.attr("abs:href"),
                         dom.select("#commentform").select("textarea,input").map { o -> (o.attr("name") to o.attr("value")) }.toMap(),
                         dom.select("#commentform").attr("abs:action"),
                         if (content) entry.text() else null
@@ -478,7 +482,7 @@ class InfoFragment : Fragment() {
         }
     }
 
-    val datafmt = SimpleDateFormat("yyyy-MM-dd hh:ss")
+    val datafmt = SimpleDateFormat("yyyy-MM-dd hh:ss", Locale.getDefault())
 
     inner class CommentHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text1: TextView = view.findViewById(R.id.text1)

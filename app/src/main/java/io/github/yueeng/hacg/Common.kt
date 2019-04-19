@@ -1,9 +1,10 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "ObjectPropertyName", "PrivatePropertyName")
 
 package io.github.yueeng.hacg
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Application
 import android.content.*
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -12,18 +13,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.design.widget.CoordinatorLayout
-import android.support.design.widget.Snackbar
-import android.support.multidex.MultiDexApplication
-import android.support.v4.app.Fragment
-import android.support.v4.content.ContextCompat
-import android.support.v4.text.HtmlCompat
-import android.support.v4.widget.SlidingPaneLayout
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -34,6 +23,17 @@ import android.util.DisplayMetrics
 import android.view.*
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import androidx.slidingpanelayout.widget.SlidingPaneLayout
+import com.google.android.material.snackbar.Snackbar
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -53,12 +53,12 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 
-class HAcgApplication : MultiDexApplication() {
+class HAcgApplication : Application() {
     companion object {
 
-        private var _instance: HAcgApplication? = null
+        private lateinit var _instance: HAcgApplication
 
-        val instance: HAcgApplication get() = _instance!!
+        val instance: HAcgApplication get() = _instance
     }
 
     init {
@@ -75,7 +75,7 @@ class CookieManagerProxy(store: CookieStore, policy: CookiePolicy) : CookieManag
 
     private val SetCookie: String = "Set-Cookie"
 
-    override fun put(uri: URI, headers: Map<String, List<String>>): Unit {
+    override fun put(uri: URI, headers: Map<String, List<String>>) {
         super.put(uri, headers)
         cookieStore.get(uri)
                 .filter { o -> o.domain != null && !o.domain.startsWith(".") }
@@ -135,7 +135,7 @@ class PersistCookieStore(context: Context) : CookieStore {
     }
 
     @Synchronized
-    override fun add(url: URI, cookie: HttpCookie?): Unit {
+    override fun add(url: URI, cookie: HttpCookie?) {
         if (cookie == null) {
             throw NullPointerException("cookie == null")
         }
@@ -177,7 +177,7 @@ class PersistCookieStore(context: Context) : CookieStore {
             map.keys.toList()
 
 
-    private fun expire(uri: URI, cookies: MutableSet<HttpCookie>, edit: SharedPreferences.Editor, fn: (HttpCookie) -> Boolean = { true }): Unit {
+    private fun expire(uri: URI, cookies: MutableSet<HttpCookie>, edit: SharedPreferences.Editor, fn: (HttpCookie) -> Boolean = { true }) {
         cookies.filter(fn).filter { it.hasExpired() }.takeIf { it.isNotEmpty() }?.let { ex ->
             cookies.removeAll(ex)
             edit.putString(uri.toString(), cookies.map { it.string() }.toSet().joinToString(",")).apply()
@@ -233,7 +233,7 @@ fun Context.toast(msg: Int): Toast = Toast.makeText(this, msg, Toast.LENGTH_SHOR
 
 fun Context.toast(msg: String): Toast = Toast.makeText(this, msg, Toast.LENGTH_SHORT).also { it.show() }
 
-fun Context.clipboard(label: String, text: String): Unit {
+fun Context.clipboard(label: String, text: String) {
     val clipboard = this.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText(label, text)
     clipboard.primaryClip = clip
@@ -353,7 +353,8 @@ inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<Vie
         .filter { it is T }.filter { id == 0 || id == it.id }
 
 fun Activity.snack(text: CharSequence, duration: Int = Snackbar.LENGTH_SHORT): Snackbar = this.window.decorView.let { view ->
-    view.findViewByViewType<CoordinatorLayout>().firstOrNull() ?: view
+    view.findViewByViewType<CoordinatorLayout>().firstOrNull()
+            ?: view
 }.let { Snackbar.make(it, text, duration) }
 
 fun Fragment.arguments(b: Bundle?): Fragment = this.also { it.arguments = b }
@@ -399,7 +400,7 @@ abstract class ErrorBinder(value: Boolean) : ViewBinder<Boolean, View>(value, { 
         return super.plus(v)
     }
 
-    abstract fun retry(): Unit
+    abstract fun retry()
 }
 
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
@@ -532,7 +533,6 @@ data class Quadruple<out A, out B, out C, out D>(
 
 /**
  * Converts this triple into a list.
- * @sample samples.misc.Tuples.tripleToList
  */
 fun <T> Quadruple<T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth)
 
@@ -552,7 +552,6 @@ data class Quintuple<out A, out B, out C, out D, out E>(
 
 /**
  * Converts this triple into a list.
- * @sample samples.misc.Tuples.tripleToList
  */
 fun <T> Quintuple<T, T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth, fifth)
 
@@ -573,7 +572,6 @@ data class Sextuple<out A, out B, out C, out D, out E, out F>(
 
 /**
  * Converts this triple into a list.
- * @sample samples.misc.Tuples.tripleToList
  */
 fun <T> Sextuple<T, T, T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth, fifth, sixth)
 

@@ -1,3 +1,5 @@
+@file:Suppress("MayBeConstant", "unused")
+
 package io.github.yueeng.hacg
 
 import android.app.Activity
@@ -5,11 +7,11 @@ import android.content.ContentResolver
 import android.content.Context
 import android.os.Parcelable
 import android.preference.PreferenceManager
-import android.support.design.widget.Snackbar
-import android.support.v7.app.AlertDialog
 import android.text.InputType
 import android.view.LayoutInflater
 import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import org.json.JSONArray

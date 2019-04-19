@@ -6,21 +6,21 @@
     android:paddingLeft="20dp"
     android:paddingRight="20dp">
 
-    <android.support.design.widget.TextInputLayout
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/comment_author">
 
-        <android.support.design.widget.TextInputEditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edit1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="top"
             android:imeOptions="actionNext"
             android:inputType="text" />
-    </android.support.design.widget.TextInputLayout>
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <android.support.design.widget.TextInputLayout
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/comment_email">
@@ -32,9 +32,9 @@
             android:gravity="top"
             android:imeOptions="actionNext"
             android:inputType="text" />
-    </android.support.design.widget.TextInputLayout>
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <android.support.design.widget.TextInputLayout
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/comment_content">
@@ -50,5 +50,5 @@
 
             <requestFocus />
         </EditText>
-    </android.support.design.widget.TextInputLayout>
+    </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>
