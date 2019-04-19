@@ -20,6 +20,7 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AlertDialog.Builder
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -35,7 +36,6 @@ import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.Future
 
 /**
  * Info activity
@@ -150,7 +150,7 @@ class InfoFragment : Fragment() {
                         when (v.id) {
                             R.id.button1 -> openWeb(activity!!, _article.link!!)
                             R.id.button2 -> view?.findViewById<ViewPager>(R.id.container)?.currentItem = 1
-                            R.id.button4 -> share(_article.image)
+                            R.id.button4 -> share()
                         }
                         view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
                     }
@@ -251,21 +251,28 @@ class InfoFragment : Fragment() {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    fun share(url: String?): Future<Unit>? = url?.httpDownloadAsync(context!!) {
-        if (it != null) {
+    fun share(url: String? = null) {
+        fun share(uri: Uri? = null) {
+            val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _article.link)
+            val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.takeIf { it.isNotEmpty() }
+                    ?: "text/plain"
             val title = _article.title
             val intro = _article.content
             val link = _article.link
-            startActivity(Intent.createChooser(
-                    Intent(Intent.ACTION_SEND)
-                            .setType("image/*")
-                            .putExtra(Intent.EXTRA_TITLE, title)
-                            .putExtra(Intent.EXTRA_SUBJECT, title)
-                            .putExtra(Intent.EXTRA_TEXT, "$title\n$intro $link")
-                            .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(it))
-                            .putExtra(Intent.EXTRA_REFERRER, Uri.parse(link)),
-                    title))
+            val share = Intent(Intent.ACTION_SEND)
+                    .setType(mime)
+                    .putExtra(Intent.EXTRA_TITLE, title)
+                    .putExtra(Intent.EXTRA_SUBJECT, title)
+                    .putExtra(Intent.EXTRA_TEXT, "$title\n$intro $link")
+                    .putExtra(Intent.EXTRA_REFERRER, Uri.parse(link))
+            uri?.let { share.putExtra(Intent.EXTRA_STREAM, uri) }
+            startActivity(Intent.createChooser(share, title))
         }
+        url?.httpDownloadAsync(context!!) {
+            it?.let { file ->
+                share(FileProvider.getUriForFile(activity!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
+            } ?: share()
+        } ?: share()
     }
 
     @Suppress("unused")
