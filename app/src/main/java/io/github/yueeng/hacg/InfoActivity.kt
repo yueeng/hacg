@@ -3,6 +3,7 @@
 package io.github.yueeng.hacg
 
 import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.app.DownloadManager
 import android.app.DownloadManager.Request
 import android.content.*
@@ -249,6 +250,7 @@ class InfoFragment : Fragment() {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     fun share(url: String?): Future<Unit>? = url?.httpDownloadAsync(context!!) {
         if (it != null) {
             val title = _article.title
@@ -349,6 +351,7 @@ class InfoFragment : Fragment() {
         alert.show()
     }
 
+    @SuppressLint("InflateParams")
     private fun commenting(c: Comment?) {
         val input = LayoutInflater.from(activity!!).inflate(R.layout.comment_post, null)
         val author: EditText = input.findViewById(R.id.edit1)

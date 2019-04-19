@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     class ArticleFragmentAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
-        private val data = HAcg.category().toList()
+        private val data = HAcg.categories.toList()
 
         override fun getItem(position: Int): Fragment =
                 ArticleFragment().arguments(Bundle().string("url", data[position].first))
@@ -145,11 +145,10 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.auto -> {
                 doAsync {
-                    //TODO parallel
                     val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.sortedBy { it.second.second }.firstOrNull()
                     autoUiThread {
                         if (good != null) {
-                            HAcg.host(good.first)
+                            HAcg.host = good.first
                             toast(getString(R.string.settings_config_auto_choose, good.first))
                             reload()
                         } else {

@@ -208,7 +208,7 @@ class PersistCookieStore(context: Context) : CookieStore {
     }
 }
 
-private val datefmt = SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ", Locale.getDefault())
+private val datefmt get() = SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ", Locale.getDefault())
 
 fun String.toDate(): Date? = try {
     datefmt.parse(this)
@@ -217,10 +217,6 @@ fun String.toDate(): Date? = try {
 }
 
 val String.html: Spanned get() = HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT)
-
-fun Date.toLong(): Long = time
-
-fun Date.toDateString(): String = datefmt.format(date)
 
 fun openWeb(context: Context, uri: String): Unit =
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

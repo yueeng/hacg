@@ -1,7 +1,8 @@
-@file:Suppress("MayBeConstant", "unused")
+@file:Suppress("MayBeConstant", "unused", "MemberVisibilityCanBePrivate", "FunctionName")
 
 package io.github.yueeng.hacg
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
@@ -42,7 +43,6 @@ object HAcg {
         null
     }
 
-
     private fun default_hosts(cfg: JSONObject? = null): Sequence<String> = try {
         (cfg ?: default_config())!!.getJSONArray("host").let { json ->
             (0 until json.length()).asSequence().map { json.getString(it) }
@@ -66,50 +66,52 @@ object HAcg {
     }
 
     private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance).also { c ->
-        val AVC = "app.version.code"
-        if (c.getInt(AVC, 0) < BuildConfig.VERSION_CODE) {
+        val avc = "app.version.code"
+        if (c.getInt(avc, 0) < BuildConfig.VERSION_CODE) {
             c.edit()
                     .remove(SYSTEM_HOST)
                     .remove(SYSTEM_HOSTS)
-                    .putInt(AVC, BuildConfig.VERSION_CODE)
+                    .putInt(avc, BuildConfig.VERSION_CODE)
                     .apply()
             config_file.delete()
         }
     }
 
-    private fun save_hosts(): Sequence<String> = try {
-        config.getString(SYSTEM_HOSTS, null).let { s ->
-            JSONArray(s).let { a -> (0 until a.length()).asSequence().map { k -> a.getString(k) } }
+    private var save_hosts: Sequence<String>
+        get() = try {
+            config.getString(SYSTEM_HOSTS, null).let { s ->
+                JSONArray(s).let { a -> (0 until a.length()).asSequence().map { k -> a.getString(k) } }
+            }
+        } catch (_: Exception) {
+            sequenceOf()
         }
-    } catch (_: Exception) {
-        sequenceOf()
-    }
+        set(hosts): Unit = config.edit().also { c ->
+            c.remove(SYSTEM_HOSTS)
+            if (hosts.any())
+                c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, hosts.distinct().fold(JSONArray()) { j, i -> j.put(i) }.toString())
+        }.apply()
 
-    fun save_hosts(hosts: Sequence<String>): Unit = config.edit().also { c ->
-        c.remove(SYSTEM_HOSTS)
-        if (hosts.any())
-            c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, hosts.distinct().fold(JSONArray()) { j, i -> j.put(i) }.toString())
-    }.apply()
-
-    fun hosts(): Sequence<String> = (save_hosts() + default_hosts()).distinct()
+    fun hosts(): Sequence<String> = (save_hosts + default_hosts()).distinct()
 
     private fun _host(): String? = config.getString(SYSTEM_HOST, null)
 
-    fun host(): String = _host()?.takeIf { it.isNotEmpty() } ?: (hosts().first())
+    var host: String
+        get() = _host()?.takeIf { it.isNotEmpty() } ?: (hosts().first())
+        set(host): Unit = config.edit().also { c ->
+            if (host.isEmpty()) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
+        }.apply()
 
-    fun host(host: String): Unit = config.edit().also { c ->
-        if (host.isEmpty()) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
-    }.apply()
+    val bbs: String
+        get() = default_bbs()
 
-    fun bbs(): String = default_bbs()
-
-    fun category(): Sequence<Pair<String, String>> = default_category()
+    val categories: Sequence<Pair<String, String>>
+        get() = default_category()
 
     init {
-        if (_host().isNullOrEmpty()) host(hosts().first())
+        if (_host().isNullOrEmpty()) host = (hosts().first())
     }
 
-    fun update(context: Activity, tip: Boolean, f: () -> Unit): Unit {
+    fun update(context: Activity, tip: Boolean, f: () -> Unit) {
         "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAsync(context) { html ->
             when {
                 html == null -> {
@@ -119,7 +121,7 @@ object HAcg {
                             .setAction(R.string.settings_config_update) { _ ->
                                 try {
                                     val config = JSONObject(html.first)
-                                    host(default_hosts(config).first())
+                                    host = (default_hosts(config).first())
                                     PrintWriter(config_file).use { it.write(html.first) }
                                     f()
                                 } catch (_: Exception) {
@@ -136,17 +138,18 @@ object HAcg {
     val IsHttp: Regex = """^https?://.*$""".toRegex()
     val RELEASE = "https://github.com/yueeng/hacg/releases"
 
-    val web get() = "https://${host()}"
+    val web get() = "https://$host"
 
     val domain: String
-        get() = host().indexOf('/').takeIf { it >= 0 }?.let { host().substring(0, it) } ?: host()
+        get() = host.indexOf('/').takeIf { it >= 0 }?.let { host.substring(0, it) } ?: host
 
     val wordpress: String get() = "$web/wp"
 
     val philosophy: String
-        get() = bbs().takeIf { IsHttp.matches(it) }?.let { bbs() } ?: "$web${bbs()}"
+        get() = bbs.takeIf { IsHttp.matches(it) }?.let { bbs } ?: "$web$bbs"
 
-    fun setHostEdit(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit): Unit {
+    @SuppressLint("InflateParams")
+    fun setHostEdit(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null)
         val edit = view.findViewById<EditText>(R.id.edit1)
         edit.inputType = InputType.TYPE_TEXT_VARIATION_URI
@@ -155,10 +158,8 @@ object HAcg {
                 .setView(view)
                 .setNegativeButton(R.string.app_cancel, null)
                 .setOnDismissListener { setHostList(context, title, list, cur, set, ok, reset) }
-                .setNeutralButton(R.string.settings_host_reset
-                ) { _, _ -> reset() }
-                .setPositiveButton(R.string.app_ok
-                ) { _, _ ->
+                .setNeutralButton(R.string.settings_host_reset) { _, _ -> reset() }
+                .setPositiveButton(R.string.app_ok) { _, _ ->
                     val host = edit.text.toString()
                     if (host.isNotEmpty()) {
                         ok(host)
@@ -167,7 +168,7 @@ object HAcg {
                 .create().show()
     }
 
-    fun setHostList(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit): Unit {
+    fun setHostList(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val hosts = list().toList()
         AlertDialog.Builder(context)
                 .setTitle(title)
@@ -183,13 +184,13 @@ object HAcg {
         setHostList(context,
                 R.string.settings_host,
                 { hosts() },
-                { host() },
-                { host ->
-                    host(host)
+                { host },
+                {
+                    host = it
                     ok(host)
                 },
-                { host -> save_hosts(save_hosts() + host) },
-                { save_hosts(sequenceOf()) }
+                { host -> save_hosts = (save_hosts + host) },
+                { save_hosts = (sequenceOf()) }
         )
     }
 }
