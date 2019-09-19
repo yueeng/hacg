@@ -2,6 +2,7 @@
 
 package io.github.yueeng.hacg
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.app.DownloadManager
@@ -10,6 +11,7 @@ import android.content.*
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.preference.PreferenceManager
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -29,6 +31,7 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
+import com.gun0912.tedpermission.TedPermission
 import com.squareup.picasso.Picasso
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jetbrains.anko.doAsync
@@ -72,7 +75,7 @@ class InfoActivity : BaseSlideCloseActivity() {
 }
 
 class InfoFragment : Fragment() {
-    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!!}
+    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!! }
     private val _adapter by lazy { CommentAdapter() }
     private val _web = ViewBinder<Pair<String, String>?, WebView>(null) { view, value -> if (value != null) view.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null) }
     private val _error = object : ErrorBinder(false) {
@@ -292,13 +295,26 @@ class InfoFragment : Fragment() {
                         .setView(image)
                         .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
                         .setPositiveButton(R.string.app_save) { _, _ ->
-                            val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                            val task = Request(uri)
-                            task.allowScanningByMediaScanner()
-                            task.setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                            val ext = MimeTypeMap.getFileExtensionFromUrl(url)
-                            task.setMimeType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext))
-                            manager.enqueue(task)
+                            TedPermission.with(activity)
+                                    .onPermissionGranted {
+                                        val name = uri.path?.split("/")?.last()
+                                                ?: UUID.randomUUID().toString()
+                                        val ext = MimeTypeMap.getFileExtensionFromUrl(name)
+                                        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                                        val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                        manager.enqueue(Request(uri).apply {
+                                            allowScanningByMediaScanner()
+                                            setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "hacg/$name")
+                                            setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                            setTitle(name)
+                                            setMimeType(mime)
+                                        })
+                                    }
+                                    .setDeniedCloseButtonText(R.string.app_close)
+                                    .setGotoSettingButtonText(R.string.app_settings)
+                                    .setDeniedMessage(R.string.permission_write_external_storage)
+                                    .setPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                    .check()
                         }
                         .setNegativeButton(R.string.app_cancel, null)
                         .create()

@@ -34,6 +34,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.slidingpanelayout.widget.SlidingPaneLayout
 import com.google.android.material.snackbar.Snackbar
+import com.gun0912.tedpermission.PermissionListener
+import com.gun0912.tedpermission.TedPermission
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -360,6 +362,24 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
 fun <A, B> List<A>.pmap(f: (A) -> B): List<B> = map { doAsyncResult { f(it) } }.map { it.get() }
+
+fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
+    override fun onPermissionGranted() {
+        f()
+    }
+
+    override fun onPermissionDenied(deniedPermissions: ArrayList<String>?) {
+    }
+})
+
+fun TedPermission.Builder.onPermissionDenied(f: (ArrayList<String>?) -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
+    override fun onPermissionGranted() {
+    }
+
+    override fun onPermissionDenied(deniedPermissions: ArrayList<String>?) {
+        f(deniedPermissions)
+    }
+})
 
 open class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> Unit) {
     private val view = WeakHashMap<V, Boolean>()

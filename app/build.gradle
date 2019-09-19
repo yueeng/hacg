@@ -45,6 +45,7 @@ dependencies {
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'org.jsoup:jsoup:1.12.1'
     implementation 'org.jetbrains.anko:anko-sdk15:0.10.8'
+    implementation 'gun0912.ted:tedpermission:2.2.0'
     androidTestImplementation 'androidx.multidex:multidex-instrumentation:2.0.0', {
         exclude module: "multidex"
     }
