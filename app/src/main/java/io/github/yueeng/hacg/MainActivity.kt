@@ -18,7 +18,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AlertDialog.Builder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
@@ -34,6 +33,7 @@ import com.squareup.picasso.Picasso
 import org.jetbrains.anko.doAsync
 import java.lang.ref.WeakReference
 import java.util.concurrent.Future
+import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
     private val pager: ViewPager by lazy { findViewById<ViewPager>(R.id.container) }
@@ -99,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         pager.adapter = ArticleFragmentAdapter(supportFragmentManager)
     }
 
-    class ArticleFragmentAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+    class ArticleFragmentAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
         private val data = HAcg.categories.toList()
 
         override fun getItem(position: Int): Fragment =
@@ -145,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.auto -> {
                 doAsync {
-                    val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.sortedBy { it.second.second }.firstOrNull()
+                    val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.minBy { it.second.second }
                     autoUiThread {
                         if (good != null) {
                             HAcg.host = good.first
@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.about -> {
-                Builder(this)
+                AlertDialog.Builder(this)
                         .setTitle("${getString(R.string.app_name)} ${version(this)}")
                         .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openWeb(this@MainActivity, HAcg.wordpress) }
                         .setPositiveButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }
@@ -296,8 +296,7 @@ class ArticleFragment : Fragment() {
             val result = uri.httpGet()?.jsoup { dom ->
                 dom.select("article").map { o -> Article(o) }.toList() to
                         (dom.select("#wp_page_numbers a").lastOrNull()
-                                ?.takeIf { ">" == it.text() }
-                                ?.let { it.attr("abs:href") }
+                                ?.takeIf { ">" == it.text() }?.attr("abs:href")
                                 ?: dom.select("#nav-below .nav-previous a").firstOrNull()?.attr("abs:href")
                                 )
             }
@@ -394,7 +393,7 @@ class ArticleFragment : Fragment() {
         private val from: Float = activity?.windowManager?.defaultDisplay?.let { it as? Display }?.let { d ->
             val p = Point()
             d.getSize(p)
-            Math.max(p.x, p.y) / 4F
+            max(p.x, p.y) / 4F
         } ?: 300F
 
         override fun getItemViewType(position: Int): Int = data[position]

@@ -7,11 +7,11 @@ import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
 import android.os.Parcelable
-import android.preference.PreferenceManager
 import android.text.InputType
 import android.view.LayoutInflater
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
+import androidx.preference.PreferenceManager
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize

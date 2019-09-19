@@ -12,7 +12,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.preference.PreferenceManager
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -24,6 +23,7 @@ import androidx.appcompat.app.AlertDialog.Builder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -303,7 +303,6 @@ class InfoFragment : Fragment() {
                                         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
                                         val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                                         manager.enqueue(Request(uri).apply {
-                                            allowScanningByMediaScanner()
                                             setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "hacg/$name")
                                             setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                                             setTitle(name)
@@ -483,7 +482,7 @@ class InfoFragment : Fragment() {
                         }
                         if (comment) {
                             _url = data.third
-                            _adapter.data.removeAll(_adapter.data.filter { it is String })
+                            _adapter.data.removeAll(_adapter.data.filterIsInstance<String>())
                             _adapter.addAll(data.second!!)
                             val (d, u) = _adapter.data.isEmpty() to _url.isNullOrEmpty()
                             _adapter.add(when {

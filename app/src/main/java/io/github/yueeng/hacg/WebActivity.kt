@@ -32,7 +32,7 @@ class WebActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        supportFragmentManager.findFragmentById(R.id.container)?.let { it as?WebFragment }?.takeIf { it.web.canGoBack() }?.let { it.web.goBack() }
+        supportFragmentManager.findFragmentById(R.id.container)?.let { it as? WebFragment }?.takeIf { it.web.canGoBack() }?.web?.goBack()
                 ?: super.onBackPressed()
     }
 

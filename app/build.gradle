@@ -40,6 +40,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0-beta04'
     implementation 'androidx.slidingpanelayout:slidingpanelayout:1.0.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0-alpha02'
+    implementation 'androidx.preference:preference-ktx:1.1.0'
     implementation 'com.github.clans:fab:1.6.4'
     implementation 'com.squareup.okhttp3:okhttp:4.2.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.2.0'

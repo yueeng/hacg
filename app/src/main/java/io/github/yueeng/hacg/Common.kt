@@ -57,6 +57,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
@@ -263,6 +265,7 @@ fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View =
         LayoutInflater.from(this.context).inflate(layout, this, attach)
 
 private val img = listOf(".jpg", ".png", ".webp")
+@SuppressLint("DefaultLocale")
 fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
 
 fun String.httpGet(): Pair<String, String>? = try {
@@ -338,7 +341,7 @@ fun version(context: Context): String = try {
 fun versionBefore(local: String, online: String): Boolean = try {
     val l = local.split("""\.""").map { it.toInt() }.toList()
     val o = online.split("""\.""").map { it.toInt() }.toList()
-    for (i in 0 until Math.min(l.size, o.size)) {
+    for (i in 0 until min(l.size, o.size)) {
         (l[i] - o[i]).let { x ->
             when {
                 x > 0 -> return false
@@ -462,7 +465,7 @@ class RoundedBackgroundColorSpan(private val backgroundColor: Int) : Replacement
             paint.measureText(text, start, end)
 
     override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int =
-            Math.round(measureText(paint, text, start, end) + (2 * sidePadding))
+            (measureText(paint, text, start, end) + (2 * sidePadding)).roundToInt()
 
     override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
         val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
@@ -619,7 +622,7 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
                 val x = ev.x
                 val y = ev.y
                 if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
-                                Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
+                                (x - mInitialMotionX).roundToInt(), x.roundToInt(), y.roundToInt())) {
                     val me = MotionEvent.obtain(ev)
                     me.action = MotionEvent.ACTION_CANCEL
                     super.onInterceptTouchEvent(me).also {
