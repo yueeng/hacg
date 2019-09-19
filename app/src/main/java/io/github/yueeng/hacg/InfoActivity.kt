@@ -72,7 +72,7 @@ class InfoActivity : BaseSlideCloseActivity() {
 }
 
 class InfoFragment : Fragment() {
-    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article") }
+    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!!}
     private val _adapter by lazy { CommentAdapter() }
     private val _web = ViewBinder<Pair<String, String>?, WebView>(null) { view, value -> if (value != null) view.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null) }
     private val _error = object : ErrorBinder(false) {
@@ -97,8 +97,8 @@ class InfoFragment : Fragment() {
         setHasOptionsMenu(true)
         retainInstance = true
         val preference = PreferenceManager.getDefaultSharedPreferences(activity)
-        _post += (AUTHOR to preference.getString(CONFIG_AUTHOR, ""))
-        _post += (EMAIL to preference.getString(CONFIG_EMAIL, ""))
+        _post += (AUTHOR to preference.getString(CONFIG_AUTHOR, "")!!)
+        _post += (EMAIL to preference.getString(CONFIG_EMAIL, "")!!)
         query(_article.link, QUERY_ALL)
     }
 
@@ -326,7 +326,7 @@ class InfoFragment : Fragment() {
                 .setNeutralButton(R.string.app_copy) { _, _ ->
                     val clipboard = activity!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(c.user, c.content)
-                    clipboard.primaryClip = clip
+                    clipboard.setPrimaryClip(clip)
                     Toast.makeText(activity, activity!!.getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
                 }
                 .create()

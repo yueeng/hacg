@@ -3,14 +3,14 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    compileSdkVersion 29
+    buildToolsVersion "29.0.2"
 
     defaultConfig {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 15
-        targetSdkVersion 28
-        versionCode 28
+        targetSdkVersion 29
+        versionCode 29
         versionName "1.2.8"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -34,10 +34,12 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.google.android.material:material:1.1.0-alpha07'
-    implementation 'androidx.appcompat:appcompat:1.1.0-beta01'
+    implementation 'com.google.android.material:material:1.1.0-alpha10'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.recyclerview:recyclerview:1.1.0-alpha06'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0-beta04'
+    implementation 'androidx.slidingpanelayout:slidingpanelayout:1.0.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0-alpha02'
     implementation 'com.github.clans:fab:1.6.4'
     implementation 'com.squareup.okhttp3:okhttp:3.14.1'
     implementation 'com.squareup.picasso:picasso:2.5.2'

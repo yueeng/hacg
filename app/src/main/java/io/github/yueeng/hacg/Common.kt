@@ -232,7 +232,7 @@ fun Context.toast(msg: String): Toast = Toast.makeText(this, msg, Toast.LENGTH_S
 fun Context.clipboard(label: String, text: String) {
     val clipboard = this.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText(label, text)
-    clipboard.primaryClip = clip
+    clipboard.setPrimaryClip(clip)
     this.toast(this.getString(R.string.app_copied, text))
 }
 
