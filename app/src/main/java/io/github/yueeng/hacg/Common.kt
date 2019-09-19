@@ -36,10 +36,14 @@ import androidx.slidingpanelayout.widget.SlidingPaneLayout
 import com.google.android.material.snackbar.Snackbar
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
+import com.jakewharton.picasso.OkHttp3Downloader
+import com.squareup.picasso.Picasso
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.Okio
+import okhttp3.logging.HttpLoggingInterceptor
+import okio.buffer
+import okio.sink
 import org.jetbrains.anko.AnkoAsyncContext
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jetbrains.anko.doAsync
@@ -54,6 +58,20 @@ import java.util.*
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
+fun debug(call: () -> Unit) {
+    if (BuildConfig.DEBUG) call()
+}
+
+val okhttp = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+        .build()
+val okdownload = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+        .build()
 
 class HAcgApplication : Application() {
     companion object {
@@ -69,6 +87,9 @@ class HAcgApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Picasso.setSingletonInstance(Picasso.Builder(this)
+                .downloader(OkHttp3Downloader(okhttp))
+                .build())
         CookieHandler.setDefault(CookieManagerProxy.instance)
     }
 }
@@ -245,13 +266,9 @@ private val img = listOf(".jpg", ".png", ".webp")
 fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
 
 fun String.httpGet(): Pair<String, String>? = try {
-    val http = OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .build()
     val request = Request.Builder().get().url(this).build()
-    val response = http.newCall(request).execute()
-    response.body()!!.string() to response.request().url().toString()
+    val response = okhttp.newCall(request).execute()
+    response.body!!.string() to response.request.url.toString()
 } catch (e: Exception) {
     e.printStackTrace(); null
 }
@@ -262,15 +279,10 @@ fun String.httpGetAsync(context: Context, callback: (Pair<String, String>?) -> U
 }
 
 fun String.httpPost(post: Map<String, String>): Pair<String, String>? = try {
-    val http = OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .build()
     val data = post.asSequence().fold(MultipartBody.Builder()) { b, o -> b.addFormDataPart(o.key, o.value) }.build()
     val request = Request.Builder().url(this).post(data).build()
-    val response = http.newCall(request).execute()
-    (response.body()!!.string() to response.request().url().toString())
+    val response = okhttp.newCall(request).execute()
+    (response.body!!.string() to response.request.url.toString())
 } catch (_: Exception) {
     null
 }
@@ -281,22 +293,18 @@ fun String.httpDownloadAsync(context: Context, file: String? = null, fn: (File?)
 }
 
 fun String.httpDownload(file: String? = null): File? = try {
-    //      System.out.println(url)
-    val http = OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .build()
     val request = Request.Builder().get().url(this).build()
-    val response = http.newCall(request).execute()
+    val response = okdownload.newCall(request).execute()
 
     val target = if (file == null) {
-        val path = response.request().url().uri().path
+        val path = response.request.url.toUri().path
         File(HAcgApplication.instance.externalCacheDir, path.substring(path.lastIndexOf('/') + 1))
     } else {
         File(file)
     }
 
-    val sink = Okio.buffer(Okio.sink(target))
-    sink.writeAll(response.body()!!.source())
+    val sink = target.sink().buffer()
+    sink.writeAll(response.body!!.source())
     sink.close()
     target
 } catch (e: Exception) {
