@@ -18,8 +18,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.*
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AlertDialog.Builder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -172,7 +172,7 @@ class InfoFragment : Fragment() {
 
                             override fun onClick(v: View): Unit = when {
                                 magnet == max && _magnet().isNotEmpty() -> {
-                                    Builder(activity!!)
+                                    AlertDialog.Builder(activity!!)
                                             .setTitle(R.string.app_magnet)
                                             .setSingleChoiceItems(_magnet().map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
                                             .setNegativeButton(R.string.app_cancel, null)
@@ -215,6 +215,21 @@ class InfoFragment : Fragment() {
                             startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
                             return true
                         }
+
+                        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+                        override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
+                                when (request?.url?.scheme?.toLowerCase(Locale.getDefault())) {
+                                    "http", "https" -> {
+                                        val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
+                                            request.requestHeaders?.forEach { header(it.key, it.value) }
+                                        }.build()
+                                        val response = okhttp.newCall(call).execute()
+                                        WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
+                                                response.header("content-encoding", "utf-8"),
+                                                response.body?.byteStream())
+                                    }
+                                    else -> super.shouldInterceptRequest(view, request)
+                                }
                     }
                     web.addJavascriptInterface(JsFace(), "hacg")
                     _web + web
@@ -291,7 +306,7 @@ class InfoFragment : Fragment() {
                 val image = ImageView(activity)
                 image.adjustViewBounds = true
                 Picasso.with(activity).load(uri).placeholder(R.drawable.loading).into(image)
-                val alert = Builder(activity!!)
+                val alert = AlertDialog.Builder(activity!!)
                         .setView(image)
                         .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
                         .setPositiveButton(R.string.app_save) { _, _ ->
@@ -333,7 +348,7 @@ class InfoFragment : Fragment() {
             commenting(c)
             return
         }
-        val alert = Builder(activity!!)
+        val alert = AlertDialog.Builder(activity!!)
                 .setTitle(c.user)
                 .setMessage(c.content)
                 .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c) }
@@ -390,7 +405,7 @@ class InfoFragment : Fragment() {
             preference.edit().putString(CONFIG_AUTHOR, _post[AUTHOR]).putString(CONFIG_EMAIL, _post[EMAIL]).apply()
         }
 
-        Builder(activity!!)
+        AlertDialog.Builder(activity!!)
                 .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
                 .setView(input)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
