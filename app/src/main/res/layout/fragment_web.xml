@@ -37,6 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/web_button_background"
+            android:contentDescription="@string/app_name"
             android:padding="5dp"
             android:src="@drawable/ic_home" />
 
@@ -46,6 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/web_button_background"
+            android:contentDescription="@string/app_name"
             android:padding="5dp"
             android:src="@drawable/ic_back" />
 
@@ -55,6 +57,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/web_button_background"
+            android:contentDescription="@string/app_name"
             android:padding="5dp"
             android:src="@drawable/ic_fore" />
 
@@ -64,6 +67,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/web_button_background"
+            android:contentDescription="@string/app_name"
             android:padding="5dp"
             android:src="@drawable/ic_refresh" />
     </LinearLayout>

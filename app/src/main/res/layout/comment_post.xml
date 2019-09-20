@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:hint="@string/comment_email">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edit2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:hint="@string/comment_content">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edit3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -49,6 +49,6 @@
             android:minLines="4">
 
             <requestFocus />
-        </EditText>
+        </com.google.android.material.textfield.TextInputEditText>
     </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>
