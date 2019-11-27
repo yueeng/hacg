@@ -79,21 +79,20 @@ class InfoFragment : Fragment() {
     private val _adapter by lazy { CommentAdapter() }
     private val _web = ViewBinder<Pair<String, String>?, WebView>(null) { view, value -> if (value != null) view.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null) }
     private val _error = object : ErrorBinder(false) {
-        override fun retry(): Unit = query(_article.link, QUERY_ALL)
+        override fun retry(): Unit = query(_article.link)
     }
     private val _post = mutableMapOf<String, String>()
-    private var _url: String? = null
-
-    private val _click = View.OnClickListener { v ->
-        v.tag?.let { it as Comment }?.let { comment(it) }
-    }
+    private var _postParentId: Int? = null
+    private var _postOffset: Int = 1
+    private var _wpdiscuz: Wpdiscuz? = null
     private val CONFIG_AUTHOR = "config.author"
     private val CONFIG_EMAIL = "config.email"
-    private val AUTHOR = "author"
-    private val EMAIL = "email"
-    private var COMMENTURL = ""
-    private var COMMENT = "comment"
-    private val COMMENTPREFIX = "comment-[a-f0-9]{8}".toRegex()
+    private val AUTHOR = "wc_name"
+    private val EMAIL = "wc_email"
+    private var COMMENT = "wc_comment"
+    private val COMMENTURL
+        get() = _wpdiscuz?.customAjaxUrl
+                ?: "${HAcg.wordpress}/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +101,7 @@ class InfoFragment : Fragment() {
         val preference = PreferenceManager.getDefaultSharedPreferences(activity)
         _post += (AUTHOR to preference.getString(CONFIG_AUTHOR, "")!!)
         _post += (EMAIL to preference.getString(CONFIG_EMAIL, "")!!)
-        query(_article.link, QUERY_ALL)
+        query(_article.link)
     }
 
     private val _magnet = ViewBinder<List<String>, View>(listOf()) { view, value -> view.visibility = if (value.isNotEmpty()) View.VISIBLE else View.GONE }
@@ -241,14 +240,15 @@ class InfoFragment : Fragment() {
                     list.layoutManager = LinearLayoutManager(activity)
                     list.setHasFixedSize(true)
                     list.adapter = _adapter
-                    list.loading { query(_url, QUERY_COMMENT) }
+                    list.loading { comment() }
 
                     _progress2 + root.findViewById(R.id.swipe)
                     _progress2.each {
                         it.setOnRefreshListener {
-                            _url = null
+                            _postOffset = 0
+                            _postParentId = 0
                             _adapter.clear()
-                            query(_article.link, QUERY_COMMENT)
+                            comment()
                         }
                     }
                     root.findViewById<View>(R.id.button3).setOnClickListener { comment(null) }
@@ -342,16 +342,55 @@ class InfoFragment : Fragment() {
             view?.findViewById<View>(R.id.container /*drawer*/)?.let { it as? ViewPager }?.takeIf { it.currentItem > 0 }
                     ?.let { it.currentItem = 0; true } ?: false
 
+    fun comment() {
+        if (_progress2() || _postParentId == null) {
+            return
+        }
+        _progress2 * true
+        doAsync {
+            val json = COMMENTURL.httpPost(mapOf("action" to "wpdLoadMoreComments",
+                    "offset" to "$_postOffset",
+                    "orderBy" to "by_vote",
+                    "order" to "desc",
+                    "lastParentId" to "$_postParentId",
+                    "postId" to "${_article.id}"))
+            val comments = gson.fromJsonOrNull<JComment>(json?.first)
+            val list = Jsoup.parse(comments?.comment_list ?: "", json?.second ?: "")
+                    .select(".wc-comment").map { Comment(it) }.toList()
+            autoUiThread {
+                if (comments != null) {
+                    if (comments.is_show_load_more) {
+                        _postParentId = comments.last_parent_id.toIntOrNull()
+                        _postOffset++
+                    } else {
+                        _postParentId = null
+                        _postOffset = 0
+                    }
+                }
+                _adapter.data.lastOrNull()?.let { it as String }?.let {
+                    _adapter.remove(it)
+                }
+                _adapter.addAll(list)
+                val (d, u) = (_adapter.size == 0) to (_postParentId == null)
+                _adapter.add(when {
+                    d && u -> getString(R.string.app_list_empty)
+                    u -> getString(R.string.app_list_complete)
+                    else -> getString(R.string.app_list_loading)
+                })
+                _progress2 * false
+            }
+        }
+    }
 
-    fun comment(c: Comment?) {
+    fun comment(c: Comment?, pos: Int? = null) {
         if (c == null) {
-            commenting(c)
+            commenting(c, pos)
             return
         }
         val alert = AlertDialog.Builder(activity!!)
                 .setTitle(c.user)
                 .setMessage(c.content)
-                .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c) }
+                .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, pos) }
                 .setNegativeButton(R.string.app_cancel, null)
                 .setNeutralButton(R.string.app_copy) { _, _ ->
                     val clipboard = activity!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -387,7 +426,8 @@ class InfoFragment : Fragment() {
     }
 
     @SuppressLint("InflateParams")
-    private fun commenting(c: Comment?) {
+    private fun commenting(c: Comment?, pos: Int? = null) {
+        val url = COMMENTURL
         val input = LayoutInflater.from(activity!!).inflate(R.layout.comment_post, null)
         val author: EditText = input.findViewById(R.id.edit1)
         val email: EditText = input.findViewById(R.id.edit2)
@@ -395,12 +435,13 @@ class InfoFragment : Fragment() {
         author.setText(_post[AUTHOR])
         email.setText(_post[EMAIL])
         content.setText(_post[COMMENT] ?: "")
-        _post += ("comment_parent" to (c?.id?.toString() ?: "0"))
+        _post["wpdiscuz_unique_id"] = (c?.id ?: "0_0")
+        _post["wc_comment_depth"] = "${(c?.depth ?: 1)}"
 
         fun fill() {
-            _post += AUTHOR to author.text.toString()
-            _post += EMAIL to email.text.toString()
-            _post += COMMENT to content.text.toString()
+            _post[AUTHOR] = author.text.toString()
+            _post[EMAIL] = email.text.toString()
+            _post[COMMENT] = content.text.toString()
             val preference = PreferenceManager.getDefaultSharedPreferences(activity!!)
             preference.edit().putString(CONFIG_AUTHOR, _post[AUTHOR]).putString(CONFIG_EMAIL, _post[EMAIL]).apply()
         }
@@ -410,24 +451,30 @@ class InfoFragment : Fragment() {
                 .setView(input)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
                     fill()
-                    if (COMMENTURL.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post[it] }.any { it.isNullOrEmpty() }) {
+                    if (url.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post[it] }.any { it.isNullOrEmpty() }) {
                         Toast.makeText(activity!!, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
                     } else {
                         _progress2 * true
                         doAsync {
-                            val result = COMMENTURL.httpPost(_post.toMap())?.jsoup { dom ->
-                                dom.select("#error-page").firstOrNull()?.let { false to it.text() }
-                                        ?: (true to getString(R.string.comment_succeeded))
-                            } ?: (false to getString(R.string.comment_failed))
+                            val result = url.httpPost(_post.toMap())
+                            val review =
+                                    Jsoup.parse(gson.fromJsonOrNull<JCommentResult>(result?.first)?.message
+                                            ?: "", result?.second ?: "")
+                                            .select(".wc-comment").map { Comment(it) }.firstOrNull()
+
                             autoUiThread {
                                 _progress2 * false
-                                if (result.first) {
+                                if (review != null) {
                                     _post[COMMENT] = ""
-                                    _url = null
-                                    _adapter.clear()
-                                    query(_article.link, QUERY_COMMENT)
+                                    if (c != null) {
+                                        c.children.add(review)
+                                        _adapter.notifyItemChanged(pos!!)
+                                    } else {
+                                        _adapter.add(review)
+                                    }
+                                } else {
+                                    Toast.makeText(activity!!, result?.first, Toast.LENGTH_LONG).show()
                                 }
-                                Toast.makeText(activity!!, result.second, Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -437,18 +484,12 @@ class InfoFragment : Fragment() {
                 .create().show()
     }
 
-    private val QUERY_WEB = 1
-    private val QUERY_COMMENT: Int = QUERY_WEB shl 1
-    private val QUERY_ALL: Int = QUERY_WEB or QUERY_COMMENT
-
-    fun query(url: String?, op: Int) {
+    fun query(url: String?) {
         if (_progress() || _progress2() || url.isNullOrEmpty()) {
             return
         }
         _error * false
-        val content = (op and QUERY_WEB) == QUERY_WEB
-        val comment = (op and QUERY_COMMENT) == QUERY_COMMENT
-        _progress * content
+        _progress * true
         _progress2 * true
         doAsync {
             val data = url.httpGet()?.jsoup { dom ->
@@ -470,17 +511,22 @@ class InfoFragment : Fragment() {
                     }
                 }
 
-                Sextuple(
-                        if (content) HAcgApplication.instance.assets.open("template.html").use {
+                Quintuple(
+                        HAcgApplication.instance.assets.open("template.html").use {
                             it.reader().use { r ->
                                 r.readText().replace("{{title}}", _article.title).replace("{{body}}", entry.html())
                             }
-                        } else null,
-                        if (comment) dom.select("#comments .commentlist>li").map { e -> Comment(e) }.toList() else null,
-                        dom.select("#comments #comment-nav-below #comments-nav .next").firstOrNull()?.attr("abs:href"),
-                        dom.select("#commentform").select("textarea,input").map { o -> (o.attr("name") to o.attr("value")) }.toMap(),
-                        dom.select("#commentform").attr("abs:action"),
-                        if (content) entry.text() else null
+                        },
+                        dom.select("#comments .wc-thread-wrapper>.wc-comment").map { e -> Comment(e) }.toList(),
+                        dom.select("#comments .wc-load-more-link").firstOrNull()?.attr("data-lastparentid"),
+                        entry.text(),
+                        try {
+                            dom.select("script:containsData(ahk)").firstOrNull()?.data()
+                                    ?.let { it.substring(it.indexOf('{'), it.lastIndexOf('}') + 1) }
+                                    ?.let { gson.fromJson(it, Wpdiscuz::class.java) }
+                        } catch (_: Exception) {
+                            null
+                        }
                 )
             }
             autoUiThread {
@@ -489,29 +535,24 @@ class InfoFragment : Fragment() {
                         _error * (_web() == null)
                     }
                     else -> {
-                        if (content) {
-                            _magnet *
-                                    ("""\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".toRegex().findAll(data.sixth!!).map { it.value }.toList() +
-                                            """\b([a-zA-Z0-9]{8})\b\s+\b([a-zA-Z0-9]{4})\b""".toRegex().findAll(data.sixth).map { m -> "${m.groups[1]!!.value},${m.groups[2]!!.value}" })
-                            _web * (data.first!! to url)
-                        }
-                        if (comment) {
-                            _url = data.third
-                            _adapter.data.removeAll(_adapter.data.filterIsInstance<String>())
-                            _adapter.addAll(data.second!!)
-                            val (d, u) = _adapter.data.isEmpty() to _url.isNullOrEmpty()
-                            _adapter.add(when {
-                                d && u -> getString(R.string.app_list_empty)
-                                u -> getString(R.string.app_list_complete)
-                                else -> getString(R.string.app_list_loading)
-                            })
-                        }
-                        COMMENT = data.fourth.asSequence().firstOrNull { o -> o.key.matches(COMMENTPREFIX) }?.key
-                                ?: COMMENT
-                        val filter = listOf(AUTHOR, EMAIL, COMMENT)
-                        _post.putAll(data.fourth.filter { o -> !filter.contains(o.key) })
-
-                        COMMENTURL = data.fifth
+                        _magnet *
+                                ("""\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".toRegex().findAll(data.fourth!!).map { it.value }.toList() +
+                                        """\b([a-zA-Z0-9]{8})\b\s+\b([a-zA-Z0-9]{4})\b""".toRegex().findAll(data.fourth).map { m -> "${m.groups[1]!!.value},${m.groups[2]!!.value}" })
+                        _web * (data.first to url)
+                        _postParentId = data.third?.toIntOrNull()
+                        _postOffset = 1
+                        _adapter.addAll(data.second)
+                        val (d, u) = (_adapter.size == 0) to (_postParentId == null)
+                        _adapter.add(when {
+                            d && u -> getString(R.string.app_list_empty)
+                            u -> getString(R.string.app_list_complete)
+                            else -> getString(R.string.app_list_loading)
+                        })
+                        _wpdiscuz = data.fifth
+                        _post["action"] = "wpdAddComment"
+                        _post["ahk"] = _wpdiscuz?.wpdiscuz_options?.ahk ?: ""
+                        _post["submit"] = "发表评论"
+                        _post["postId"] = "${_article.id}"
                     }
                 }
                 _progress * false
@@ -536,7 +577,9 @@ class InfoFragment : Fragment() {
             list.adapter = adapter
             list.layoutManager = LinearLayoutManager(context)
             list.setHasFixedSize(true)
-            view.setOnClickListener(_click)
+            view.setOnClickListener { v ->
+                v.tag?.let { it as Comment }?.let { comment(it, adapterPosition) }
+            }
         }
     }
 

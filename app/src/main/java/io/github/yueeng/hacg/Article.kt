@@ -202,26 +202,131 @@ data class Tag(val name: String, val url: String) : Parcelable {
 }
 
 @Parcelize
-data class Comment(val id: Int, val content: String, val user: String, val face: String,
-                   val moderation: String, val time: Date?, val children: List<Comment>) : Parcelable {
+data class Comment(val id: String, val content: String, val user: String, val face: String,
+                   val moderation: String, val time: Date?, val children: MutableList<Comment>, val depth: Int = 1) : Parcelable {
     companion object {
-        val ID: Regex = """comment-(\d+)""".toRegex()
+        val ID: Regex = """wc-comm-(\d+_\d+)""".toRegex()
     }
 
-    constructor(e: Element) :
-            this(ID.find(e.select(">article").attr("id"))?.let { it.groups[1]?.value?.toInt() }
-                    ?: 0,
-                    e.select(">article .comment-content").text(),
-                    e.select(">article .fn").text(),
-                    e.select(">article .avatar").attr("abs:src"),
-                    e.select(">article footer>.comment-awaiting-moderation").text(),
-                    e.select(">article time").attr("datetime").toDate(),
-                    e.select(">.children>li").map { Comment(it) }.toList()
+    constructor(e: Element, depth: Int = 1) :
+            this(ID.find(e.attr("id"))?.let { it.groups[1]?.value } ?: "0_0",
+                    e.select(">.wc-comment-right .wc-comment-text").text(),
+                    e.select(">.wc-comment-right .wc-comment-author").text(),
+                    e.select(">.wc-comment-left .avatar").attr("abs:src"),
+                    ""/*e.select(">.wc-comment-right .wc-vote-result").text()*/,
+                    e.select(">.wc-comment-right .wc-comment-date").text().toDate(datefmtcn),
+                    e.select(">.wc-comment-right~.wc-reply").map { Comment(it, depth + 1) }.toMutableList(),
+                    depth
             )
 }
 
+data class JComment(
+        val last_parent_id: String,
+        val is_show_load_more: Boolean,
+        val comment_list: String,
+        val loadLastCommentId: String,
+        val callbackFunctions: List<Any?>
+)
+
+data class JCommentResult(
+        val authorsCount: Int,
+        val callbackFunctions: List<Any>,
+        val code: String,
+        val comment_author: String,
+        val comment_author_email: String,
+        val comment_author_url: String,
+        val held_moderate: Int,
+        val is_in_same_container: String,
+        val is_main: Int,
+        val message: String,
+        val new_comment_id: Int,
+        val redirect: String,
+        val repliesCount: Int,
+        val threadsCount: Int,
+        val wc_all_comments_count_new: String
+)
+
+data class Wpdiscuz(
+        val customAjaxUrl: String,
+        val url: String,
+        val wpdiscuz_options: WpdiscuzOptions
+)
+
+data class WpdiscuzOptions(
+        val ahk: String,
+        val commentListLoadType: String,
+        val commentListUpdateTimer: String,
+        val commentListUpdateType: String,
+        val commentTextMaxLength: Any,
+        val commentsVoteOrder: Boolean,
+        val cookieCommentsSorting: String,
+        val cookiehash: String,
+        val enableDropAnimation: Int,
+        val enableFbLogin: Int,
+        val enableFbShare: Int,
+        val enableGoogleLogin: Int,
+        val enableLastVisitCookie: Int,
+        val facebookAppID: String,
+        val facebookUseOAuth2: Int,
+        val googleAppID: String,
+        val isCaptchaInSession: Boolean,
+        val isCookiesEnabled: Boolean,
+        val isGoodbyeCaptchaActive: Boolean,
+        val isLoadOnlyParentComments: Int,
+        val isNativeAjaxEnabled: Int,
+        val is_email_field_required: Int,
+        val is_user_logged_in: Boolean,
+        val lastVisitKey: String,
+        val liveUpdateGuests: String,
+        val loadLastCommentId: Int,
+        val socialLoginAgreementCheckbox: Int,
+        val storeCommenterData: Int,
+        val version: String,
+        val wc_captcha_show_for_guest: String,
+        val wc_captcha_show_for_members: String,
+        val wc_comment_bg_color: String,
+        val wc_comment_edit_not_possible: String,
+        val wc_comment_not_edited: String,
+        val wc_comment_not_updated: String,
+        val wc_deny_voting_from_same_ip: String,
+        val wc_error_email_text: String,
+        val wc_error_empty_text: String,
+        val wc_error_url_text: String,
+        val wc_follow_canceled: String,
+        val wc_follow_email_confirm: String,
+        val wc_follow_email_confirm_fail: String,
+        val wc_follow_impossible: String,
+        val wc_follow_login_to_follow: String,
+        val wc_follow_not_added: String,
+        val wc_follow_success: String,
+        val wc_follow_user: String,
+        val wc_held_for_moderate: String,
+        val wc_hide_replies_text: String,
+        val wc_invalid_captcha: String,
+        val wc_invalid_field: String,
+        val wc_login_to_vote: String,
+        val wc_msg_input_max_length: String,
+        val wc_msg_input_min_length: String,
+        val wc_msg_required_fields: String,
+        val wc_new_comment_button_text: String,
+        val wc_new_comments_button_text: String,
+        val wc_new_replies_button_text: String,
+        val wc_new_reply_button_text: String,
+        val wc_post_id: Int,
+        val wc_reply_bg_color: String,
+        val wc_self_vote: String,
+        val wc_show_replies_text: String,
+        val wc_unfollow_user: String,
+        val wc_vote_only_one_time: String,
+        val wc_voting_error: String,
+        val wordpressIsPaginate: String,
+        val wordpressThreadCommentsDepth: String,
+        val wpdiscuzCommentOrderBy: String,
+        val wpdiscuzCommentsOrder: String
+)
+
 @Parcelize
-data class Article(val title: String,
+data class Article(val id: Int, val title: String,
                    val link: String?,
                    val image: String?,
                    val content: String?,
@@ -230,7 +335,11 @@ data class Article(val title: String,
                    val author: Tag?,
                    val category: Tag?,
                    val tags: List<Tag>) : Parcelable {
-    constructor(msg: String) : this(msg, null, null, null, null, 0, null, null, listOf())
+    companion object {
+        val ID: Regex = """post-(\d+)""".toRegex()
+    }
+
+    constructor(msg: String) : this(0, msg, null, null, null, null, 0, null, null, listOf())
 
     @IgnoredOnParcel
     private val defimg = "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${this::class.java.`package`!!.name}/drawable/placeholder"
@@ -243,7 +352,8 @@ data class Article(val title: String,
     val expend: List<Tag> by lazy { (tags + category + author).mapNotNull { it } }
 
     constructor(e: Element) :
-            this(e.select("header .entry-title a").text().trim(),
+            this(ID.find(e.attr("id"))?.let { it.groups[1]?.value?.toInt() } ?: 0,
+                    e.select("header .entry-title a").text().trim(),
                     e.select("header .entry-title a").attr("abs:href"),
                     e.select(".entry-content img").let { img ->
                         img.takeIf { it.hasClass("avatar") }?.let { "" } ?: img.attr("abs:src")

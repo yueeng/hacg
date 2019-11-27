@@ -26,6 +26,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -34,6 +35,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.slidingpanelayout.widget.SlidingPaneLayout
 import com.google.android.material.snackbar.Snackbar
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import com.jakewharton.picasso.OkHttp3Downloader
@@ -64,15 +67,16 @@ fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
 }
 
+val gson: Gson = GsonBuilder().create()
 val okhttp = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }) } }
         .build()
 val okdownload = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }) } }
         .build()
 
 class HAcgApplication : Application() {
@@ -233,10 +237,10 @@ class PersistCookieStore(context: Context) : CookieStore {
     }
 }
 
-private val datefmt get() = SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ", Locale.getDefault())
-
-fun String.toDate(): Date? = try {
-    datefmt.parse(this)
+val datefmt get() = SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ", LocaleListCompat.getDefault()[0])
+val datefmtcn get() = SimpleDateFormat("yyyy年MM月dd日 ahh:mm", LocaleListCompat.getDefault()[0])
+fun String.toDate(fmt: SimpleDateFormat? = null): Date? = try {
+    (fmt ?: datefmt).parse(this)
 } catch (_: ParseException) {
     null
 }
@@ -282,7 +286,7 @@ fun String.httpGetAsync(context: Context, callback: (Pair<String, String>?) -> U
 }
 
 fun String.httpPost(post: Map<String, String>): Pair<String, String>? = try {
-    val data = post.asSequence().fold(MultipartBody.Builder()) { b, o -> b.addFormDataPart(o.key, o.value) }.build()
+    val data = post.asSequence().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.key, o.value) }.build()
     val request = Request.Builder().url(this).post(data).build()
     val response = okhttp.newCall(request).execute()
     (response.body!!.string() to response.request.url.toString())
@@ -326,6 +330,14 @@ fun String.test(timeout: Int = 1000): Pair<Boolean, Int> = try {
 } catch (e: Exception) {
     e.printStackTrace(); (false to 0)
 }
+
+fun <T> Gson.fromJsonOrNull(json: String?, clazz: Class<T>): T? = try {
+    fromJson<T>(json, clazz)
+} catch (_: Exception) {
+    null
+}
+
+inline fun <reified T> Gson.fromJsonOrNull(json: String?): T? = fromJsonOrNull(json, T::class.java)
 
 fun Pair<String, String>.jsoup(): Document = this.let { h ->
     Jsoup.parse(h.first, h.second)
@@ -431,29 +443,37 @@ abstract class ErrorBinder(value: Boolean) : ViewBinder<Boolean, View>(value, { 
 }
 
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
-    val data = mutableListOf<V>()
+    private val _data = mutableListOf<V>()
 
     override fun getItemCount(): Int = size
 
-    val size: Int get() = data.size
-
+    val size: Int get() = _data.size
+    val data: List<V> get() = _data
     fun clear(): DataAdapter<V, VH> {
-        val size = data.size
-        data.clear()
+        val size = _data.size
+        _data.clear()
         notifyItemRangeRemoved(0, size)
         return this
     }
 
     fun add(v: V): DataAdapter<V, VH> {
-        data += v
-        notifyItemInserted(data.size)
+        _data += v
+        notifyItemInserted(_data.size)
         return this
     }
 
     fun addAll(v: List<V>): DataAdapter<V, VH> {
-        data.addAll(v)
-        notifyItemRangeInserted(data.size - v.size, v.size)
+        _data.addAll(v)
+        notifyItemRangeInserted(_data.size - v.size, v.size)
         return this
+    }
+
+    fun remove(v: V) {
+        val pos = _data.indexOf(v)
+        if (pos == -1) return
+        _data.removeAt(pos)
+        notifyItemRemoved(pos)
+        remove(v)
     }
 }
 
@@ -700,6 +720,7 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
 
     override fun onPanelOpened(panel: View) {
         finish()
+        overridePendingTransition(0, 0)
     }
 
     override fun onPanelClosed(panel: View) {

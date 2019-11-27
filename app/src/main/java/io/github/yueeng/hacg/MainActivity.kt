@@ -310,7 +310,9 @@ class ArticleFragment : Fragment() {
                     else -> {
 
                         url = result.second
-                        adapter.data.removeAll(adapter.data.filter { it.link.isNullOrEmpty() })
+                        adapter.data.lastOrNull()?.takeIf { it.link.isNullOrEmpty() }?.let {
+                            adapter.remove(it)
+                        }
                         adapter.addAll(result.first)
                         val (d, u) = adapter.data.isEmpty() to url.isNullOrEmpty()
                         val msg = when {
