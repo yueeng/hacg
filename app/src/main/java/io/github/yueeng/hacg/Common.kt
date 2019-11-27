@@ -456,9 +456,10 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapt
         return this
     }
 
-    fun add(v: V): DataAdapter<V, VH> {
+    fun add(v: V, index: Int = _data.size): DataAdapter<V, VH> {
         _data += v
-        notifyItemInserted(_data.size)
+        _data.add(index, v)
+        notifyItemInserted(index)
         return this
     }
 

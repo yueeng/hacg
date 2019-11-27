@@ -21,22 +21,21 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.viewpager.widget.PagerAdapter
-import androidx.viewpager.widget.ViewPager
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
 import org.jetbrains.anko.doAsync
-import java.lang.ref.WeakReference
 import java.util.concurrent.Future
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
-    private val pager: ViewPager by lazy { findViewById<ViewPager>(R.id.container) }
+    private val pager: ViewPager2 by lazy { findViewById<ViewPager2>(R.id.container) }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -44,8 +43,9 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setLogo(R.mipmap.ic_launcher)
         val tabs: TabLayout = findViewById(R.id.tab)
-        pager.adapter = ArticleFragmentAdapter(supportFragmentManager)
-        tabs.setupWithViewPager(pager)
+        pager.adapter = ArticleFragmentAdapter(this)
+        TabLayoutMediator(tabs, pager, TabLayoutMediator.TabConfigurationStrategy { tab, position -> tab.text = (pager.adapter as ArticleFragmentAdapter).getPageTitle(position) })
+                .attach()
 
         if (state == null) {
             checkVersion()
@@ -96,27 +96,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reload() {
-        pager.adapter = ArticleFragmentAdapter(supportFragmentManager)
+        pager.adapter = ArticleFragmentAdapter(this)
     }
 
-    class ArticleFragmentAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+    class ArticleFragmentAdapter(fm: FragmentActivity) : FragmentStateAdapter(fm) {
         private val data = HAcg.categories.toList()
 
-        override fun getItem(position: Int): Fragment =
+        fun getPageTitle(position: Int): CharSequence = data[position].second
+
+        override fun getItemCount(): Int = data.size
+
+        override fun createFragment(position: Int): Fragment =
                 ArticleFragment().arguments(Bundle().string("url", data[position].first))
-
-        override fun getCount(): Int = data.size
-
-        override fun getPageTitle(position: Int): CharSequence = data[position].second
-
-        override fun getItemPosition(`object`: Any): Int = PagerAdapter.POSITION_NONE
-
-        private var current: WeakReference<Fragment>? = null
-
-        override fun setPrimaryItem(container: ViewGroup, position: Int, `object`: Any) {
-            super.setPrimaryItem(container, position, `object`)
-            current = WeakReference(`object` as Fragment)
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

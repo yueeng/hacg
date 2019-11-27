@@ -27,8 +27,8 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
+import androidx.viewpager2.widget.ViewPager2
 import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
 import com.gun0912.tedpermission.TedPermission
@@ -127,142 +127,146 @@ class InfoFragment : Fragment() {
         activity.supportActionBar?.setLogo(R.mipmap.ic_launcher)
         activity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         activity.title = _article.title
-        view.findViewById<ViewPager>(R.id.container).adapter = InfoAdapter()
+        view.findViewById<ViewPager2>(R.id.container).adapter = InfoAdapter()
     }
 
-    inner class InfoAdapter : PagerAdapter() {
-        override fun getCount(): Int = 2
-
-        override fun isViewFromObject(view: View, `object`: Any): Boolean = view == `object`
-
-        override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
-            container.removeView(`object` as View)
-        }
-
-        @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
-        override fun instantiateItem(container: ViewGroup, position: Int): Any = when (position) {
-            0 -> {
-                container.inflate(R.layout.fragment_info_web).also { root ->
-                    _error + root.findViewById(R.id.image1)
-                    val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
-                    menu.menuButtonColorNormal = randomColor()
-                    menu.menuButtonColorPressed = randomColor()
-                    menu.menuButtonColorRipple = randomColor()
-                    val click = View.OnClickListener { v ->
-                        when (v.id) {
-                            R.id.button1 -> openWeb(activity!!, _article.link!!)
-                            R.id.button2 -> view?.findViewById<ViewPager>(R.id.container)?.currentItem = 1
-                            R.id.button4 -> share()
-                        }
-                        view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
+    @SuppressLint("SetJavaScriptEnabled")
+    inner class WebHolder(root: View) : RecyclerView.ViewHolder(root) {
+        init {
+            _error + root.findViewById(R.id.image1)
+            val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
+            menu.menuButtonColorNormal = randomColor()
+            menu.menuButtonColorPressed = randomColor()
+            menu.menuButtonColorRipple = randomColor()
+            val click = View.OnClickListener { v ->
+                when (v.id) {
+                    R.id.button1 -> openWeb(activity!!, _article.link!!)
+                    R.id.button2 -> view?.findViewById<ViewPager>(R.id.container)?.currentItem = 1
+                    R.id.button4 -> share()
+                }
+                view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
+            }
+            listOf(R.id.button1, R.id.button2, R.id.button4)
+                    .map { root.findViewById<View>(it) }.forEach {
+                        it.setOnClickListener(click)
                     }
-                    listOf(R.id.button1, R.id.button2, R.id.button4)
-                            .map { root.findViewById<View>(it) }.forEach {
-                                it.setOnClickListener(click)
-                            }
 
-                    _progress + root.findViewById(R.id.progress)
-                    _magnet + root.findViewById<View>(R.id.button5).also {
+            _progress + root.findViewById(R.id.progress)
+            _magnet + root.findViewById<View>(R.id.button5).also {
 
-                        it.setOnClickListener(object : View.OnClickListener {
-                            val max = 3
-                            var magnet = 0
-                            var toast: Toast? = null
+                it.setOnClickListener(object : View.OnClickListener {
+                    val max = 3
+                    var magnet = 0
+                    var toast: Toast? = null
 
-                            override fun onClick(v: View): Unit = when {
-                                magnet == max && _magnet().isNotEmpty() -> {
-                                    AlertDialog.Builder(activity!!)
-                                            .setTitle(R.string.app_magnet)
-                                            .setSingleChoiceItems(_magnet().map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
-                                            .setNegativeButton(R.string.app_cancel, null)
-                                            .setPositiveButton(R.string.app_open) { d, _ ->
-                                                val pos = (d as AlertDialog).listView.checkedItemPosition
-                                                val item = _magnet()[pos]
-                                                val link = if (item.contains(",")) {
-                                                    val baidu = item.split(",")
-                                                    context?.clipboard(getString(R.string.app_magnet), baidu.last())
-                                                    "https://yun.baidu.com/s/${baidu.first()}"
-                                                } else "magnet:?xt=urn:btih:${_magnet()[pos]}"
-                                                startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
-                                            }
-                                            .setNeutralButton(R.string.app_copy) { d, _ ->
-                                                val pos = (d as AlertDialog).listView.checkedItemPosition
-                                                val item = _magnet()[pos]
-                                                val link = if (item.contains(",")) "https://yun.baidu.com/s/${item.split(",").first()}" else "magnet:?xt=urn:btih:${_magnet()[pos]}"
-                                                context?.clipboard(getString(R.string.app_magnet), link)
-                                            }.create().show()
-                                    menu.close(true)
-                                }
-                                magnet < max -> {
-                                    magnet += 1
-                                    toast?.cancel()
-                                    toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
-                                }
-                                else -> Unit
-                            }
-                        })
-                    }
-                    val web: WebView = root.findViewById(R.id.web)
-                    val settings = web.settings
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                    }
-                    settings.javaScriptEnabled = true
-                    web.webViewClient = object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                            val uri = Uri.parse(url)
-                            startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
-                            return true
-                        }
-
-                        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-                        override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
-                                when (request?.url?.scheme?.toLowerCase(Locale.getDefault())) {
-                                    "http", "https" -> {
-                                        val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
-                                            request.requestHeaders?.forEach { header(it.key, it.value) }
-                                        }.build()
-                                        val response = okhttp.newCall(call).execute()
-                                        WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
-                                                response.header("content-encoding", "utf-8"),
-                                                response.body?.byteStream())
+                    override fun onClick(v: View): Unit = when {
+                        magnet == max && _magnet().isNotEmpty() -> {
+                            AlertDialog.Builder(activity!!)
+                                    .setTitle(R.string.app_magnet)
+                                    .setSingleChoiceItems(_magnet().map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
+                                    .setNegativeButton(R.string.app_cancel, null)
+                                    .setPositiveButton(R.string.app_open) { d, _ ->
+                                        val pos = (d as AlertDialog).listView.checkedItemPosition
+                                        val item = _magnet()[pos]
+                                        val link = if (item.contains(",")) {
+                                            val baidu = item.split(",")
+                                            context?.clipboard(getString(R.string.app_magnet), baidu.last())
+                                            "https://yun.baidu.com/s/${baidu.first()}"
+                                        } else "magnet:?xt=urn:btih:${_magnet()[pos]}"
+                                        startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
                                     }
-                                    else -> super.shouldInterceptRequest(view, request)
-                                }
-                    }
-                    web.addJavascriptInterface(JsFace(), "hacg")
-                    _web + web
-                }
-            }
-            1 -> {
-                container.inflate(R.layout.fragment_info_list).also { root ->
-                    val list: RecyclerView = root.findViewById(R.id.list1)
-                    list.layoutManager = LinearLayoutManager(activity)
-                    list.setHasFixedSize(true)
-                    list.adapter = _adapter
-                    list.loading { comment() }
-
-                    _progress2 + root.findViewById(R.id.swipe)
-                    _progress2.each {
-                        it.setOnRefreshListener {
-                            _postOffset = 0
-                            _postParentId = 0
-                            _adapter.clear()
-                            comment()
+                                    .setNeutralButton(R.string.app_copy) { d, _ ->
+                                        val pos = (d as AlertDialog).listView.checkedItemPosition
+                                        val item = _magnet()[pos]
+                                        val link = if (item.contains(",")) "https://yun.baidu.com/s/${item.split(",").first()}" else "magnet:?xt=urn:btih:${_magnet()[pos]}"
+                                        context?.clipboard(getString(R.string.app_magnet), link)
+                                    }.create().show()
+                            menu.close(true)
                         }
+                        magnet < max -> {
+                            magnet += 1
+                            toast?.cancel()
+                            toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
+                        }
+                        else -> Unit
                     }
-                    root.findViewById<View>(R.id.button3).setOnClickListener { comment(null) }
+                })
+            }
+            val web: WebView = root.findViewById(R.id.web)
+            val settings = web.settings
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            }
+            settings.javaScriptEnabled = true
+            web.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                    val uri = Uri.parse(url)
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
+                    return true
+                }
+
+                @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+                override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
+                        when (request?.url?.scheme?.toLowerCase(Locale.getDefault())) {
+                            "http", "https" -> {
+                                val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
+                                    request.requestHeaders?.forEach { header(it.key, it.value) }
+                                }.build()
+                                val response = okhttp.newCall(call).execute()
+                                WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
+                                        response.header("content-encoding", "utf-8"),
+                                        response.body?.byteStream())
+                            }
+                            else -> super.shouldInterceptRequest(view, request)
+                        }
+            }
+            web.addJavascriptInterface(JsFace(), "hacg")
+            _web + web
+        }
+    }
+
+    inner class CommentsHolder(root: View) : RecyclerView.ViewHolder(root) {
+        init {
+            val list: RecyclerView = root.findViewById(R.id.list1)
+            list.layoutManager = LinearLayoutManager(activity)
+            list.setHasFixedSize(true)
+            list.adapter = _adapter
+            list.loading { comment() }
+
+            _progress2 + root.findViewById(R.id.swipe)
+            _progress2.each {
+                it.setOnRefreshListener {
+                    _postOffset = 0
+                    _postParentId = 0
+                    _adapter.clear()
+                    comment()
                 }
             }
-            else -> throw  IllegalAccessException()
-        }.also { root ->
-            listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5)
-                    .map { root.findViewById<View>(it) }.mapNotNull { it as? FloatingActionButton }.forEach { b ->
-                        b.colorNormal = randomColor()
-                        b.colorPressed = randomColor()
-                        b.colorRipple = randomColor()
-                    }
-            container.addView(root)
+            root.findViewById<View>(R.id.button3).setOnClickListener { comment(null) }
+        }
+    }
+
+    inner class InfoAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        override fun getItemViewType(position: Int): Int = position
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+                when (viewType) {
+                    0 -> WebHolder(parent.inflate(R.layout.fragment_info_web))
+                    1 -> CommentsHolder(parent.inflate(R.layout.fragment_info_list))
+                    else -> throw IllegalArgumentException()
+                }.apply {
+                    listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5)
+                            .map { itemView.findViewById<View>(it) }.mapNotNull { it as? FloatingActionButton }.forEach { b ->
+                                b.colorNormal = randomColor()
+                                b.colorPressed = randomColor()
+                                b.colorRipple = randomColor()
+                            }
+                }
+
+        override fun getItemCount(): Int = 2
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         }
     }
 
@@ -453,28 +457,25 @@ class InfoFragment : Fragment() {
                     fill()
                     if (url.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post[it] }.any { it.isNullOrEmpty() }) {
                         Toast.makeText(activity!!, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
-                    } else {
-                        _progress2 * true
-                        doAsync {
-                            val result = url.httpPost(_post.toMap())
-                            val review =
-                                    Jsoup.parse(gson.fromJsonOrNull<JCommentResult>(result?.first)?.message
-                                            ?: "", result?.second ?: "")
-                                            .select(".wc-comment").map { Comment(it) }.firstOrNull()
-
-                            autoUiThread {
-                                _progress2 * false
-                                if (review != null) {
-                                    _post[COMMENT] = ""
-                                    if (c != null) {
-                                        c.children.add(review)
-                                        _adapter.notifyItemChanged(pos!!)
-                                    } else {
-                                        _adapter.add(review)
-                                    }
-                                } else {
-                                    Toast.makeText(activity!!, result?.first, Toast.LENGTH_LONG).show()
-                                }
+                        return@setPositiveButton
+                    }
+                    _progress2 * true
+                    doAsync {
+                        val result = url.httpPost(_post.toMap())
+                        val review = Jsoup.parse(gson.fromJsonOrNull<JCommentResult>(result?.first)?.message ?: "", result?.second ?: "")
+                                .select(".wc-comment").map { Comment(it) }.firstOrNull()
+                        autoUiThread {
+                            _progress2 * false
+                            if (review == null) {
+                                Toast.makeText(activity!!, result?.first, Toast.LENGTH_LONG).show()
+                                return@autoUiThread
+                            }
+                            _post[COMMENT] = ""
+                            if (c != null) {
+                                c.children.add(review)
+                                _adapter.notifyItemChanged(pos!!)
+                            } else {
+                                _adapter.add(review, 0)
                             }
                         }
                     }
