@@ -469,19 +469,19 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapt
         return this
     }
 
-    fun remove(v: V) {
-        val pos = _data.indexOf(v)
-        if (pos == -1) return
-        _data.removeAt(pos)
-        notifyItemRemoved(pos)
-        remove(v)
+    fun remove(v: V): DataAdapter<V, VH> {
+        val index = _data.indexOf(v)
+        if (index == -1) return this
+        _data.removeAt(index)
+        notifyItemRemoved(index)
+        return remove(v)
     }
 }
 
 
 class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
-    private var linePadding = 2f // play around with these as needed
-    private var sidePadding = 5f // play around with these as needed
+    private val linePadding = 2f // play around with these as needed
+    private val sidePadding = 5f // play around with these as needed
     private fun measureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float =
             paint.measureText(text, start, end)
 

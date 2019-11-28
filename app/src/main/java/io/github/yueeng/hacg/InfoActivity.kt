@@ -624,7 +624,5 @@ class InfoFragment : Fragment() {
             CommentTypeComment -> CommentHolder(parent.inflate(R.layout.comment_item))
             else -> MsgHolder(parent.inflate(R.layout.list_msg_item))
         }
-
     }
-
 }
