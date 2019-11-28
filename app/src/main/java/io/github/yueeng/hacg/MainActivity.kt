@@ -236,7 +236,7 @@ class ArticleFragment : Fragment() {
         if (saved != null) {
             val data = saved.getParcelableArray("data")
             if (data != null && data.isNotEmpty()) {
-                adapter.addAll(data.map { it as Article })
+                adapter.addAll(data.toList())
                 return
             }
             error * saved.getBoolean("error", false)
