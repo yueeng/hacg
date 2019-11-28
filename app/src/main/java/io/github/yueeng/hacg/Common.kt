@@ -72,11 +72,11 @@ val okhttp = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }) } }
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 val okdownload = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }) } }
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
 class HAcgApplication : Application() {
@@ -457,7 +457,6 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapt
     }
 
     fun add(v: V, index: Int = _data.size): DataAdapter<V, VH> {
-        _data += v
         _data.add(index, v)
         notifyItemInserted(index)
         return this
