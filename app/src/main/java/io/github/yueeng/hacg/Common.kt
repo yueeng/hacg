@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -701,18 +702,31 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
         swipe.addView(decorChild, 1)
     }
 
-    // getRealMetrics is only available with API 17 and +
-    private fun getSoftButtonsBarHeight(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    /**
+     * 判断是否是小米手机 并且是否开启全面屏
+     *
+     * @return
+     */
+    fun isXiaoMi(context: Context): Boolean {
+        return if (Build.MANUFACTURER == "Xiaomi") {
+            return Settings.Global.getInt(context.contentResolver, "force_fsg_nav_bar", 0) != 0
+        } else false
+    }
+
+    private fun getSoftButtonsBarHeight():Int{
         val metrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(metrics)
         val usableHeight = metrics.heightPixels
-        windowManager.defaultDisplay.getRealMetrics(metrics)
+        if (isXiaoMi(this))
+            return 0
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+        windowManager.defaultDisplay.getMetrics(metrics) // 获取实际屏幕信息
+        windowManager.defaultDisplay.getRealMetrics(metrics) //获取真正的屏幕高度(适用于有虚拟键)
         val realHeight = metrics.heightPixels
-        if (realHeight > usableHeight)
-            realHeight - usableHeight
-        else
-            0
-    } else 0
+        if (realHeight > usableHeight) //真实高度与可用高度的处理
+            return realHeight - usableHeight
+        return 0
+    }
+
 
     override fun onPanelSlide(panel: View, slideOffset: Float) {
 
