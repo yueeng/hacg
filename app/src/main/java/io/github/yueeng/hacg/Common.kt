@@ -10,17 +10,14 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
-import android.util.DisplayMetrics
 import android.view.*
 import android.widget.FrameLayout
 import android.widget.Toast
@@ -48,10 +45,7 @@ import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
 import okio.sink
-import org.jetbrains.anko.AnkoAsyncContext
-import org.jetbrains.anko.childrenRecursiveSequence
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.doAsyncResult
+import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
@@ -270,6 +264,7 @@ fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View =
         LayoutInflater.from(this.context).inflate(layout, this, attach)
 
 private val img = listOf(".jpg", ".png", ".webp")
+
 @SuppressLint("DefaultLocale")
 fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
 
@@ -527,6 +522,7 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
 
 class Once {
     private var init = false
+
     @Synchronized
     fun run(call: () -> Unit) {
         if (init) return
@@ -662,6 +658,30 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
     override fun onCreate(state: Bundle?) {
         swipe()
         super.onCreate(state)
+        (window.decorView as? ViewGroup)?.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener, View.OnLayoutChangeListener {
+            override fun onChildViewRemoved(parent: View?, child: View?) {
+                child?.removeOnLayoutChangeListener(this)
+            }
+
+            override fun onChildViewAdded(parent: View?, child: View?) {
+                if (child?.id == android.R.id.navigationBarBackground) {
+                    reset(child.height)
+                    child.addOnLayoutChangeListener(this)
+                }
+            }
+
+            override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
+                reset(bottom - top)
+            }
+
+            fun reset(height: Int) {
+                (window.decorView as? ViewGroup)?.firstChildOrNull { it is PagerSlidingPaneLayout }?.let {
+                    it.layoutParams = (it.layoutParams as? FrameLayout.LayoutParams)?.apply {
+                        bottomMargin = height
+                    }
+                }
+            }
+        })
     }
 
     private fun swipe() {
@@ -684,11 +704,8 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
         val leftView = View(this)
         leftView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         swipe.addView(leftView, 0)
-        swipe.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
-            bottomMargin = getSoftButtonsBarHeight()
-        }
+        swipe.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         val decorView = window.decorView as ViewGroup
-
 
         // 右侧的内容视图
         val decorChild = decorView.getChildAt(0) as ViewGroup
@@ -701,27 +718,6 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
         // 为 SlidingPaneLayout 添加内容视图
         swipe.addView(decorChild, 1)
     }
-
-    /**
-     * 判断是否是小米手机 并且是否开启全面屏
-     *
-     * @return
-     */
-    fun isXiaoMi(context: Context): Boolean = if (Build.MANUFACTURER != "Xiaomi") false else {
-        Settings.Global.getInt(context.contentResolver, "force_fsg_nav_bar", 0) != 0
-    }
-
-    private fun getSoftButtonsBarHeight(): Int = if (isXiaoMi(this)) 0 else {
-        val metrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(metrics) // 获取实际屏幕信息
-        val usableHeight = metrics.heightPixels
-        windowManager.defaultDisplay.getRealMetrics(metrics) //获取真正的屏幕高度(适用于有虚拟键)
-        val realHeight = metrics.heightPixels
-        if (realHeight > usableHeight) //真实高度与可用高度的处理
-            realHeight - usableHeight
-        else 0
-    }
-
 
     override fun onPanelSlide(panel: View, slideOffset: Float) {
 
