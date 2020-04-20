@@ -707,24 +707,19 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
      *
      * @return
      */
-    fun isXiaoMi(context: Context): Boolean {
-        return if (Build.MANUFACTURER == "Xiaomi") {
-            return Settings.Global.getInt(context.contentResolver, "force_fsg_nav_bar", 0) != 0
-        } else false
+    fun isXiaoMi(context: Context): Boolean = if (Build.MANUFACTURER != "Xiaomi") false else {
+        Settings.Global.getInt(context.contentResolver, "force_fsg_nav_bar", 0) != 0
     }
 
-    private fun getSoftButtonsBarHeight():Int{
+    private fun getSoftButtonsBarHeight(): Int = if (isXiaoMi(this)) 0 else {
         val metrics = DisplayMetrics()
-        val usableHeight = metrics.heightPixels
-        if (isXiaoMi(this))
-            return 0
-        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
         windowManager.defaultDisplay.getMetrics(metrics) // 获取实际屏幕信息
+        val usableHeight = metrics.heightPixels
         windowManager.defaultDisplay.getRealMetrics(metrics) //获取真正的屏幕高度(适用于有虚拟键)
         val realHeight = metrics.heightPixels
         if (realHeight > usableHeight) //真实高度与可用高度的处理
-            return realHeight - usableHeight
-        return 0
+            realHeight - usableHeight
+        else 0
     }
 
 

@@ -27,7 +27,6 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import androidx.viewpager.widget.ViewPager
 import androidx.viewpager2.widget.ViewPager2
 import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
@@ -212,10 +211,14 @@ class InfoFragment : Fragment() {
                                 val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
                                     request.requestHeaders?.forEach { header(it.key, it.value) }
                                 }.build()
-                                val response = okhttp.newCall(call).execute()
-                                WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
-                                        response.header("content-encoding", "utf-8"),
-                                        response.body?.byteStream())
+                                try {
+                                    val response = okhttp.newCall(call).execute()
+                                    WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
+                                            response.header("content-encoding", "utf-8"),
+                                            response.body?.byteStream())
+                                } catch (_: Exception) {
+                                    super.shouldInterceptRequest(view, request)
+                                }
                             }
                             else -> super.shouldInterceptRequest(view, request)
                         }
@@ -343,7 +346,7 @@ class InfoFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean =
-            view?.findViewById<View>(R.id.container /*drawer*/)?.let { it as? ViewPager }?.takeIf { it.currentItem > 0 }
+            view?.findViewById<View>(R.id.container /*drawer*/)?.let { it as? ViewPager2 }?.takeIf { it.currentItem > 0 }
                     ?.let { it.currentItem = 0; true } ?: false
 
     fun comment() {
