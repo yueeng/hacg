@@ -141,7 +141,7 @@ class InfoFragment : Fragment() {
             val click = View.OnClickListener { v ->
                 when (v.id) {
                     R.id.button1 -> openWeb(activity!!, _article.link!!)
-                    R.id.button2 -> view?.findViewById<ViewPager>(R.id.container)?.currentItem = 1
+                    R.id.button2 -> view?.findViewById<ViewPager2>(R.id.container)?.currentItem = 1
                     R.id.button4 -> share()
                 }
                 view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
@@ -156,7 +156,7 @@ class InfoFragment : Fragment() {
 
                 it.setOnClickListener(object : View.OnClickListener {
                     val max = 3
-                    var magnet = 0
+                    var magnet = 3
                     var toast: Toast? = null
 
                     override fun onClick(v: View): Unit = when {
