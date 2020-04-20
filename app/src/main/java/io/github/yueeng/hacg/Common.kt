@@ -347,8 +347,8 @@ fun version(context: Context): String = try {
 }
 
 fun versionBefore(local: String, online: String): Boolean = try {
-    val l = local.split("""\.""").map { it.toInt() }.toList()
-    val o = online.split("""\.""").map { it.toInt() }.toList()
+    val l = local.split('.').map { it.toInt() }.toList()
+    val o = online.split('.').map { it.toInt() }.toList()
     for (i in 0 until min(l.size, o.size)) {
         (l[i] - o[i]).let { x ->
             when {
