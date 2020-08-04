@@ -82,7 +82,7 @@ class WebFragment : Fragment() {
         val web: WebView = root.findViewById(R.id.web)
 
         busy + root.findViewById(R.id.swipe)
-        busy.each { it.setOnRefreshListener { web.loadUrl(uri) } }
+        busy.each { it.setOnRefreshListener { web.loadUrl(uri!!) } }
 
         val settings = web.settings
         settings.javaScriptEnabled = true
@@ -91,7 +91,7 @@ class WebFragment : Fragment() {
         val back = root.findViewById<View>(R.id.button2)
         val fore = root.findViewById<View>(R.id.button3)
         web.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
                 view?.loadUrl(url)
                 return true
             }
@@ -121,13 +121,13 @@ class WebFragment : Fragment() {
                 R.id.button1 -> web.loadUrl(defuri)
                 R.id.button2 -> if (web.canGoBack()) web.goBack()
                 R.id.button3 -> if (web.canGoForward()) web.goForward()
-                R.id.button4 -> web.loadUrl(uri)
+                R.id.button4 -> web.loadUrl(uri!!)
             }
         }
         listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4)
                 .map { root.findViewById<View>(it) }.forEach { it.setOnClickListener(click) }
 
-        web.loadUrl(uri)
+        web.loadUrl(uri!!)
         return root
     }
 

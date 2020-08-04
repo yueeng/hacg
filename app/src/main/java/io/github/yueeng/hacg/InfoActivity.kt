@@ -45,7 +45,7 @@ import java.util.*
  */
 
 class InfoActivity : BaseSlideCloseActivity() {
-    private val _article: Article by lazy { intent.getParcelableExtra<Article>("article") }
+    private val _article: Article by lazy { intent.getParcelableExtra<Article>("article")!! }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)

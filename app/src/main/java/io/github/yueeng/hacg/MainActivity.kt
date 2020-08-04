@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SearchRecentSuggestionsProvider
-import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -368,8 +367,7 @@ class ArticleFragment : Fragment() {
 
         private var last: Int = -1
         private val interpolator = DecelerateInterpolator(3F)
-        private val from: Float = activity?.windowManager?.defaultDisplay?.let { it as? Display }
-                ?.let { d -> Point().also { d.getSize(it) }.let { p -> max(p.x, p.y) / 4F } } ?: 300F
+        private val from: Float = activity?.window?.decorView?.let { max(it.width, it.height) / 4F } ?: 300F
 
         override fun getItemViewType(position: Int): Int = when (data[position]) {
             is Article -> articleTypeArticle
