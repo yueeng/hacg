@@ -2,10 +2,10 @@
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="2dp"
     android:layout_marginLeft="5dp"
-    android:layout_marginRight="5dp"
     android:layout_marginTop="2dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginBottom="2dp"
     android:descendantFocusability="blocksDescendants"
     android:foreground="?android:attr/selectableItemBackground">
 
@@ -42,14 +42,34 @@
             android:id="@+id/text1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|start"
             android:ellipsize="end"
             android:maxLines="2"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
+            android:shadowColor="#000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="1"
             android:text="@string/app_name"
             android:textColor="@color/text_color_title"
             android:textSize="@dimen/text_size_large" />
+
+        <TextView
+            android:id="@+id/text4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp"
+            android:shadowColor="#000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="1"
+            android:text="@string/app_name"
+            android:textColor="@color/text_color_title"
+            android:textSize="@dimen/text_size_content" />
 
         <TextView
             android:id="@+id/text2"

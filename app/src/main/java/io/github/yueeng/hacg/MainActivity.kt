@@ -31,6 +31,8 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.doAsync
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.Future
 import kotlin.math.max
 
@@ -321,6 +323,7 @@ class ArticleFragment : Fragment() {
         val text1: TextView = view.findViewById(R.id.text1)
         val text2: TextView = view.findViewById(R.id.text2)
         val text3: TextView = view.findViewById(R.id.text3)
+        val text4: TextView = view.findViewById(R.id.text4)
         val image1: ImageView = view.findViewById(R.id.image1)
         var article: Article? = null
 
@@ -340,6 +343,7 @@ class ArticleFragment : Fragment() {
 
     val articleTypeArticle: Int = 0
     val articleTypeMsg: Int = 1
+    val datafmt = SimpleDateFormat("yyyy-MM-dd hh:ss", Locale.getDefault())
 
     inner class ArticleAdapter : DataAdapter<Parcelable, RecyclerView.ViewHolder>() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -348,12 +352,16 @@ class ArticleFragment : Fragment() {
                 holder.article = item
                 holder.text1.text = item.title
                 holder.text1.visibility = if (item.title.isNotEmpty()) View.VISIBLE else View.GONE
-                holder.text1.setTextColor(randomColor())
+                val color = randomColor()
+                holder.text1.setTextColor(color)
                 holder.text2.text = item.content
                 holder.text2.visibility = if (item.content?.isNotEmpty() == true) View.VISIBLE else View.GONE
                 val span = item.expend.spannable(string = { it.name }, call = { tag -> startActivity(Intent(activity, ListActivity::class.java).putExtra("url", tag.url).putExtra("name", tag.name)) })
                 holder.text3.text = span
                 holder.text3.visibility = if (item.tags.isNotEmpty()) View.VISIBLE else View.GONE
+                holder.text4.text = getString(R.string.app_list_time, datafmt.format(item.time ?: Date()), item.author?.name ?: "", item.comments)
+                holder.text4.setTextColor(color)
+                holder.text4.visibility = if (holder.text4.text.isNullOrEmpty()) View.GONE else View.VISIBLE
                 Picasso.with(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
             } else if (holder is MsgHolder) {
                 holder.text1.text = (data[position] as MsgItem).msg

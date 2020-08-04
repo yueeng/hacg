@@ -11,6 +11,7 @@
     <string name="app_list_complete">Nothing more</string>
     <string name="app_list_empty">Empty</string>
     <string name="app_list_loading">Loading…</string>
+    <string name="app_list_time">Posted on %1$s by %2$s | %3$d Replies</string>
     <string name="app_magnet">Link</string>
     <string name="app_name">HAcg</string>
     <string name="app_network_retry">Request hacg failed, click black cat to retry, or chagne host in menu.</string>

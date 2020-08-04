@@ -11,6 +11,7 @@
     <string name="app_list_complete">没有更多了</string>
     <string name="app_list_empty">列表空</string>
     <string name="app_list_loading">加载中…</string>
+    <string name="app_list_time">发表于%1$s由%2$s|%3$d条回复</string>
     <string name="app_magnet">链接</string>
     <string name="app_name">琉璃神社</string>
     <string name="app_network_retry">请求失败，点击黑猫重试，或从菜单更换域名。</string>

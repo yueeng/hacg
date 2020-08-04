@@ -361,7 +361,7 @@ data class Article(val id: Int, val title: String,
                     e.select(".entry-content p,.entry-summary p").text().trim(),
                     e.select("time").attr("datetime").toDate(),
                     e.select("header .comments-link").text().trim().toIntOrNull() ?: 0,
-                    e.select("header .author a").take(1).map { Tag(it) }.firstOrNull(),
+                    e.select(".author a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .cat-links a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .tag-links a").map { Tag(it) }.toList())
 }
