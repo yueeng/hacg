@@ -327,6 +327,11 @@ fun String.test(timeout: Int = 1000): Pair<Boolean, Int> = try {
     e.printStackTrace(); (false to 0)
 }
 
+val rmagnet = """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".toRegex()
+val rbaidu = """\b([a-zA-Z0-9]{8})\b\s+\b([a-zA-Z0-9]{4})\b""".toRegex()
+fun String.magnet(): Sequence<String> = rmagnet.findAll(this).map { it.value } +
+        rbaidu.findAll(this).map { m -> "${m.groups[1]!!.value},${m.groups[2]!!.value}" }
+
 fun <T> Gson.fromJsonOrNull(json: String?, clazz: Class<T>): T? = try {
     fromJson<T>(json, clazz)
 } catch (_: Exception) {
@@ -334,6 +339,8 @@ fun <T> Gson.fromJsonOrNull(json: String?, clazz: Class<T>): T? = try {
 }
 
 inline fun <reified T> Gson.fromJsonOrNull(json: String?): T? = fromJsonOrNull(json, T::class.java)
+
+fun String.jsoup(uri: String): Document = Jsoup.parse(this, uri)
 
 fun Pair<String, String>.jsoup(): Document = this.let { h ->
     Jsoup.parse(h.first, h.second)
