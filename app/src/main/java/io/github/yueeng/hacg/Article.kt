@@ -220,21 +220,19 @@ data class Comment(val id: String, val content: String, val user: String, val fa
             )
 }
 
-data class JWpdiscuz<T>(
-        val success: Boolean,
-        val data: T
-)
-
 data class JComment(
         val last_parent_id: String,
         val is_show_load_more: Boolean,
         val comment_list: String,
-        val loadLastCommentId: String,
-        val callbackFunctions: List<Any?>
+        val loadLastCommentId: String
+)
+
+data class JWpdiscuzComment(
+        val success: Boolean,
+        val data: JComment
 )
 
 data class JCommentResult(
-        val callbackFunctions: List<Any>,
         val code: String,
         val comment_author: String,
         val comment_author_email: String,
@@ -248,6 +246,11 @@ data class JCommentResult(
         val uniqueid: String,
         val wc_all_comments_count_new: String,
         val wc_all_comments_count_new_html: String
+)
+
+data class JWpdiscuzCommentResult(
+        val success: Boolean,
+        val data: JCommentResult
 )
 
 @Parcelize

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:icon="@drawable/ic_sort"
+        android:title="@string/comment_sort"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/vote"
+                android:title="@string/comment_sort_vote"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/newest"
+                android:title="@string/comment_sort_newest"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/oldest"
+                android:title="@string/comment_sort_oldest"
+                app:showAsAction="ifRoom" />
+        </menu>
+    </item>
+</menu>

@@ -15,10 +15,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.view.LayoutInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.webkit.*
 import android.widget.*
 import androidx.annotation.RequiresApi
@@ -372,6 +369,12 @@ class InfoCommentFragment : Fragment() {
     private val AUTHOR = "wc_name"
     private val EMAIL = "wc_email"
     private var COMMENT = "wc_comment"
+    private var sorting: Sorting = Sorting.Vote
+
+    enum class Sorting(val sort: String) {
+        Vote("by_vote"), Newest("newest"), Oldest("oldest")
+    }
+
     private val COMMENTURL
         get() = "${HAcg.wordpress}/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
@@ -414,6 +417,27 @@ class InfoCommentFragment : Fragment() {
         _post["submit"] = "发表评论"
         _post["postId"] = "${_article.id}"
         query()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_comment, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.vote, R.id.newest, R.id.oldest -> {
+            sorting = when (item.itemId) {
+                R.id.oldest -> Sorting.Oldest
+                R.id.newest -> Sorting.Newest
+                else -> Sorting.Vote
+            }
+            _postOffset = 0
+            _postParentId = 0
+            _adapter.clear()
+            query()
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
     }
 
     inner class CommentHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -486,13 +510,13 @@ class InfoCommentFragment : Fragment() {
         doAsync {
             val json = COMMENTURL.httpPost(mapOf(
                     "action" to "wpdLoadMoreComments",
-                    "sorting" to "by_vote",
+                    "sorting" to sorting.sort,
                     "offset" to "$_postOffset",
                     "lastParentId" to "$_postParentId",
                     "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
                     "wpdType" to "",
                     "postId" to "${_article.id}"))
-            val comments = gson.fromJsonOrNull<JWpdiscuz<JComment>>(json?.first)
+            val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
             val list = Jsoup.parse(comments?.data?.comment_list ?: "", json?.second ?: "")
                     .select("body>.wpd-comment").map { Comment(it) }.toList()
             autoUiThread {
@@ -577,7 +601,7 @@ class InfoCommentFragment : Fragment() {
                     _progress * true
                     doAsync {
                         val result = url.httpPost(_post.toMap())
-                        val json = gson.fromJsonOrNull<JWpdiscuz<JCommentResult>>(result?.first)
+                        val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
                         val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
                                 .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
                         autoUiThread {

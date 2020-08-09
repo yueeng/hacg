@@ -40,6 +40,10 @@
     <string name="comment_succeeded">Submit succeeded</string>
     <string name="comment_title">Comment</string>
     <string name="comment_verify">Some fields are empty.</string>
+    <string name="comment_sort">Reviews sort</string>
+    <string name="comment_sort_vote">Most votes received comments</string>
+    <string name="comment_sort_newest">Latest reviews</string>
+    <string name="comment_sort_oldest">Oldest reviews</string>
 
     <string name="permission_write_external_storage">Request write external storage permission.</string>
 

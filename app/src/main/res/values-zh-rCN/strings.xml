@@ -40,6 +40,10 @@
     <string name="comment_succeeded">提交成功</string>
     <string name="comment_title">评论</string>
     <string name="comment_verify">部分字段为空。</string>
+    <string name="comment_sort">评论排序</string>
+    <string name="comment_sort_vote">得票最多的评论</string>
+    <string name="comment_sort_newest">最新的评论</string>
+    <string name="comment_sort_oldest">最旧的评论</string>
 
     <string name="permission_write_external_storage">需要写外部存储权限。</string>
 
