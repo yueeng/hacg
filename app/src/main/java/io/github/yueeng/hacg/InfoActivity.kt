@@ -375,7 +375,7 @@ class InfoCommentFragment : Fragment() {
         Vote("by_vote"), Newest("newest"), Oldest("oldest")
     }
 
-    private val COMMENTURL
+    private val Wpdiscuz
         get() = "${HAcg.wordpress}/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
     private val _progress = ViewBinder<Boolean, SwipeRefreshLayout>(false) { view, value -> view.post { view.isRefreshing = value } }
@@ -440,22 +440,53 @@ class InfoCommentFragment : Fragment() {
         else -> super.onOptionsItemSelected(item)
     }
 
-    inner class CommentHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val text1: TextView = view.findViewById(R.id.text1)
-        val text2: TextView = view.findViewById(R.id.text2)
-        val text3: TextView = view.findViewById(R.id.text3)
-        val text4: TextView = view.findViewById(R.id.text4)
-        val image: ImageView = view.findViewById(R.id.image1)
+    inner class CommentHolder(view: View, func: () -> CommentAdapter) : RecyclerView.ViewHolder(view) {
+        private val text1: TextView = view.findViewById(R.id.text1)
+        private val text2: TextView = view.findViewById(R.id.text2)
+        private val text3: TextView = view.findViewById(R.id.text3)
+        private val text4: TextView = view.findViewById(R.id.text4)
+        private val image: ImageView = view.findViewById(R.id.image1)
+        private val button1: ImageView = view.findViewById(R.id.button1)
+        private val button2: ImageView = view.findViewById(R.id.button2)
+
         private val list: RecyclerView = view.findViewById(R.id.list1)
-        val adapter = CommentAdapter()
-        val context: Context = view.context
+        private val adapter = CommentAdapter()
+        private val context: Context? get() = view?.context
 
         init {
             list.adapter = adapter
             list.layoutManager = LinearLayoutManager(context)
             list.setHasFixedSize(true)
-            view.setOnClickListener { v ->
-                v.tag?.let { it as Comment }?.let { comment(it, adapterPosition) }
+            listOf(button1, button2).forEach { b ->
+                b.setOnClickListener { view ->
+                    val v = if (view.id == R.id.button1) -1 else 1
+                    val item = itemView.tag as? Comment ?: return@setOnClickListener
+                    vote(item, v) {
+                        item.moderation = it
+                        func().notifyItemChanged(adapterPosition, "moderation")
+                    }
+                }
+            }
+            view.setOnClickListener { v -> v.tag?.let { it as Comment }?.let { comment(it, adapterPosition) } }
+        }
+
+        fun bind(item: Comment, payloads: MutableList<Any>) {
+            if (payloads.contains("moderation")) {
+                text4.text = "${item.moderation}"
+                return
+            }
+            itemView.tag = item
+            text1.text = item.user
+            text2.text = item.content
+            text3.text = item.time
+            text4.text = "${item.moderation}"
+            adapter.clear()
+            adapter.addAll(item.children)
+
+            if (item.face.isEmpty()) {
+                image.setImageResource(R.mipmap.ic_launcher)
+            } else {
+                Picasso.with(context).load(item.face).placeholder(R.mipmap.ic_launcher).into(image)
             }
         }
     }
@@ -465,26 +496,11 @@ class InfoCommentFragment : Fragment() {
     }
 
     inner class CommentAdapter : DataAdapter<Any, RecyclerView.ViewHolder>() {
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {}
 
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
             when (holder) {
-                is CommentHolder -> {
-                    val item = data[position] as Comment
-                    holder.itemView.tag = item
-                    holder.text1.text = item.user
-                    holder.text2.text = item.content
-                    holder.text3.text = item.time
-                    holder.text4.text = item.moderation
-                    holder.text4.visibility = if (item.moderation.isEmpty()) View.GONE else View.VISIBLE
-                    holder.adapter.clear()
-                    holder.adapter.addAll(item.children)
-
-                    if (item.face.isEmpty()) {
-                        holder.image.setImageResource(R.mipmap.ic_launcher)
-                    } else {
-                        Picasso.with(holder.context).load(item.face).placeholder(R.mipmap.ic_launcher).into(holder.image)
-                    }
-                }
+                is CommentHolder -> holder.bind(data[position] as Comment, payloads)
                 is MsgHolder -> holder.text1.text = data[position] as String
             }
         }
@@ -497,7 +513,7 @@ class InfoCommentFragment : Fragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
-            CommentTypeComment -> CommentHolder(parent.inflate(R.layout.comment_item))
+            CommentTypeComment -> CommentHolder(parent.inflate(R.layout.comment_item)) { return@CommentHolder this }
             else -> MsgHolder(parent.inflate(R.layout.list_msg_item))
         }
     }
@@ -508,7 +524,7 @@ class InfoCommentFragment : Fragment() {
         }
         _progress * true
         doAsync {
-            val json = COMMENTURL.httpPost(mapOf(
+            val json = Wpdiscuz.httpPost(mapOf(
                     "action" to "wpdLoadMoreComments",
                     "sorting" to sorting.sort,
                     "offset" to "$_postOffset",
@@ -544,6 +560,26 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
+    fun vote(c: Comment?, v: Int, call: (Int) -> Unit) {
+        if (c == null) return
+        doAsync {
+            val result = Wpdiscuz.httpPost(mapOf(
+                    "action" to "wpdVoteOnComment",
+                    "commentId" to "${c.id}",
+                    "voteType" to "$v",
+                    "postId" to "${_article.id}"))
+            autoUiThread {
+                val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
+                if (succeed?.success != true) {
+                    val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
+                    Toast.makeText(activity!!, json?.data ?: result?.first, Toast.LENGTH_LONG).show()
+                    return@autoUiThread
+                }
+                call(succeed.data.votes.toIntOrNull() ?: 0)
+            }
+        }
+    }
+
     fun comment(c: Comment?, pos: Int? = null) {
         if (c == null) {
             commenting(c, pos)
@@ -570,7 +606,7 @@ class InfoCommentFragment : Fragment() {
 
     @SuppressLint("InflateParams")
     private fun commenting(c: Comment?, pos: Int? = null) {
-        val url = COMMENTURL
+        val url = Wpdiscuz
         val input = LayoutInflater.from(activity!!).inflate(R.layout.comment_post, null)
         val author: EditText = input.findViewById(R.id.edit1)
         val email: EditText = input.findViewById(R.id.edit2)
@@ -578,7 +614,7 @@ class InfoCommentFragment : Fragment() {
         author.setText(_post[AUTHOR])
         email.setText(_post[EMAIL])
         content.setText(_post[COMMENT] ?: "")
-        _post["wpdiscuz_unique_id"] = (c?.id ?: "0_0")
+        _post["wpdiscuz_unique_id"] = (c?.uniqueId ?: "0_0")
         _post["wc_comment_depth"] = "${(c?.depth ?: 1)}"
 
         fun fill() {

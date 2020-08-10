@@ -202,18 +202,21 @@ data class Tag(val name: String, val url: String) : Parcelable {
 }
 
 @Parcelize
-data class Comment(val id: String, val content: String, val user: String, val face: String,
-                   val moderation: String, val time: String, val children: MutableList<Comment>, val depth: Int = 1) : Parcelable {
+data class Comment(val id: Int, val parent: Int, val content: String, val user: String, val face: String,
+                   var moderation: Int, val time: String, val children: MutableList<Comment>, val depth: Int = 1) : Parcelable {
     companion object {
-        val ID: Regex = """wpd-comm-(\d+_\d+)""".toRegex()
+        val ID: Regex = """wpd-comm-(\d+)_(\d+)""".toRegex()
     }
 
+    val uniqueId: String get() = "${id}_$parent"
+
     constructor(e: Element, depth: Int = 1) :
-            this(ID.find(e.attr("id"))?.let { it.groups[1]?.value } ?: "0_0",
+            this(ID.find(e.attr("id"))?.let { it.groups[1]?.value }?.toInt() ?: 0,
+                    ID.find(e.attr("id"))?.let { it.groups[2]?.value }?.toInt() ?: 0,
                     e.select(">.wpd-comment-wrap .wpd-comment-text").text(),
                     e.select(">.wpd-comment-wrap .wpd-comment-author").text(),
                     e.select(">.wpd-comment-wrap .avatar").attr("abs:src"),
-                    e.select(">.wpd-comment-wrap .wpd-vote-result").text(),
+                    e.select(">.wpd-comment-wrap .wpd-vote-result").text().toIntOrNull() ?: 0,
                     e.select(">.wpd-comment-wrap .wpd-comment-date").text(),
                     e.select(">.wpd-comment-wrap~.wpd-reply").map { Comment(it, depth + 1) }.toMutableList(),
                     depth
@@ -251,6 +254,21 @@ data class JCommentResult(
 data class JWpdiscuzCommentResult(
         val success: Boolean,
         val data: JCommentResult
+)
+
+data class JWpdiscuzVote(
+        val success: Boolean,
+        val data: String
+)
+
+data class JWpdiscuzVoteSucceed(
+        val success: Boolean,
+        val data: JWpdiscuzVoteSucceedData
+)
+
+data class JWpdiscuzVoteSucceedData(
+        val buttonsStyle: String,
+        val votes: String
 )
 
 @Parcelize
