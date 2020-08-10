@@ -187,6 +187,7 @@ class InfoWebFragment : Fragment() {
                     })
                 }
                 val web: WebView = root.findViewById(R.id.web)
+                CookieManager.getInstance().acceptThirdPartyCookies(web)
                 val settings = web.settings
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW

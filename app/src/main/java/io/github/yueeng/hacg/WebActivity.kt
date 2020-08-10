@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.*
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -80,6 +81,7 @@ class WebFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val root = inflater.inflate(R.layout.fragment_web, container, false)
         val web: WebView = root.findViewById(R.id.web)
+        CookieManager.getInstance().acceptThirdPartyCookies(web)
 
         busy + root.findViewById(R.id.swipe)
         busy.each { it.setOnRefreshListener { web.loadUrl(uri!!) } }
