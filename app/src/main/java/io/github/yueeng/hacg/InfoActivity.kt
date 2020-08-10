@@ -134,7 +134,8 @@ class InfoWebFragment : Fragment() {
                 val click = View.OnClickListener { v ->
                     when (v.id) {
                         R.id.button1 -> openWeb(activity!!, _article.link!!)
-                        R.id.button2 -> view?.findViewById<ViewPager2>(R.id.container)?.currentItem = 1
+                        R.id.button2 -> activity?.window?.decorView
+                                ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
                         R.id.button4 -> share()
                     }
                     view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)

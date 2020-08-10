@@ -373,8 +373,8 @@ fun versionBefore(local: String, online: String): Boolean = try {
     false
 }
 
-inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<View> = this.childrenRecursiveSequence()
-        .filter { it is T }.filter { id == 0 || id == it.id }
+inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> = this.childrenRecursiveSequence()
+        .mapNotNull { it as? T }.filter { id == 0 || id == it.id }
 
 fun Activity.snack(text: CharSequence, duration: Int = Snackbar.LENGTH_SHORT): Snackbar = this.window.decorView.let { view ->
     view.findViewByViewType<CoordinatorLayout>().firstOrNull()
