@@ -150,6 +150,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 true
             }
+            R.id.user -> {
+                if (user != 0)
+                    startActivity(Intent(this, WebActivity::class.java).apply {
+                        if (user != 0) putExtra("url", "${HAcg.philosophy}/profile/$user")
+                        else putExtra("login", true)
+                    })
+                true
+            }
             R.id.philosophy -> {
                 startActivity(Intent(this, WebActivity::class.java))
                 true

@@ -28,6 +28,8 @@
     <string name="app_update_check">Check update</string>
     <string name="app_update_new">Update from %1$s to %2$s</string>
     <string name="app_update_none">Version %1$s is newest.</string>
+    <string name="app_user">User Information</string>
+    <string name="app_user_login">Login</string>
 
     <string name="comment_author">Author</string>
     <string name="comment_content">Content</string>

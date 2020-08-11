@@ -28,6 +28,8 @@
     <string name="app_update_check">检查更新</string>
     <string name="app_update_new">从 %1$s 升级到 %2$s。</string>
     <string name="app_update_none">版本 %1$s 已经是最新版本。</string>
+    <string name="app_user">用户信息</string>
+    <string name="app_user_login">登录</string>
 
     <string name="comment_author">姓名</string>
     <string name="comment_content">评论内容</string>

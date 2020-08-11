@@ -12,6 +12,11 @@
         android:title="@string/app_philosophy"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/user"
+        android:icon="@drawable/ic_account"
+        android:title="@string/app_user"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/search_clear"
         android:icon="@android:drawable/ic_menu_close_clear_cancel"
         android:title="@string/app_search_clear"

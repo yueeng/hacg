@@ -363,11 +363,11 @@ class InfoCommentFragment : Fragment() {
     private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!! }
     private val _adapter by lazy { CommentAdapter() }
 
-    private val _post = mutableMapOf<String, String>()
     private var _postParentId: Int? = 0
     private var _postOffset: Int = 0
     private val CONFIG_AUTHOR = "config.author"
     private val CONFIG_EMAIL = "config.email"
+    private val CONFIG_COMMENT = "config.comment"
     private val AUTHOR = "wc_name"
     private val EMAIL = "wc_email"
     private var COMMENT = "wc_comment"
@@ -412,12 +412,6 @@ class InfoCommentFragment : Fragment() {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
         retainInstance = true
-        val preference = PreferenceManager.getDefaultSharedPreferences(activity)
-        _post += (AUTHOR to preference.getString(CONFIG_AUTHOR, "")!!)
-        _post += (EMAIL to preference.getString(CONFIG_EMAIL, "")!!)
-        _post["action"] = "wpdAddComment"
-        _post["submit"] = "发表评论"
-        _post["postId"] = "${_article.id}"
         query()
     }
 
@@ -613,18 +607,32 @@ class InfoCommentFragment : Fragment() {
         val author: EditText = input.findViewById(R.id.edit1)
         val email: EditText = input.findViewById(R.id.edit2)
         val content: EditText = input.findViewById(R.id.edit3)
-        author.setText(_post[AUTHOR])
-        email.setText(_post[EMAIL])
-        content.setText(_post[COMMENT] ?: "")
-        _post["wpdiscuz_unique_id"] = (c?.uniqueId ?: "0_0")
-        _post["wc_comment_depth"] = "${(c?.depth ?: 1)}"
+        val post = mutableMapOf<String, String>()
+        val preference = PreferenceManager.getDefaultSharedPreferences(activity)
+        if (user != 0) {
+            (author.parent as? View)?.visibility = View.GONE
+            (email.parent as? View)?.visibility = View.GONE
+        } else {
+            post += (AUTHOR to preference.getString(CONFIG_AUTHOR, "")!!)
+            post += (EMAIL to preference.getString(CONFIG_EMAIL, "")!!)
+            author.setText(post[AUTHOR])
+            email.setText(post[EMAIL])
+        }
+        post += (COMMENT to preference.getString(CONFIG_COMMENT, "")!!)
+        content.setText(post[COMMENT] ?: "")
+        post["action"] = "wpdAddComment"
+        post["submit"] = "发表评论"
+        post["postId"] = "${_article.id}"
+        post["wpdiscuz_unique_id"] = (c?.uniqueId ?: "0_0")
+        post["wc_comment_depth"] = "${(c?.depth ?: 1)}"
 
         fun fill() {
-            _post[AUTHOR] = author.text.toString()
-            _post[EMAIL] = email.text.toString()
-            _post[COMMENT] = content.text.toString()
-            val preference = PreferenceManager.getDefaultSharedPreferences(activity!!)
-            preference.edit().putString(CONFIG_AUTHOR, _post[AUTHOR]).putString(CONFIG_EMAIL, _post[EMAIL]).apply()
+            post[AUTHOR] = author.text.toString()
+            post[EMAIL] = email.text.toString()
+            post[COMMENT] = content.text.toString()
+            preference.edit().putString(CONFIG_AUTHOR, post[AUTHOR])
+                    .putString(CONFIG_EMAIL, post[EMAIL])
+                    .putString(CONFIG_COMMENT, post[COMMENT]).apply()
         }
 
         AlertDialog.Builder(activity!!)
@@ -632,13 +640,13 @@ class InfoCommentFragment : Fragment() {
                 .setView(input)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
                     fill()
-                    if (url.isEmpty() || listOf(AUTHOR, EMAIL, COMMENT).map { _post[it] }.any { it.isNullOrEmpty() }) {
+                    if (post[COMMENT].isNullOrBlank() || (user == 0 && (post[AUTHOR].isNullOrBlank() || post[EMAIL].isNullOrBlank()))) {
                         Toast.makeText(activity!!, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
                         return@setPositiveButton
                     }
                     _progress * true
                     doAsync {
-                        val result = url.httpPost(_post.toMap())
+                        val result = url.httpPost(post.toMap())
                         val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
                         val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
                                 .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
@@ -648,7 +656,7 @@ class InfoCommentFragment : Fragment() {
                                 Toast.makeText(activity!!, json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
                                 return@autoUiThread
                             }
-                            _post[COMMENT] = ""
+                            post[COMMENT] = ""
                             if (c != null) {
                                 c.children.add(review)
                                 _adapter.notifyItemChanged(pos!!)
@@ -659,6 +667,12 @@ class InfoCommentFragment : Fragment() {
                     }
                 }
                 .setNegativeButton(R.string.app_cancel, null)
+                .apply {
+                    if (user != 0) return@apply
+                    setNeutralButton(R.string.app_user_login) { _, _ ->
+                        startActivity(Intent(activity!!, WebActivity::class.java).putExtra("login", true))
+                    }
+                }
                 .setOnDismissListener { fill() }
                 .create().show()
     }

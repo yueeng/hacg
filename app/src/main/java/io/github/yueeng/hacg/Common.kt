@@ -5,7 +5,10 @@ package io.github.yueeng.hacg
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
-import android.content.*
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -19,6 +22,7 @@ import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.view.*
+import android.webkit.CookieManager
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -39,9 +44,7 @@ import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import com.jakewharton.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
 import okio.sink
@@ -49,7 +52,10 @@ import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
-import java.net.*
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.URL
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,11 +68,16 @@ fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
 }
 
+var user: Int
+    get() = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance).getInt("user.id", 0)
+    set(value) = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance).edit().putInt("user.id", value).apply()
+
 val gson: Gson = GsonBuilder().create()
 val okhttp = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 val okdownload = OkHttpClient.Builder()
@@ -91,144 +102,16 @@ class HAcgApplication : Application() {
         Picasso.setSingletonInstance(Picasso.Builder(this)
                 .downloader(OkHttp3Downloader(okhttp))
                 .build())
-        CookieHandler.setDefault(CookieManagerProxy.instance)
     }
 }
 
-class CookieManagerProxy(store: CookieStore, policy: CookiePolicy) : CookieManager(store, policy) {
+class WebkitCookieJar(private val cm: CookieManager) : CookieJar {
+    override fun loadForRequest(url: HttpUrl): List<Cookie> = cm.getCookie(url.toString())?.split("; ")?.mapNotNull { Cookie.parse(url, it) }?.toList() ?: emptyList()
 
-    private val SetCookie: String = "Set-Cookie"
-
-    override fun put(uri: URI, headers: Map<String, List<String>>) {
-        super.put(uri, headers)
-        cookieStore.get(uri)
-                .filter { o -> o.domain != null && !o.domain.startsWith(".") }
-                .forEach { o -> o.domain = ".${o.domain}" }
-    }
-
-    fun put(uri: URI, cookies: String?) = when (cookies) {
-        null -> {
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        cookies.forEach { cookie ->
+            cm.setCookie(url.toString(), cookie.toString())
         }
-        else ->
-            this.put(uri, mapOf(SetCookie to cookies.split(";").map { it.trim() }.toList()))
-    }
-
-    companion object {
-        val instance = CookieManagerProxy(PersistCookieStore(HAcgApplication.instance), CookiePolicy.ACCEPT_ALL)
-    }
-}
-
-/**
- * PersistentCookieStore
- * Created by Rain on 2015/7/1.
- */
-class PersistCookieStore(context: Context) : CookieStore {
-    private val map = mutableMapOf<URI, MutableSet<HttpCookie>>()
-    private val pref: SharedPreferences = context.getSharedPreferences("cookies.pref", Context.MODE_PRIVATE)
-
-    init {
-        pref.all.mapNotNull { i -> (i.value as? String)?.takeIf { it.isNotEmpty() }?.let { i.key to it.split(',') } }
-                .forEach { o ->
-                    map[URI.create(o.first)] = o.second.flatMap { c ->
-                        try {
-                            HttpCookie.parse(c)
-                        } catch (_: Throwable) {
-                            listOf<HttpCookie>()
-                        }
-                    }.toMutableSet()
-                }
-    }
-
-    fun HttpCookie.string(): String {
-        if (version != 0) {
-            return toString()
-        }
-        return mapOf(name to value, "domain" to domain)
-                .filter { it.value != null }
-                .filter { it.value.isNotEmpty() }
-                .map { o -> "${o.key}=${o.value}" }
-                .joinToString("; ")
-    }
-
-    private fun cookiesUri(uri: URI): URI {
-        return try {
-            URI("http", uri.host, null, null)
-        } catch (_: URISyntaxException) {
-            uri
-        }
-    }
-
-    @Synchronized
-    override fun add(url: URI, cookie: HttpCookie?) {
-        if (cookie == null) {
-            throw NullPointerException("cookie == null")
-        }
-        cookie.domain?.takeIf { !it.startsWith(".") }?.let { cookie.domain = ".$it" }
-
-        val uri = cookiesUri(url)
-
-        if (map.contains(uri)) {
-            map[uri]!!.add(cookie)
-        } else {
-            map[uri] = mutableSetOf(cookie)
-        }
-
-        pref.edit().putString(uri.toString(), map[uri]!!.map { it.string() }.toSet().joinToString(",")).apply()
-    }
-
-    @Synchronized
-    override fun remove(url: URI, cookie: HttpCookie?): Boolean {
-        if (cookie == null) {
-            throw NullPointerException("cookie == null")
-        }
-        val uri = cookiesUri(url)
-        return map[uri]?.takeIf { it.contains(cookie) }?.let { cookies ->
-            pref.edit().putString(uri.toString(), (cookies - cookie).map { it.string() }.toSet().joinToString(",")).apply()
-            true
-        } ?: false
-    }
-
-    @Synchronized
-    override fun removeAll(): Boolean {
-        val result = map.isNotEmpty()
-        map.clear()
-        pref.edit().clear().apply()
-        return result
-    }
-
-    @Synchronized
-    override fun getURIs(): List<URI> =
-            map.keys.toList()
-
-
-    private fun expire(uri: URI, cookies: MutableSet<HttpCookie>, edit: SharedPreferences.Editor, fn: (HttpCookie) -> Boolean = { true }) {
-        cookies.filter(fn).filter { it.hasExpired() }.takeIf { it.isNotEmpty() }?.let { ex ->
-            cookies.removeAll(ex)
-            edit.putString(uri.toString(), cookies.map { it.string() }.toSet().joinToString(",")).apply()
-        }
-    }
-
-    @Synchronized
-    override fun getCookies(): List<HttpCookie> {
-        pref.edit().apply { map.forEach { expire(it.key, it.value, this) } }.apply()
-        return map.values.flatten().toList().distinct()
-    }
-
-    @Synchronized
-    override fun get(uri: URI?): List<HttpCookie> {
-        if (uri == null) {
-            throw NullPointerException("uri == null")
-        }
-        val edit = pref.edit()
-        return map[uri]?.let { cookies ->
-            expire(uri, cookies, edit)
-            map.filter { it.key != uri }.forEach { o ->
-                expire(o.key, o.value, edit) { c -> HttpCookie.domainMatches(c.domain, uri.host) }
-            }
-            edit.apply()
-            (map[uri]?.toList()
-                    ?: listOf()) + map.values.flatMap { o -> o.filter { c -> HttpCookie.domainMatches(c.domain, uri.host) } }.toList().distinct()
-        } ?: listOf()
     }
 }
 
@@ -271,7 +154,14 @@ fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
 fun String.httpGet(): Pair<String, String>? = try {
     val request = Request.Builder().get().url(this).build()
     val response = okhttp.newCall(request).execute()
-    response.body!!.string() to response.request.url.toString()
+    val url = response.request.url.toString()
+    val html = response.body!!.string()
+    if (url.startsWith(HAcg.wordpress)) {
+        """"user_id":"(\d+)"""".toRegex().find(html)?.let {
+            user = it.groups[1]?.value?.toIntOrNull() ?: 0
+        }
+    }
+    html to url
 } catch (e: Exception) {
     e.printStackTrace(); null
 }

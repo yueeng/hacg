@@ -51,7 +51,9 @@ class WebFragment : Fragment() {
     private var uri: String? = null
 
     private val defuri: String
-        get() = arguments?.takeIf { it.containsKey("url") }?.getString("url") ?: HAcg.philosophy
+        get() = arguments?.takeIf { it.containsKey("url") }?.getString("url")
+                ?: (if (isLogin) "${HAcg.philosophy}?foro=signin" else HAcg.philosophy)
+    private val isLogin: Boolean get() = arguments?.getBoolean("login", false) ?: false
 
     val web: WebView by lazy { view!!.findViewById<WebView>(R.id.web) }
     private val progress: ProgressBar by lazy { view!!.findViewById<ProgressBar>(R.id.progress) }
@@ -110,6 +112,12 @@ class WebFragment : Fragment() {
 
                 back.isEnabled = view?.canGoBack() ?: false
                 fore.isEnabled = view?.canGoForward() ?: false
+                if (isLogin) view?.evaluateJavascript("""favorites_data["user_id"]""") { s ->
+                    s?.trim('"')?.toIntOrNull()?.takeIf { it != 0 }?.let {
+                        user = it
+                        activity!!.finish()
+                    }
+                }
             }
         }
         web.webChromeClient = object : WebChromeClient() {
