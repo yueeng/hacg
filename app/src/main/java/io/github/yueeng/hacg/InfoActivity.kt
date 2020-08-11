@@ -339,8 +339,9 @@ class InfoWebFragment : Fragment() {
                 }
             }
             val html = entry?.let {
-                HAcgApplication.instance.assets.open("template.html").bufferedReader()
-                        .readText().replace("{{title}}", _article.title).replace("{{body}}", entry.html())
+                activity?.resources?.openRawResource(R.raw.template)?.bufferedReader()?.readText()
+                        ?.replace("{{title}}", _article.title)
+                        ?.replace("{{body}}", entry.html())
             }
             val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
             autoUiThread {
@@ -529,12 +530,12 @@ class InfoCommentFragment : Fragment() {
                     "wpdType" to "",
                     "postId" to "${_article.id}"))
             val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
-            val list = Jsoup.parse(comments?.data?.comment_list ?: "", json?.second ?: "")
+            val list = Jsoup.parse(comments?.data?.commentList ?: "", json?.second ?: "")
                     .select("body>.wpd-comment").map { Comment(it) }.toList()
             autoUiThread {
                 if (comments?.data != null) {
-                    if (comments.data.is_show_load_more) {
-                        _postParentId = comments.data.last_parent_id.toIntOrNull()
+                    if (comments.data.isShowLoadMore) {
+                        _postParentId = comments.data.lastParentId.toIntOrNull()
                         _postOffset++
                     } else {
                         _postParentId = null

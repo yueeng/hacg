@@ -13,6 +13,7 @@ import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
 import com.google.android.material.snackbar.Snackbar
+import com.google.gson.annotations.SerializedName
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import org.json.JSONArray
@@ -21,7 +22,6 @@ import org.jsoup.nodes.Element
 import java.io.File
 import java.io.PrintWriter
 import java.util.*
-
 
 object HAcg {
     private val SYSTEM_HOST: String = "system.host"
@@ -224,51 +224,51 @@ data class Comment(val id: Int, val parent: Int, val content: String, val user: 
 }
 
 data class JComment(
-        val last_parent_id: String,
-        val is_show_load_more: Boolean,
-        val comment_list: String,
-        val loadLastCommentId: String
+        @SerializedName("last_parent_id") val lastParentId: String,
+        @SerializedName("is_show_load_more") val isShowLoadMore: Boolean,
+        @SerializedName("comment_list") val commentList: String,
+        @SerializedName("loadLastCommentId") val loadLastCommentId: String
 )
 
 data class JWpdiscuzComment(
-        val success: Boolean,
-        val data: JComment
+        @SerializedName("success") val success: Boolean,
+        @SerializedName("data") val data: JComment
 )
 
 data class JCommentResult(
-        val code: String,
-        val comment_author: String,
-        val comment_author_email: String,
-        val comment_author_url: String,
-        val held_moderate: Int,
-        val is_in_same_container: String,
-        val is_main: Int,
-        val message: String,
-        val new_comment_id: Int,
-        val redirect: Int,
-        val uniqueid: String,
-        val wc_all_comments_count_new: String,
-        val wc_all_comments_count_new_html: String
+        @SerializedName("code") val code: String,
+        @SerializedName("comment_author") val commentAuthor: String,
+        @SerializedName("comment_author_email") val commentAuthorEmail: String,
+        @SerializedName("comment_author_url") val commentAuthorUrl: String,
+        @SerializedName("held_moderate") val held_moderate: Int,
+        @SerializedName("is_in_same_container") val isInSameContainer: String,
+        @SerializedName("is_main") val is_main: Int,
+        @SerializedName("message") val message: String,
+        @SerializedName("new_comment_id") val newCommentId: Int,
+        @SerializedName("redirect") val redirect: Int,
+        @SerializedName("uniqueid") val uniqueid: String,
+        @SerializedName("wc_all_comments_count_new") val wcAllCommentsCountNew: String,
+        @SerializedName("wc_all_comments_count_new_html") val wcAllCommentsCountNewHtml: String
 )
 
 data class JWpdiscuzCommentResult(
-        val success: Boolean,
-        val data: JCommentResult
+        @SerializedName("success") val success: Boolean,
+        @SerializedName("data") val data: JCommentResult
 )
 
 data class JWpdiscuzVote(
-        val success: Boolean,
-        val data: String
+        @SerializedName("success") val success: Boolean,
+        @SerializedName("data") val data: String
 )
 
 data class JWpdiscuzVoteSucceed(
-        val success: Boolean,
-        val data: JWpdiscuzVoteSucceedData
+        @SerializedName("success") val success: Boolean,
+        @SerializedName("data") val data: JWpdiscuzVoteSucceedData
 )
 
 data class JWpdiscuzVoteSucceedData(
-        val buttonsStyle: String,
-        val votes: String
+        @SerializedName("buttonsStyle") val buttonsStyle: String,
+        @SerializedName("votes") val votes: String
 )
 
 @Parcelize
