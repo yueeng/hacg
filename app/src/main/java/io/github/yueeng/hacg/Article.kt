@@ -283,6 +283,9 @@ data class Article(val id: Int, val title: String,
                    val tags: List<Tag>) : Parcelable {
     companion object {
         val ID: Regex = """post-(\d+)""".toRegex()
+        fun parseID(str: String?) = str?.let { s -> ID.find(s)?.let { it.groups[1]?.value?.toInt() } }
+        val URL: Regex get() = """${HAcg.wordpress}/(\d+)\.html""".toRegex()
+        fun getIdFromUrl(str: String?) = str?.let { s -> URL.find(s)?.let { it.groups[1]?.value?.toInt() } }
     }
 
     constructor(msg: String) : this(0, msg, null, null, null, null, 0, null, null, listOf())
@@ -298,13 +301,13 @@ data class Article(val id: Int, val title: String,
     val expend: List<Tag> by lazy { (tags + category + author).mapNotNull { it } }
 
     constructor(e: Element) :
-            this(ID.find(e.attr("id"))?.let { it.groups[1]?.value?.toInt() } ?: 0,
-                    e.select("header .entry-title a").text().trim(),
-                    e.select("header .entry-title a").attr("abs:href"),
+            this(parseID(e.attr("id")) ?: 0,
+                    e.select("header .entry-title").text().trim(),
+                    e.select("header .entry-title,.entry-meta a").attr("abs:href"),
                     e.select(".entry-content img").let { img ->
                         img.takeIf { it.hasClass("avatar") }?.let { "" } ?: img.attr("abs:src")
                     },
-                    e.select(".entry-content p,.entry-summary p").text().trim(),
+                    e.select(".entry-content p,.entry-summary p").firstOrNull()?.text()?.trim(),
                     e.select("time").attr("datetime").toDate(),
                     e.select("header .comments-link").text().trim().toIntOrNull() ?: 0,
                     e.select(".author a").take(1).map { Tag(it) }.firstOrNull(),

@@ -23,6 +23,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.MutableLiveData
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -45,8 +46,6 @@ import java.util.*
  */
 
 class InfoActivity : BaseSlideCloseActivity() {
-    private val _article: Article by lazy { intent.getParcelableExtra("article")!! }
-
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_info)
@@ -54,7 +53,7 @@ class InfoActivity : BaseSlideCloseActivity() {
         val manager = supportFragmentManager
 
         val fragment = manager.findFragmentById(R.id.container)?.takeIf { it is InfoFragment }
-                ?: InfoFragment().arguments(Bundle().parcelable("article", _article))
+                ?: InfoFragment().arguments(intent.extras)
 
         manager.beginTransaction().replace(R.id.container, fragment).commit()
     }
@@ -74,7 +73,6 @@ class InfoActivity : BaseSlideCloseActivity() {
 }
 
 class InfoFragment : Fragment() {
-    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -89,7 +87,6 @@ class InfoFragment : Fragment() {
         activity.setSupportActionBar(view.findViewById(R.id.toolbar))
         activity.supportActionBar?.setLogo(R.mipmap.ic_launcher)
         activity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        activity.title = _article.title
         view.findViewById<ViewPager2>(R.id.container).adapter = InfoAdapter(this)
     }
 
@@ -112,10 +109,11 @@ class InfoFragment : Fragment() {
 }
 
 class InfoWebFragment : Fragment() {
-    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
+    private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
+    private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
     private val _web = ViewBinder<Pair<String, String>?, WebView>(null) { view, value -> if (value != null) view.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null) }
     private val _error = object : ErrorBinder(false) {
-        override fun retry(): Unit = query(_article.link!!)
+        override fun retry(): Unit = query(_url)
     }
     private val _magnet = ViewBinder<List<String>, View>(listOf()) { view, value -> view.visibility = if (value.isNotEmpty()) View.VISIBLE else View.GONE }
 
@@ -126,6 +124,7 @@ class InfoWebFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             inflater.inflate(R.layout.fragment_info_web, container, false).also { root ->
+                _article.observe(viewLifecycleOwner, { it?.title?.let { t -> requireActivity().title = t } })
                 _error + root.findViewById(R.id.image1)
                 val menu: FloatingActionMenu = root.findViewById(R.id.menu1)
                 menu.menuButtonColorNormal = randomColor()
@@ -133,7 +132,7 @@ class InfoWebFragment : Fragment() {
                 menu.menuButtonColorRipple = randomColor()
                 val click = View.OnClickListener { v ->
                     when (v.id) {
-                        R.id.button1 -> openWeb(requireActivity(), _article.link!!)
+                        R.id.button1 -> openWeb(requireActivity(), _url)
                         R.id.button2 -> activity?.window?.decorView
                                 ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
                         R.id.button4 -> share()
@@ -196,8 +195,12 @@ class InfoWebFragment : Fragment() {
                 settings.javaScriptEnabled = true
                 web.webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                        val uri = Uri.parse(url)
-                        startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
+                        if (Article.getIdFromUrl(url) != null) {
+                            startActivity(Intent(activity, InfoActivity::class.java).putExtra("url", url))
+                        } else {
+                            val uri = Uri.parse(url)
+                            startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
+                        }
                         return true
                     }
 
@@ -232,7 +235,7 @@ class InfoWebFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        query(_article.link!!)
+        query(_url)
     }
 
     override fun onDestroy() {
@@ -243,12 +246,12 @@ class InfoWebFragment : Fragment() {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     fun share(url: String? = null) {
         fun share(uri: Uri? = null) {
-            val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _article.link)
+            val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _url)
             val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.takeIf { it.isNotEmpty() }
                     ?: "text/plain"
-            val title = _article.title
-            val intro = _article.content
-            val link = _article.link
+            val title = _article.value?.title ?: ""
+            val intro = _article.value?.content ?:""
+            val link = _url
             val share = Intent(Intent.ACTION_SEND)
                     .setType(mime)
                     .putExtra(Intent.EXTRA_TITLE, title)
@@ -319,32 +322,33 @@ class InfoWebFragment : Fragment() {
         _error * false
         _progress * true
         doAsync {
-            val entry = url.httpGet()?.jsoup { dom ->
-                dom.select(".entry-content").let { entry ->
-                    val clean = Jsoup.clean(entry.html(), url, Whitelist.basicWithImages()
-                            .addTags("audio", "video", "source")
-                            .addAttributes("audio", "controls", "src")
-                            .addAttributes("video", "controls", "src")
-                            .addAttributes("source", "type", "src", "media"))
+            val dom = url.httpGet()?.jsoup()
+            val article = dom?.select("article")?.firstOrNull()?.let { Article(it) }
+            val entry = dom?.select(".entry-content")?.let { entry ->
+                val clean = Jsoup.clean(entry.html(), url, Whitelist.basicWithImages()
+                        .addTags("audio", "video", "source")
+                        .addAttributes("audio", "controls", "src")
+                        .addAttributes("video", "controls", "src")
+                        .addAttributes("source", "type", "src", "media"))
 
-                    Jsoup.parse(clean, url).select("body").also { e ->
-                        e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
-                        e.select("img[src]").forEach {
-                            it.attr("data-original", it.attr("src"))
-                                    .addClass("lazy")
-                                    .removeAttr("src")
-                                    .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
-                        }
+                Jsoup.parse(clean, url).select("body").also { e ->
+                    e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
+                    e.select("img[src]").forEach {
+                        it.attr("data-original", it.attr("src"))
+                                .addClass("lazy")
+                                .removeAttr("src")
+                                .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
                     }
                 }
             }
             val html = entry?.let {
                 activity?.resources?.openRawResource(R.raw.template)?.bufferedReader()?.readText()
-                        ?.replace("{{title}}", _article.title)
+                        ?.replace("{{title}}", article?.title ?: "")
                         ?.replace("{{body}}", entry.html())
             }
             val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
             autoUiThread {
+                if (article != null) _article.postValue(article)
                 when (html) {
                     null -> {
                         _error * (_web() == null)
@@ -361,7 +365,9 @@ class InfoWebFragment : Fragment() {
 }
 
 class InfoCommentFragment : Fragment() {
-    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
+    private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
+    private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
+    private val _id by lazy { _article.value?.id ?: Article.getIdFromUrl(_url) ?: 0 }
     private val _adapter by lazy { CommentAdapter() }
 
     private var _postParentId: Int? = 0
@@ -528,7 +534,7 @@ class InfoCommentFragment : Fragment() {
                     "lastParentId" to "$_postParentId",
                     "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
                     "wpdType" to "",
-                    "postId" to "${_article.id}"))
+                    "postId" to "$_id"))
             val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
             val list = Jsoup.parse(comments?.data?.commentList ?: "", json?.second ?: "")
                     .select("body>.wpd-comment").map { Comment(it) }.toList()
@@ -564,7 +570,7 @@ class InfoCommentFragment : Fragment() {
                     "action" to "wpdVoteOnComment",
                     "commentId" to "${c.id}",
                     "voteType" to "$v",
-                    "postId" to "${_article.id}"))
+                    "postId" to "$_id"))
             autoUiThread {
                 val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
                 if (succeed?.success != true) {
@@ -623,7 +629,7 @@ class InfoCommentFragment : Fragment() {
         content.setText(post[COMMENT] ?: "")
         post["action"] = "wpdAddComment"
         post["submit"] = "发表评论"
-        post["postId"] = "${_article.id}"
+        post["postId"] = "$_id"
         post["wpdiscuz_unique_id"] = (c?.uniqueId ?: "0_0")
         post["wc_comment_depth"] = "${(c?.depth ?: 1)}"
 
