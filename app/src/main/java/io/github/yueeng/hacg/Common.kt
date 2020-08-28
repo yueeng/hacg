@@ -172,7 +172,7 @@ fun String.httpGetAsync(context: Context, callback: (Pair<String, String>?) -> U
 }
 
 fun String.httpPost(post: Map<String, String>): Pair<String, String>? = try {
-    val data = post.asSequence().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.key, o.value) }.build()
+    val data = post.toList().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.first, o.second) }.build()
     val request = Request.Builder().url(this).post(data).build()
     val response = okhttp.newCall(request).execute()
     (response.body!!.string() to response.request.url.toString())
@@ -223,7 +223,7 @@ fun String.magnet(): Sequence<String> = rmagnet.findAll(this).map { it.value } +
         rbaidu.findAll(this).map { m -> "${m.groups[1]!!.value},${m.groups[2]!!.value}" }
 
 fun <T> Gson.fromJsonOrNull(json: String?, clazz: Class<T>): T? = try {
-    fromJson<T>(json, clazz)
+    fromJson(json, clazz)
 } catch (_: Exception) {
     null
 }
@@ -434,7 +434,7 @@ fun RecyclerView.loading(last: Int = 1, call: () -> Unit) {
             when (val layout = recycler.layoutManager) {
                 is StaggeredGridLayoutManager -> {
                     val vis = layout.findLastVisibleItemPositions(null)
-                    val v = vis.max() ?: 0
+                    val v = vis.maxOrNull() ?: 0
                     if (v >= (this@loading.adapter!!.itemCount - last)) call()
                 }
                 is GridLayoutManager ->

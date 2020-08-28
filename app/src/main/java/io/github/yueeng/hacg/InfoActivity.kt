@@ -45,7 +45,7 @@ import java.util.*
  */
 
 class InfoActivity : BaseSlideCloseActivity() {
-    private val _article: Article by lazy { intent.getParcelableExtra<Article>("article")!! }
+    private val _article: Article by lazy { intent.getParcelableExtra("article")!! }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -74,7 +74,7 @@ class InfoActivity : BaseSlideCloseActivity() {
 }
 
 class InfoFragment : Fragment() {
-    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!! }
+    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -112,7 +112,7 @@ class InfoFragment : Fragment() {
 }
 
 class InfoWebFragment : Fragment() {
-    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!! }
+    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
     private val _web = ViewBinder<Pair<String, String>?, WebView>(null) { view, value -> if (value != null) view.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null) }
     private val _error = object : ErrorBinder(false) {
         override fun retry(): Unit = query(_article.link!!)
@@ -133,7 +133,7 @@ class InfoWebFragment : Fragment() {
                 menu.menuButtonColorRipple = randomColor()
                 val click = View.OnClickListener { v ->
                     when (v.id) {
-                        R.id.button1 -> openWeb(activity!!, _article.link!!)
+                        R.id.button1 -> openWeb(requireActivity(), _article.link!!)
                         R.id.button2 -> activity?.window?.decorView
                                 ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
                         R.id.button4 -> share()
@@ -258,9 +258,9 @@ class InfoWebFragment : Fragment() {
             uri?.let { share.putExtra(Intent.EXTRA_STREAM, uri) }
             startActivity(Intent.createChooser(share, title))
         }
-        url?.httpDownloadAsync(context!!) {
+        url?.httpDownloadAsync(requireContext()) {
             it?.let { file ->
-                share(FileProvider.getUriForFile(activity!!, "${BuildConfig.APPLICATION_ID}.fileprovider", file))
+                share(FileProvider.getUriForFile(requireActivity(), "${BuildConfig.APPLICATION_ID}.fileprovider", file))
             } ?: share()
         } ?: share()
     }
@@ -361,7 +361,7 @@ class InfoWebFragment : Fragment() {
 }
 
 class InfoCommentFragment : Fragment() {
-    private val _article: Article by lazy { arguments!!.getParcelable<Article>("article")!! }
+    private val _article: Article by lazy { requireArguments().getParcelable("article")!! }
     private val _adapter by lazy { CommentAdapter() }
 
     private var _postParentId: Int? = 0
@@ -488,7 +488,7 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    inner class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text1: TextView = view.findViewById(R.id.text1)
     }
 
@@ -569,7 +569,7 @@ class InfoCommentFragment : Fragment() {
                 val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
                 if (succeed?.success != true) {
                     val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
-                    Toast.makeText(activity!!, json?.data ?: result?.first, Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireActivity(), json?.data ?: result?.first, Toast.LENGTH_LONG).show()
                     return@autoUiThread
                 }
                 call(succeed.data.votes.toIntOrNull() ?: 0)
@@ -582,16 +582,16 @@ class InfoCommentFragment : Fragment() {
             commenting(c, pos)
             return
         }
-        AlertDialog.Builder(activity!!)
+        AlertDialog.Builder(requireActivity())
                 .setTitle(c.user)
                 .setMessage(c.content)
                 .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, pos) }
                 .setNegativeButton(R.string.app_cancel, null)
                 .setNeutralButton(R.string.app_copy) { _, _ ->
-                    val clipboard = activity!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clipboard = requireActivity().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(c.user, c.content)
                     clipboard.setPrimaryClip(clip)
-                    Toast.makeText(activity, activity!!.getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, requireActivity().getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
                 }.create().apply {
                     setOnShowListener { dialog ->
                         dialog.let { it as? AlertDialog }?.window?.decorView?.childrenRecursiveSequence()
@@ -604,7 +604,7 @@ class InfoCommentFragment : Fragment() {
     @SuppressLint("InflateParams")
     private fun commenting(c: Comment?, pos: Int? = null) {
         val url = Wpdiscuz
-        val input = LayoutInflater.from(activity!!).inflate(R.layout.comment_post, null)
+        val input = LayoutInflater.from(requireActivity()).inflate(R.layout.comment_post, null)
         val author: EditText = input.findViewById(R.id.edit1)
         val email: EditText = input.findViewById(R.id.edit2)
         val content: EditText = input.findViewById(R.id.edit3)
@@ -636,13 +636,13 @@ class InfoCommentFragment : Fragment() {
                     .putString(CONFIG_COMMENT, post[COMMENT]).apply()
         }
 
-        AlertDialog.Builder(activity!!)
+        AlertDialog.Builder(requireActivity())
                 .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
                 .setView(input)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
                     fill()
                     if (post[COMMENT].isNullOrBlank() || (user == 0 && (post[AUTHOR].isNullOrBlank() || post[EMAIL].isNullOrBlank()))) {
-                        Toast.makeText(activity!!, getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireActivity(), getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
                         return@setPositiveButton
                     }
                     _progress * true
@@ -654,7 +654,7 @@ class InfoCommentFragment : Fragment() {
                         autoUiThread {
                             _progress * false
                             if (review == null) {
-                                Toast.makeText(activity!!, json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
+                                Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
                                 return@autoUiThread
                             }
                             post[COMMENT] = ""
@@ -671,7 +671,7 @@ class InfoCommentFragment : Fragment() {
                 .apply {
                     if (user != 0) return@apply
                     setNeutralButton(R.string.app_user_login) { _, _ ->
-                        startActivity(Intent(activity!!, WebActivity::class.java).putExtra("login", true))
+                        startActivity(Intent(requireActivity(), WebActivity::class.java).putExtra("login", true))
                     }
                 }
                 .setOnDismissListener { fill() }

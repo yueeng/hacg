@@ -37,7 +37,7 @@ import java.util.concurrent.Future
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
-    private val pager: ViewPager2 by lazy { findViewById<ViewPager2>(R.id.container) }
+    private val pager: ViewPager2 by lazy { findViewById(R.id.container) }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setLogo(R.mipmap.ic_launcher)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = ArticleFragmentAdapter(this)
-        TabLayoutMediator(tabs, pager, TabLayoutMediator.TabConfigurationStrategy { tab, position -> tab.text = (pager.adapter as ArticleFragmentAdapter).getPageTitle(position) })
+        TabLayoutMediator(tabs, pager) { tab, position -> tab.text = (pager.adapter as ArticleFragmentAdapter).getPageTitle(position) }
                 .attach()
         if (state == null) {
             checkVersion()
@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.auto -> {
                 doAsync {
-                    val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.minBy { it.second.second }
+                    val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second }
                     autoUiThread {
                         if (good != null) {
                             HAcg.host = good.first
@@ -254,7 +254,7 @@ class ArticleFragment : Fragment() {
     }
 
     private val defurl: String
-        get() = arguments!!.getString("url")!!.let { uri ->
+        get() = requireArguments().getString("url")!!.let { uri ->
             if (uri.startsWith("/")) "${HAcg.web}$uri" else uri
         }
 
@@ -345,7 +345,7 @@ class ArticleFragment : Fragment() {
     @Parcelize
     class MsgItem(val msg: String) : Parcelable
 
-    inner class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text1: TextView = view.findViewById(R.id.text1)
     }
 

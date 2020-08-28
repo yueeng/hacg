@@ -55,8 +55,8 @@ class WebFragment : Fragment() {
                 ?: (if (isLogin) "${HAcg.philosophy}?foro=signin" else HAcg.philosophy)
     private val isLogin: Boolean get() = arguments?.getBoolean("login", false) ?: false
 
-    val web: WebView by lazy { view!!.findViewById<WebView>(R.id.web) }
-    private val progress: ProgressBar by lazy { view!!.findViewById<ProgressBar>(R.id.progress) }
+    val web: WebView by lazy { requireView().findViewById(R.id.web) }
+    private val progress: ProgressBar by lazy { requireView().findViewById(R.id.progress) }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_web, menu)
@@ -66,7 +66,7 @@ class WebFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
             when (item.itemId) {
                 R.id.open -> {
-                    openWeb(activity!!, uri!!)
+                    openWeb(requireActivity(), uri!!)
                     true
                 }
                 else -> super.onOptionsItemSelected(item)

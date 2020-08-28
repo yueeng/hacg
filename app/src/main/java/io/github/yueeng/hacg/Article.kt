@@ -172,7 +172,7 @@ object HAcg {
         val hosts = list().toList()
         AlertDialog.Builder(context)
                 .setTitle(title)
-                .setSingleChoiceItems(hosts.map { it as CharSequence }.toTypedArray(), hosts.indexOf(cur()).takeIf { it >= 0 }
+                .setSingleChoiceItems(hosts.toTypedArray(), hosts.indexOf(cur()).takeIf { it >= 0 }
                         ?: 0, null)
                 .setNegativeButton(R.string.app_cancel, null)
                 .setNeutralButton(R.string.settings_host_more) { _, _ -> setHostEdit(context, title, list, cur, set, ok, reset) }
