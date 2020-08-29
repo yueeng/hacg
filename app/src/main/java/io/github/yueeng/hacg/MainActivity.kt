@@ -28,11 +28,10 @@ import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
+import io.github.yueeng.hacg.databinding.ActivityMainBinding
 import io.github.yueeng.hacg.databinding.FragmentListBinding
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.doAsync
@@ -42,20 +41,16 @@ import java.util.concurrent.Future
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
-    private val pager: ViewPager2 by lazy { findViewById(R.id.container) }
-
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById(R.id.toolbar))
-        supportActionBar?.setLogo(R.mipmap.ic_launcher)
-        val tabs: TabLayout = findViewById(R.id.tab)
-        pager.adapter = ArticleFragmentAdapter(this)
-        TabLayoutMediator(tabs, pager) { tab, position -> tab.text = (pager.adapter as ArticleFragmentAdapter).getPageTitle(position) }
-                .attach()
-        if (state == null) {
-            checkVersion()
+        val binding = ActivityMainBinding.inflate(layoutInflater).apply {
+            setSupportActionBar(toolbar)
+            supportActionBar?.setLogo(R.mipmap.ic_launcher)
+            container.adapter = ArticleFragmentAdapter(this@MainActivity)
+            TabLayoutMediator(tab, container) { tab, position -> tab.text = (container.adapter as ArticleFragmentAdapter).getPageTitle(position) }.attach()
         }
+        setContentView(binding.root)
+        if (state == null) checkVersion()
     }
 
     private var last = 0L
@@ -102,7 +97,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reload() {
-        pager.adapter = ArticleFragmentAdapter(this)
+        ActivityMainBinding.bind(findViewById(R.id.coordinator)).container.adapter = ArticleFragmentAdapter(this)
     }
 
     class ArticleFragmentAdapter(fm: FragmentActivity) : FragmentStateAdapter(fm) {
