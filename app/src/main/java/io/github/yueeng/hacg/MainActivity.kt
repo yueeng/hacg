@@ -13,8 +13,6 @@ import android.provider.SearchRecentSuggestions
 import android.text.method.LinkMovementMethod
 import android.view.*
 import android.view.animation.DecelerateInterpolator
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -31,8 +29,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
-import io.github.yueeng.hacg.databinding.ActivityMainBinding
-import io.github.yueeng.hacg.databinding.FragmentListBinding
+import io.github.yueeng.hacg.databinding.*
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.doAsync
 import java.text.SimpleDateFormat
@@ -181,8 +178,9 @@ class ListActivity : BaseSlideCloseActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_list)
-        setSupportActionBar(findViewById(R.id.toolbar))
+        val binding = ActivityListBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setLogo(R.mipmap.ic_launcher)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         val (url: String?, name: String?) = intent.let { i ->
@@ -320,34 +318,41 @@ class ArticleFragment : Fragment() {
         }
     }
 
-    private val click: View.OnClickListener = View.OnClickListener { v ->
-        (v?.tag as? ArticleHolder)?.let { h ->
-            startActivity(Intent(activity, InfoActivity::class.java).putExtra("article", h.article as Parcelable))
-        }
-    }
-
-    inner class ArticleHolder(private val view: View) : RecyclerView.ViewHolder(view) {
-        val context: Context get() = view.context
-        val text1: TextView = view.findViewById(R.id.text1)
-        val text2: TextView = view.findViewById(R.id.text2)
-        val text3: TextView = view.findViewById(R.id.text3)
-        val text4: TextView = view.findViewById(R.id.text4)
-        val image1: ImageView = view.findViewById(R.id.image1)
+    inner class ArticleHolder(private val binding: ArticleItemBinding) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
         var article: Article? = null
+            set(value) {
+                field = value
+                val item = value!!
+                binding.text1.text = item.title
+                binding.text1.visibility = if (item.title.isNotEmpty()) View.VISIBLE else View.GONE
+                val color = randomColor()
+                binding.text1.setTextColor(color)
+                binding.text2.text = item.content
+                binding.text2.visibility = if (item.content?.isNotEmpty() == true) View.VISIBLE else View.GONE
+                val span = item.expend.spannable(string = { it.name }, call = { tag -> startActivity(Intent(activity, ListActivity::class.java).putExtra("url", tag.url).putExtra("name", tag.name)) })
+                binding.text3.text = span
+                binding.text3.visibility = if (item.tags.isNotEmpty()) View.VISIBLE else View.GONE
+                binding.text4.text = getString(R.string.app_list_time, datafmt.format(item.time ?: Date()), item.author?.name ?: "", item.comments)
+                binding.text4.setTextColor(color)
+                binding.text4.visibility = if (binding.text4.text.isNullOrEmpty()) View.GONE else View.VISIBLE
+                Picasso.with(requireContext()).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(binding.image1)
+            }
 
         init {
-            view.setOnClickListener(click)
-            view.tag = this
-            text3.movementMethod = LinkMovementMethod.getInstance()
+            binding.root.setOnClickListener(this)
+            binding.root.tag = this
+            binding.text3.movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        override fun onClick(p0: View?) {
+            startActivity(Intent(activity, InfoActivity::class.java).putExtra("article", article as Parcelable))
         }
     }
 
     @Parcelize
     class MsgItem(val msg: String) : Parcelable
 
-    class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val text1: TextView = view.findViewById(R.id.text1)
-    }
+    class MsgHolder(val binding: ListMsgItemBinding) : RecyclerView.ViewHolder(binding.root)
 
     val articleTypeArticle: Int = 0
     val articleTypeMsg: Int = 1
@@ -356,23 +361,9 @@ class ArticleFragment : Fragment() {
     inner class ArticleAdapter : DataAdapter<Parcelable, RecyclerView.ViewHolder>() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             if (holder is ArticleHolder) {
-                val item = data[position] as Article
-                holder.article = item
-                holder.text1.text = item.title
-                holder.text1.visibility = if (item.title.isNotEmpty()) View.VISIBLE else View.GONE
-                val color = randomColor()
-                holder.text1.setTextColor(color)
-                holder.text2.text = item.content
-                holder.text2.visibility = if (item.content?.isNotEmpty() == true) View.VISIBLE else View.GONE
-                val span = item.expend.spannable(string = { it.name }, call = { tag -> startActivity(Intent(activity, ListActivity::class.java).putExtra("url", tag.url).putExtra("name", tag.name)) })
-                holder.text3.text = span
-                holder.text3.visibility = if (item.tags.isNotEmpty()) View.VISIBLE else View.GONE
-                holder.text4.text = getString(R.string.app_list_time, datafmt.format(item.time ?: Date()), item.author?.name ?: "", item.comments)
-                holder.text4.setTextColor(color)
-                holder.text4.visibility = if (holder.text4.text.isNullOrEmpty()) View.GONE else View.VISIBLE
-                Picasso.with(holder.context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(holder.image1)
+                holder.article = data[position] as Article
             } else if (holder is MsgHolder) {
-                holder.text1.text = (data[position] as MsgItem).msg
+                holder.binding.text1.text = (data[position] as MsgItem).msg
             }
             if (position > last) {
                 last = holder.adapterPosition
@@ -391,8 +382,8 @@ class ArticleFragment : Fragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
-            articleTypeArticle -> ArticleHolder(parent.inflate(R.layout.article_item))
-            else -> MsgHolder(parent.inflate(R.layout.list_msg_item))
+            articleTypeArticle -> ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+            else -> MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         }
     }
 }
