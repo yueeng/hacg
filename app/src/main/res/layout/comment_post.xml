@@ -11,6 +11,7 @@
         android:paddingRight="20dp">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/input1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="5dp"
@@ -26,6 +27,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/input2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="5dp"
@@ -41,6 +43,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/input3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/comment_content">

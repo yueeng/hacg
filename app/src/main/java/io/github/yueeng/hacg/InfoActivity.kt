@@ -29,19 +29,15 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
-import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.gun0912.tedpermission.TedPermission
 import com.squareup.picasso.Picasso
-import io.github.yueeng.hacg.databinding.FragmentInfoBinding
-import io.github.yueeng.hacg.databinding.FragmentInfoWebBinding
+import io.github.yueeng.hacg.databinding.*
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jetbrains.anko.doAsync
 import org.jsoup.Jsoup
@@ -368,7 +364,17 @@ class InfoWebFragment : Fragment() {
     }
 }
 
+class InfoCommentViewModel : ViewModel() {
+    val progress = MutableLiveData(false)
+}
+
+class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel() as T
+}
+
 class InfoCommentFragment : Fragment() {
+    private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this) }
     private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
     private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
     private val _id by lazy { _article.value?.id ?: Article.getIdFromUrl(_url) ?: 0 }
@@ -391,38 +397,29 @@ class InfoCommentFragment : Fragment() {
     private val Wpdiscuz
         get() = "${HAcg.wordpress}/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
-    private val _progress = ViewBinder<Boolean, SwipeRefreshLayout>(false) { view, value -> view.post { view.isRefreshing = value } }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_info_list, container, false).also { root ->
-            val list: RecyclerView = root.findViewById(R.id.list1)
-            list.layoutManager = LinearLayoutManager(activity)
-            list.setHasFixedSize(true)
-            list.adapter = _adapter
-            list.loading { query() }
-
-            _progress + root.findViewById(R.id.swipe)
-            _progress.each {
-                it.setOnRefreshListener {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
+            FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
+                binding.list1.setHasFixedSize(true)
+                binding.list1.adapter = _adapter
+                binding.list1.loading { query() }
+                viewModel.progress.observe(viewLifecycleOwner, { binding.swipe.isRefreshing = it })
+                binding.swipe.setOnRefreshListener {
                     _postOffset = 0
                     _postParentId = 0
                     _adapter.clear()
                     query()
                 }
-            }
-            root.findViewById<FloatingActionButton>(R.id.button3).apply {
-                setOnClickListener { comment(null) }
-                colorNormal = randomColor()
-                colorPressed = randomColor()
-                colorRipple = randomColor()
-            }
-        }
-    }
+                binding.button3.apply {
+                    setOnClickListener { comment(null) }
+                    colorNormal = randomColor()
+                    colorPressed = randomColor()
+                    colorRipple = randomColor()
+                }
+            }.root
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        retainInstance = true
         query()
     }
 
@@ -447,60 +444,48 @@ class InfoCommentFragment : Fragment() {
         else -> super.onOptionsItemSelected(item)
     }
 
-    inner class CommentHolder(view: View, func: () -> CommentAdapter) : RecyclerView.ViewHolder(view) {
-        private val text1: TextView = view.findViewById(R.id.text1)
-        private val text2: TextView = view.findViewById(R.id.text2)
-        private val text3: TextView = view.findViewById(R.id.text3)
-        private val text4: TextView = view.findViewById(R.id.text4)
-        private val image: ImageView = view.findViewById(R.id.image1)
-        private val button1: ImageView = view.findViewById(R.id.button1)
-        private val button2: ImageView = view.findViewById(R.id.button2)
-
-        private val list: RecyclerView = view.findViewById(R.id.list1)
+    inner class CommentHolder(private val binding: CommentItemBinding) : RecyclerView.ViewHolder(binding.root) {
         private val adapter = CommentAdapter()
         private val context: Context? get() = view?.context
 
         init {
-            list.adapter = adapter
-            list.layoutManager = LinearLayoutManager(context)
-            list.setHasFixedSize(true)
-            listOf(button1, button2).forEach { b ->
+            binding.list1.adapter = adapter
+            binding.list1.setHasFixedSize(true)
+            listOf(binding.button1, binding.button2).forEach { b ->
                 b.setOnClickListener { view ->
                     val v = if (view.id == R.id.button1) -1 else 1
                     val item = itemView.tag as? Comment ?: return@setOnClickListener
                     vote(item, v) {
                         item.moderation = it
-                        func().notifyItemChanged(adapterPosition, "moderation")
+                        bindingAdapter?.notifyItemChanged(bindingAdapterPosition, "moderation")
                     }
                 }
             }
-            view.setOnClickListener { v -> v.tag?.let { it as Comment }?.let { comment(it, adapterPosition) } }
+            binding.root.setOnClickListener { v -> v.tag?.let { it as Comment }?.let { comment(it, bindingAdapterPosition) } }
         }
 
         fun bind(item: Comment, payloads: MutableList<Any>) {
             if (payloads.contains("moderation")) {
-                text4.text = "${item.moderation}"
+                binding.text4.text = "${item.moderation}"
                 return
             }
             itemView.tag = item
-            text1.text = item.user
-            text2.text = item.content
-            text3.text = item.time
-            text4.text = "${item.moderation}"
+            binding.text1.text = item.user
+            binding.text2.text = item.content
+            binding.text3.text = item.time
+            binding.text4.text = "${item.moderation}"
             adapter.clear()
             adapter.addAll(item.children)
 
             if (item.face.isEmpty()) {
-                image.setImageResource(R.mipmap.ic_launcher)
+                binding.image1.setImageResource(R.mipmap.ic_launcher)
             } else {
-                Picasso.with(context).load(item.face).placeholder(R.mipmap.ic_launcher).into(image)
+                Picasso.with(context).load(item.face).placeholder(R.mipmap.ic_launcher).into(binding.image1)
             }
         }
     }
 
-    class MsgHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val text1: TextView = view.findViewById(R.id.text1)
-    }
+    class MsgHolder(val binding: ListMsgItemBinding) : RecyclerView.ViewHolder(binding.root)
 
     inner class CommentAdapter : DataAdapter<Any, RecyclerView.ViewHolder>() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {}
@@ -508,7 +493,7 @@ class InfoCommentFragment : Fragment() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
             when (holder) {
                 is CommentHolder -> holder.bind(data[position] as Comment, payloads)
-                is MsgHolder -> holder.text1.text = data[position] as String
+                is MsgHolder -> holder.binding.text1.text = data[position] as String
             }
         }
 
@@ -520,16 +505,14 @@ class InfoCommentFragment : Fragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
-            CommentTypeComment -> CommentHolder(parent.inflate(R.layout.comment_item)) { return@CommentHolder this }
-            else -> MsgHolder(parent.inflate(R.layout.list_msg_item))
+            CommentTypeComment -> CommentHolder(CommentItemBinding.inflate(layoutInflater, parent, false))
+            else -> MsgHolder(ListMsgItemBinding.inflate(layoutInflater, parent, false))
         }
     }
 
     private fun query() {
-        if (_progress() || _postParentId == null) {
-            return
-        }
-        _progress * true
+        if (viewModel.progress.value == true || _postParentId == null) return
+        viewModel.progress.postValue(true)
         doAsync {
             val json = Wpdiscuz.httpPost(mapOf(
                     "action" to "wpdLoadMoreComments",
@@ -562,7 +545,7 @@ class InfoCommentFragment : Fragment() {
                     u -> getString(R.string.app_list_complete)
                     else -> getString(R.string.app_list_loading)
                 })
-                _progress * false
+                viewModel.progress.postValue(false)
             }
         }
     }
@@ -614,15 +597,15 @@ class InfoCommentFragment : Fragment() {
     @SuppressLint("InflateParams")
     private fun commenting(c: Comment?, pos: Int? = null) {
         val url = Wpdiscuz
-        val input = LayoutInflater.from(requireActivity()).inflate(R.layout.comment_post, null)
-        val author: EditText = input.findViewById(R.id.edit1)
-        val email: EditText = input.findViewById(R.id.edit2)
-        val content: EditText = input.findViewById(R.id.edit3)
+        val input = CommentPostBinding.inflate(layoutInflater)
+        val author: EditText = input.edit1
+        val email: EditText = input.edit2
+        val content: EditText = input.edit3
         val post = mutableMapOf<String, String>()
         val preference = PreferenceManager.getDefaultSharedPreferences(activity)
         if (user != 0) {
-            (author.parent as? View)?.visibility = View.GONE
-            (email.parent as? View)?.visibility = View.GONE
+            input.input1.visibility = View.GONE
+            input.input2.visibility = View.GONE
         } else {
             post += (AUTHOR to preference.getString(CONFIG_AUTHOR, "")!!)
             post += (EMAIL to preference.getString(CONFIG_EMAIL, "")!!)
@@ -648,21 +631,21 @@ class InfoCommentFragment : Fragment() {
 
         MaterialAlertDialogBuilder(requireActivity())
                 .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
-                .setView(input)
+                .setView(input.root)
                 .setPositiveButton(R.string.comment_submit) { _, _ ->
                     fill()
                     if (post[COMMENT].isNullOrBlank() || (user == 0 && (post[AUTHOR].isNullOrBlank() || post[EMAIL].isNullOrBlank()))) {
                         Toast.makeText(requireActivity(), getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
                         return@setPositiveButton
                     }
-                    _progress * true
+                    viewModel.progress.postValue(true)
                     doAsync {
                         val result = url.httpPost(post.toMap())
                         val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
                         val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
                                 .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
                         autoUiThread {
-                            _progress * false
+                            viewModel.progress.postValue(false)
                             if (review == null) {
                                 Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
                                 return@autoUiThread
