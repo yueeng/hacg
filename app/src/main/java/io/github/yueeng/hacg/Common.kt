@@ -297,44 +297,6 @@ fun TedPermission.Builder.onPermissionDenied(f: (ArrayList<String>?) -> Unit): T
     }
 })
 
-open class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> Unit) {
-    private val view = WeakHashMap<V, Boolean>()
-    open operator fun plus(v: V): ViewBinder<T, V> = synchronized(this) {
-        view[v] = true
-        func(v, value)
-        this
-    }
-
-    operator fun minus(v: V): ViewBinder<T, V> = synchronized(this) {
-        view.remove(v)
-        this
-    }
-
-    operator fun times(v: T): ViewBinder<T, V> = synchronized(this) {
-        if (value != v) {
-            value = v
-            view.forEach { func(it.key, value) }
-        }
-        this
-    }
-
-    operator fun invoke(): T = value
-
-    fun each(func: (V) -> Unit): ViewBinder<T, V> = synchronized(this) {
-        view.forEach { func(it.key) }
-        this
-    }
-}
-
-abstract class ErrorBinder(value: Boolean) : ViewBinder<Boolean, View>(value, { v, t -> v.visibility = if (t) View.VISIBLE else View.INVISIBLE }) {
-    override fun plus(v: View): ViewBinder<Boolean, View> {
-        v.setOnClickListener { retry() }
-        return super.plus(v)
-    }
-
-    abstract fun retry()
-}
-
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
     private val _data = mutableListOf<V>()
 
@@ -458,64 +420,6 @@ fun RecyclerView.loading(last: Int = 1, call: () -> Unit) {
         }
     })
 }
-
-data class Quadruple<out A, out B, out C, out D>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D
-) : java.io.Serializable {
-
-    /**
-     * Returns string representation of the [Triple] including its [first], [second] and [third] values.
-     */
-    override fun toString(): String = "($first, $second, $third, $fourth)"
-}
-
-/**
- * Converts this triple into a list.
- */
-fun <T> Quadruple<T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth)
-
-data class Quintuple<out A, out B, out C, out D, out E>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D,
-        val fifth: E
-) : java.io.Serializable {
-
-    /**
-     * Returns string representation of the [Triple] including its [first], [second] and [third] values.
-     */
-    override fun toString(): String = "($first, $second, $third, $fourth, $fifth)"
-}
-
-/**
- * Converts this triple into a list.
- */
-fun <T> Quintuple<T, T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth, fifth)
-
-data class Sextuple<out A, out B, out C, out D, out E, out F>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D,
-        val fifth: E,
-        val sixth: F
-) : java.io.Serializable {
-
-    /**
-     * Returns string representation of the [Triple] including its [first], [second] and [third] values.
-     */
-    override fun toString(): String = "($first, $second, $third, $fourth, $fifth, $sixth)"
-}
-
-/**
- * Converts this triple into a list.
- */
-fun <T> Sextuple<T, T, T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth, fifth, sixth)
-
 
 class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : SlidingPaneLayout(context, attrs, defStyle) {
     private var mInitialMotionX: Float = 0F

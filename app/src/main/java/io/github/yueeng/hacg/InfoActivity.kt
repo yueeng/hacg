@@ -107,16 +107,16 @@ class InfoFragment : Fragment() {
             .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
 }
 
-class InfoWebViewModel : ViewModel() {
-    val web = MutableLiveData<Pair<String, String>>()
-    val error = MutableLiveData(false)
-    val magnet = MutableLiveData<List<String>>()
-    val progress = MutableLiveData(false)
+class InfoWebViewModel(handle: SavedStateHandle) : ViewModel() {
+    val web = handle.getLiveData<Pair<String, String>>("web")
+    val error = handle.getLiveData("error", false)
+    val magnet = handle.getLiveData<List<String>>("magnet", emptyList())
+    val progress = handle.getLiveData("progress", false)
 }
 
 class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel() as T
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel(handle) as T
 }
 
 class InfoWebFragment : Fragment() {
@@ -364,13 +364,13 @@ class InfoWebFragment : Fragment() {
     }
 }
 
-class InfoCommentViewModel : ViewModel() {
-    val progress = MutableLiveData(false)
+class InfoCommentViewModel(handle: SavedStateHandle) : ViewModel() {
+    val progress = handle.getLiveData("progress", false)
 }
 
 class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel() as T
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(handle) as T
 }
 
 class InfoCommentFragment : Fragment() {

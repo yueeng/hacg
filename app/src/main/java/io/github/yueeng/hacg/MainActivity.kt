@@ -20,7 +20,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.AbstractSavedStateViewModelFactory
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
@@ -148,11 +147,10 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.user -> {
-                if (user != 0)
-                    startActivity(Intent(this, WebActivity::class.java).apply {
-                        if (user != 0) putExtra("url", "${HAcg.philosophy}/profile/$user")
-                        else putExtra("login", true)
-                    })
+                startActivity(Intent(this, WebActivity::class.java).apply {
+                    if (user != 0) putExtra("url", "${HAcg.philosophy}/profile/$user")
+                    else putExtra("login", true)
+                })
                 true
             }
             R.id.philosophy -> {
@@ -229,16 +227,14 @@ class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
     }
 }
 
-class ArticleViewModel : ViewModel() {
-    val busy = MutableLiveData(false)
-    val error = MutableLiveData(false)
+class ArticleViewModel(handle: SavedStateHandle) : ViewModel() {
+    val busy = handle.getLiveData("busy", false)
+    val error = handle.getLiveData("error", false)
 }
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T {
-        @Suppress("UNCHECKED_CAST")
-        return ArticleViewModel() as T
-    }
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = ArticleViewModel(handle) as T
 }
 
 class ArticleFragment : Fragment() {
@@ -366,7 +362,7 @@ class ArticleFragment : Fragment() {
                 holder.binding.text1.text = (data[position] as MsgItem).msg
             }
             if (position > last) {
-                last = holder.adapterPosition
+                last = holder.bindingAdapterPosition
                 ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0F)
                         .setDuration(1000).also { it.interpolator = interpolator }.start()
             }
