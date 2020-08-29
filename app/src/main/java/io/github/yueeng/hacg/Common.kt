@@ -44,6 +44,7 @@ import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import com.jakewharton.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
@@ -52,6 +53,7 @@ import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
+import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -61,6 +63,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -113,6 +117,21 @@ class WebkitCookieJar(private val cm: CookieManager) : CookieJar {
             cm.setCookie(url.toString(), cookie.toString())
         }
     }
+}
+
+suspend fun <T> Call.await(action: (Call, Response) -> T): T = suspendCancellableCoroutine { continuation ->
+    continuation.invokeOnCancellation {
+        cancel()
+    }
+    enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            if (!continuation.isCancelled) continuation.resumeWithException(e)
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            if (!continuation.isCancelled) continuation.resume(action(call, response))
+        }
+    })
 }
 
 val datefmt get() = SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZZZZZ", LocaleListCompat.getDefault()[0])
