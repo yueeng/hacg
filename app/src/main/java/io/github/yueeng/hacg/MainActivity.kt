@@ -355,34 +355,35 @@ class ArticleFragment : Fragment() {
                 ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }
 
-    class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : RecyclerView.ViewHolder(binding.root) {
-        init {
-            binding.root.setOnClickListener { if (state is LoadState.Error) retry() }
-        }
+}
 
-        private var state: LoadState? = null
-        fun bind(value: LoadState, empty: () -> Boolean) {
-            state = value
-            binding.text1.text = when (value) {
-                is LoadState.Error -> value.error.message
-                is LoadState.Loading -> binding.root.resources.getString(R.string.app_list_loading)
-                is LoadState.NotLoading -> {
-                    if (value.endOfPaginationReached) {
-                        if (empty()) binding.root.resources.getString(R.string.app_list_empty)
-                        else binding.root.resources.getString(R.string.app_list_complete)
-                    } else binding.root.resources.getString(R.string.app_list_loading)
-                }
+class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : RecyclerView.ViewHolder(binding.root) {
+    init {
+        binding.root.setOnClickListener { if (state is LoadState.Error) retry() }
+    }
+
+    private var state: LoadState? = null
+    fun bind(value: LoadState, empty: () -> Boolean) {
+        state = value
+        binding.text1.text = when (value) {
+            is LoadState.Error -> value.error.message
+            is LoadState.Loading -> binding.root.resources.getString(R.string.app_list_loading)
+            is LoadState.NotLoading -> {
+                if (value.endOfPaginationReached) {
+                    if (empty()) binding.root.resources.getString(R.string.app_list_empty)
+                    else binding.root.resources.getString(R.string.app_list_complete)
+                } else binding.root.resources.getString(R.string.app_list_loading)
             }
         }
     }
+}
 
-    class FooterAdapter(private val adapter: ArticleAdapter) : LoadStateAdapter<MsgHolder>() {
-        override fun displayLoadStateAsItem(loadState: LoadState): Boolean = true
-        override fun onBindViewHolder(holder: MsgHolder, loadState: LoadState) {
-            holder.bind(loadState) { adapter.itemCount == 0 }
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): MsgHolder =
-                MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { adapter.retry() }
+class FooterAdapter<T : Any, VH : RecyclerView.ViewHolder>(private val adapter: PagingDataAdapter<T, VH>) : LoadStateAdapter<MsgHolder>() {
+    override fun displayLoadStateAsItem(loadState: LoadState): Boolean = true
+    override fun onBindViewHolder(holder: MsgHolder, loadState: LoadState) {
+        holder.bind(loadState) { adapter.itemCount == 0 }
     }
+
+    override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): MsgHolder =
+            MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { adapter.retry() }
 }

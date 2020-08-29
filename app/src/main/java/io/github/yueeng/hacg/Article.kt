@@ -149,6 +149,9 @@ object HAcg {
     val philosophy: String
         get() = bbs.takeIf { IsHttp.matches(it) }?.let { bbs } ?: "$web$bbs"
 
+    val wpdiscuz
+        get() = "$wordpress/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
+
     @SuppressLint("InflateParams")
     fun setHostEdit(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null)

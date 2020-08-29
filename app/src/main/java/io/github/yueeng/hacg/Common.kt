@@ -185,6 +185,19 @@ fun String.httpGet(): Pair<String, String>? = try {
     e.printStackTrace(); null
 }
 
+suspend fun String.httpGetAwait(): Pair<String, String>? = try {
+    val request = Request.Builder().get().url(this).build()
+    val (html, url) = okhttp.newCall(request).await { _, response -> response.body!!.string() to response.request.url.toString() }
+    if (url.startsWith(HAcg.wordpress)) {
+        """"user_id":"(\d+)"""".toRegex().find(html)?.let {
+            user = it.groups[1]?.value?.toIntOrNull() ?: 0
+        }
+    }
+    html to url
+} catch (e: Exception) {
+    e.printStackTrace(); null
+}
+
 fun String.httpGetAsync(context: Context, callback: (Pair<String, String>?) -> Unit): Future<Unit> = context.doAsync {
     val result = this@httpGetAsync.httpGet()
     autoUiThread { callback(result) }
@@ -195,6 +208,17 @@ fun String.httpPost(post: Map<String, String>): Pair<String, String>? = try {
     val request = Request.Builder().url(this).post(data).build()
     val response = okhttp.newCall(request).execute()
     (response.body!!.string() to response.request.url.toString())
+} catch (_: Exception) {
+    null
+}
+
+suspend fun String.httpPostAwait(post: Map<String, String>): Pair<String, String>? = try {
+    val data = post.toList().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.first, o.second) }.build()
+    val request = Request.Builder().url(this).post(data).build()
+    val response = okhttp.newCall(request).await { _, response ->
+        (response.body!!.string() to response.request.url.toString())
+    }
+    response
 } catch (_: Exception) {
     null
 }

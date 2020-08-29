@@ -22,13 +22,14 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.AbstractSavedStateViewModelFactory
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.*
+import androidx.lifecycle.Observer
+import androidx.paging.*
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -38,8 +39,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.gun0912.tedpermission.TedPermission
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 import org.jetbrains.anko.childrenRecursiveSequence
-import org.jetbrains.anko.doAsync
 import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
 import java.util.*
@@ -126,8 +130,8 @@ class InfoWebFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
-                _article.observe(viewLifecycleOwner, { it?.title?.let { t -> requireActivity().title = t } })
-                viewModel.error.observe(viewLifecycleOwner, { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
+                _article.observe(viewLifecycleOwner, Observer { it?.title?.let { t -> requireActivity().title = t } })
+                viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
                 binding.image1.setOnClickListener { query(_url) }
                 binding.menu1.menuButtonColorNormal = randomColor()
                 binding.menu1.menuButtonColorPressed = randomColor()
@@ -142,11 +146,11 @@ class InfoWebFragment : Fragment() {
                     view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
                 }
                 listOf(binding.button1, binding.button2, binding.button4).forEach { it.setOnClickListener(click) }
-                viewModel.progress.observe(viewLifecycleOwner, {
+                viewModel.progress.observe(viewLifecycleOwner, Observer {
                     binding.progress.isIndeterminate = it
                     binding.progress.visibility = if (it) View.VISIBLE else View.INVISIBLE
                 })
-                viewModel.magnet.observe(viewLifecycleOwner, {
+                viewModel.magnet.observe(viewLifecycleOwner, Observer {
                     binding.button5.visibility = if (it.isNotEmpty()) View.VISIBLE else View.GONE
                 })
                 binding.button5.setOnClickListener(object : View.OnClickListener {
@@ -230,7 +234,7 @@ class InfoWebFragment : Fragment() {
                     b.colorPressed = randomColor()
                     b.colorRipple = randomColor()
                 }
-                viewModel.web.observe(viewLifecycleOwner, { value ->
+                viewModel.web.observe(viewLifecycleOwner, Observer { value ->
                     if (value != null) binding.web.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null)
                 })
             }.root
@@ -321,8 +325,8 @@ class InfoWebFragment : Fragment() {
         if (viewModel.progress.value == true) return
         viewModel.error.postValue(false)
         viewModel.progress.postValue(true)
-        doAsync {
-            val dom = url.httpGet()?.jsoup()
+        lifecycleScope.launchWhenCreated {
+            val dom = url.httpGetAwait()?.jsoup()
             val article = dom?.select("article")?.firstOrNull()?.let { Article(it) }
             val entry = dom?.select(".entry-content")?.let { entry ->
                 val clean = Jsoup.clean(entry.html(), url, Whitelist.basicWithImages()
@@ -347,70 +351,107 @@ class InfoWebFragment : Fragment() {
                         ?.replace("{{body}}", entry.html())
             }
             val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
-            autoUiThread {
-                if (article != null) _article.postValue(article)
-                when (html) {
-                    null -> {
-                        viewModel.error.postValue(viewModel.web.value == null)
-                    }
-                    else -> {
-                        viewModel.magnet.postValue(magnet)
-                        viewModel.web.postValue(html to url)
-                    }
+            if (article != null) _article.postValue(article)
+            when (html) {
+                null -> {
+                    viewModel.error.postValue(viewModel.web.value == null)
                 }
-                viewModel.progress.postValue(false)
+                else -> {
+                    viewModel.magnet.postValue(magnet)
+                    viewModel.web.postValue(html to url)
+                }
             }
+            viewModel.progress.postValue(false)
         }
     }
 }
 
-class InfoCommentViewModel(handle: SavedStateHandle) : ViewModel() {
-    val progress = handle.getLiveData("progress", false)
+class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> InfoCommentViewModel.Sorting) : PagingSource<Pair<Int?, Int>, Comment>() {
+    override suspend fun load(params: LoadParams<Pair<Int?, Int>>): LoadResult<Pair<Int?, Int>, Comment> = try {
+        val (_postParentId, _postOffset) = params.key!!
+        val data = mapOf(
+                "action" to "wpdLoadMoreComments",
+                "sorting" to sorting().sort,
+                "offset" to "$_postOffset",
+                "lastParentId" to "$_postParentId",
+                "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
+                "wpdType" to "",
+                "postId" to "$_id")
+        val json = HAcg.wpdiscuz.httpPostAwait(data)
+        val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
+        val list = Jsoup.parse(comments!!.data.commentList, HAcg.wpdiscuz)
+                .select("body>.wpd-comment").map { Comment(it) }.toList()
+        val next = if (comments.data.isShowLoadMore) {
+            comments.data.lastParentId.toIntOrNull() to (_postOffset + 1)
+        } else {
+            null
+        }
+        LoadResult.Page(list, null, next)
+    } catch (e: Exception) {
+        LoadResult.Error(e)
+    }
 }
 
-class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+class InfoCommentViewModel(id: Int, handle: SavedStateHandle) : ViewModel() {
+    val progress = handle.getLiveData("progress", false)
+    val sorting = handle.getLiveData("sorting", Sorting.Vote)
+    val data = Pager(PagingConfig(20, initialLoadSize = 20), 0 to 0) {
+        InfoCommentPagingSource(id) { sorting.value!! }
+    }.flow
+
+    enum class Sorting(val sort: String) {
+        Vote("by_vote"), Newest("newest"), Oldest("oldest")
+    }
+}
+
+class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(handle) as T
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(args?.getInt("id") ?: 0, handle) as T
 }
 
 class InfoCommentFragment : Fragment() {
-    private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this) }
+    private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this, bundleOf("id" to _id)) }
     private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
     private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
     private val _id by lazy { _article.value?.id ?: Article.getIdFromUrl(_url) ?: 0 }
     private val _adapter by lazy { CommentAdapter() }
 
-    private var _postParentId: Int? = 0
-    private var _postOffset: Int = 0
     private val CONFIG_AUTHOR = "config.author"
     private val CONFIG_EMAIL = "config.email"
     private val CONFIG_COMMENT = "config.comment"
     private val AUTHOR = "wc_name"
     private val EMAIL = "wc_email"
     private var COMMENT = "wc_comment"
-    private var sorting: Sorting = Sorting.Vote
-
-    enum class Sorting(val sort: String) {
-        Vote("by_vote"), Newest("newest"), Oldest("oldest")
-    }
-
-    private val Wpdiscuz
-        get() = "${HAcg.wordpress}/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
                 binding.list1.setHasFixedSize(true)
-                binding.list1.adapter = _adapter
-                binding.list1.loading { query() }
-                viewModel.progress.observe(viewLifecycleOwner, { binding.swipe.isRefreshing = it })
+                binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter(_adapter))
+                viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
+                lifecycleScope.launchWhenCreated {
+                    viewModel.data.collectLatest { _adapter.submitData(it) }
+                }
+                lifecycleScope.launchWhenCreated {
+                    _adapter.loadStateFlow.collectLatest { loadStates ->
+                        binding.swipe.isRefreshing = loadStates.refresh is LoadState.Loading
+                    }
+                }
+                lifecycleScope.launchWhenCreated {
+                    _adapter.loadStateFlow
+                            .distinctUntilChangedBy { it.refresh }
+                            .filter { it.refresh is LoadState.NotLoading }
+                            .collect { binding.list1.scrollToPosition(0) }
+                }
+                viewModel.sorting.observe(viewLifecycleOwner, Observer { _adapter.refresh() })
                 binding.swipe.setOnRefreshListener {
-                    _postOffset = 0
-                    _postParentId = 0
-                    _adapter.clear()
-                    query()
+                    _adapter.refresh()
                 }
                 binding.button3.apply {
-                    setOnClickListener { comment(null) }
+                    setOnClickListener {
+                        comment(null) {
+                            //TODO _adapter.add(review, 0)
+                        }
+                    }
                     colorNormal = randomColor()
                     colorPressed = randomColor()
                     colorRipple = randomColor()
@@ -420,7 +461,6 @@ class InfoCommentFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        query()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -430,15 +470,11 @@ class InfoCommentFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.vote, R.id.newest, R.id.oldest -> {
-            sorting = when (item.itemId) {
-                R.id.oldest -> Sorting.Oldest
-                R.id.newest -> Sorting.Newest
-                else -> Sorting.Vote
-            }
-            _postOffset = 0
-            _postParentId = 0
-            _adapter.clear()
-            query()
+            viewModel.sorting.postValue(when (item.itemId) {
+                R.id.oldest -> InfoCommentViewModel.Sorting.Oldest
+                R.id.newest -> InfoCommentViewModel.Sorting.Newest
+                else -> InfoCommentViewModel.Sorting.Vote
+            })
             true
         }
         else -> super.onOptionsItemSelected(item)
@@ -447,6 +483,7 @@ class InfoCommentFragment : Fragment() {
     inner class CommentHolder(private val binding: CommentItemBinding) : RecyclerView.ViewHolder(binding.root) {
         private val adapter = CommentAdapter()
         private val context: Context? get() = view?.context
+        private var comment = MutableLiveData<Comment>()
 
         init {
             binding.list1.adapter = adapter
@@ -454,14 +491,22 @@ class InfoCommentFragment : Fragment() {
             listOf(binding.button1, binding.button2).forEach { b ->
                 b.setOnClickListener { view ->
                     val v = if (view.id == R.id.button1) -1 else 1
-                    val item = itemView.tag as? Comment ?: return@setOnClickListener
+                    val item = comment.value ?: return@setOnClickListener
                     vote(item, v) {
                         item.moderation = it
                         bindingAdapter?.notifyItemChanged(bindingAdapterPosition, "moderation")
                     }
                 }
             }
-            binding.root.setOnClickListener { v -> v.tag?.let { it as Comment }?.let { comment(it, bindingAdapterPosition) } }
+            binding.root.setOnClickListener {
+                comment.value?.let { parent ->
+                    comment(parent) {
+//                        TODO
+//                        parent.children.add(it)
+//                        adapter.notifyDataSetChanged()
+                    }
+                }
+            }
         }
 
         fun bind(item: Comment, payloads: MutableList<Any>) {
@@ -469,14 +514,13 @@ class InfoCommentFragment : Fragment() {
                 binding.text4.text = "${item.moderation}"
                 return
             }
+            comment.postValue(item)
             itemView.tag = item
             binding.text1.text = item.user
             binding.text2.text = item.content
             binding.text3.text = item.time
             binding.text4.text = "${item.moderation}"
-            adapter.clear()
-            adapter.addAll(item.children)
-
+            adapter.submitData(lifecycle, PagingData.from(item.children))
             if (item.face.isEmpty()) {
                 binding.image1.setImageResource(R.mipmap.ic_launcher)
             } else {
@@ -485,100 +529,49 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    class MsgHolder(val binding: ListMsgItemBinding) : RecyclerView.ViewHolder(binding.root)
-
-    inner class CommentAdapter : DataAdapter<Any, RecyclerView.ViewHolder>() {
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {}
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
-            when (holder) {
-                is CommentHolder -> holder.bind(data[position] as Comment, payloads)
-                is MsgHolder -> holder.binding.text1.text = data[position] as String
-            }
-        }
-
-        private val CommentTypeComment = 0
-        private val CommentTypeMsg = 1
-        override fun getItemViewType(position: Int): Int = when (data[position]) {
-            is Comment -> CommentTypeComment
-            else -> CommentTypeMsg
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
-            CommentTypeComment -> CommentHolder(CommentItemBinding.inflate(layoutInflater, parent, false))
-            else -> MsgHolder(ListMsgItemBinding.inflate(layoutInflater, parent, false))
-        }
+    class CommentDiffCallback : DiffUtil.ItemCallback<Comment>() {
+        override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem == newItem
     }
 
-    private fun query() {
-        if (viewModel.progress.value == true || _postParentId == null) return
-        viewModel.progress.postValue(true)
-        doAsync {
-            val json = Wpdiscuz.httpPost(mapOf(
-                    "action" to "wpdLoadMoreComments",
-                    "sorting" to sorting.sort,
-                    "offset" to "$_postOffset",
-                    "lastParentId" to "$_postParentId",
-                    "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
-                    "wpdType" to "",
-                    "postId" to "$_id"))
-            val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
-            val list = Jsoup.parse(comments?.data?.commentList ?: "", json?.second ?: "")
-                    .select("body>.wpd-comment").map { Comment(it) }.toList()
-            autoUiThread {
-                if (comments?.data != null) {
-                    if (comments.data.isShowLoadMore) {
-                        _postParentId = comments.data.lastParentId.toIntOrNull()
-                        _postOffset++
-                    } else {
-                        _postParentId = null
-                        _postOffset = 0
-                    }
-                }
-                _adapter.data.lastOrNull()?.let { it as String }?.let {
-                    _adapter.remove(it)
-                }
-                _adapter.addAll(list)
-                val (d, u) = (_adapter.size == 0) to (_postParentId == null)
-                _adapter.add(when {
-                    d && u -> getString(R.string.app_list_empty)
-                    u -> getString(R.string.app_list_complete)
-                    else -> getString(R.string.app_list_loading)
-                })
-                viewModel.progress.postValue(false)
-            }
+    inner class CommentAdapter : PagingDataAdapter<Comment, CommentHolder>(CommentDiffCallback()) {
+        override fun onBindViewHolder(holder: CommentHolder, position: Int) {}
+
+        override fun onBindViewHolder(holder: CommentHolder, position: Int, payloads: MutableList<Any>) {
+            holder.bind(getItem(position)!!, payloads)
         }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentHolder =
+                CommentHolder(CommentItemBinding.inflate(layoutInflater, parent, false))
     }
 
     fun vote(c: Comment?, v: Int, call: (Int) -> Unit) {
         if (c == null) return
-        doAsync {
-            val result = Wpdiscuz.httpPost(mapOf(
+        lifecycleScope.launchWhenCreated {
+            val result = HAcg.wpdiscuz.httpPostAwait(mapOf(
                     "action" to "wpdVoteOnComment",
                     "commentId" to "${c.id}",
                     "voteType" to "$v",
                     "postId" to "$_id"))
-            autoUiThread {
-                val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
-                if (succeed?.success != true) {
-                    val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
-                    Toast.makeText(requireActivity(), json?.data ?: result?.first, Toast.LENGTH_LONG).show()
-                    return@autoUiThread
-                }
-                call(succeed.data.votes.toIntOrNull() ?: 0)
+            val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
+            if (succeed?.success != true) {
+                val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
+                Toast.makeText(requireActivity(), json?.data ?: result?.first, Toast.LENGTH_LONG).show()
+                return@launchWhenCreated
             }
+            call(succeed.data.votes.toIntOrNull() ?: 0)
         }
     }
 
-    fun comment(c: Comment?, pos: Int? = null) {
+    fun comment(c: Comment?, succeed: (Comment) -> Unit) {
         if (c == null) {
-            commenting(c, pos)
+            commenting(c, succeed)
             return
         }
         MaterialAlertDialogBuilder(requireActivity())
                 .setTitle(c.user)
                 .setMessage(c.content)
-                .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, pos) }
+                .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, succeed) }
                 .setNegativeButton(R.string.app_cancel, null)
                 .setNeutralButton(R.string.app_copy) { _, _ ->
                     val clipboard = requireActivity().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -595,8 +588,7 @@ class InfoCommentFragment : Fragment() {
     }
 
     @SuppressLint("InflateParams")
-    private fun commenting(c: Comment?, pos: Int? = null) {
-        val url = Wpdiscuz
+    private fun commenting(c: Comment?, succeed: (Comment) -> Unit) {
         val input = CommentPostBinding.inflate(layoutInflater)
         val author: EditText = input.edit1
         val email: EditText = input.edit2
@@ -639,25 +631,20 @@ class InfoCommentFragment : Fragment() {
                         return@setPositiveButton
                     }
                     viewModel.progress.postValue(true)
-                    doAsync {
-                        val result = url.httpPost(post.toMap())
+                    lifecycleScope.launchWhenCreated {
+//                        delay(100)
+//                        succeed(Comment(random.nextInt(), c?.id ?: 0, "Test", "ZS", "", 0, datefmt.format(Date()), mutableListOf()))
+                        val result = HAcg.wpdiscuz.httpPostAwait(post.toMap())
                         val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
                         val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
                                 .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
-                        autoUiThread {
-                            viewModel.progress.postValue(false)
-                            if (review == null) {
-                                Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
-                                return@autoUiThread
-                            }
+                        if (review == null) {
+                            Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
+                        } else {
                             post[COMMENT] = ""
-                            if (c != null) {
-                                c.children.add(review)
-                                _adapter.notifyItemChanged(pos!!)
-                            } else {
-                                _adapter.add(review, 0)
-                            }
+                            succeed(review)
                         }
+                        viewModel.progress.postValue(false)
                     }
                 }
                 .setNegativeButton(R.string.app_cancel, null)
