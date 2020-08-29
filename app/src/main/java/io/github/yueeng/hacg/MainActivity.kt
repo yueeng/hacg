@@ -20,15 +20,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.AbstractSavedStateViewModelFactory
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.StaggeredGridLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
+import io.github.yueeng.hacg.databinding.FragmentListBinding
 import kotlinx.android.parcel.Parcelize
 import org.jetbrains.anko.doAsync
 import java.text.SimpleDateFormat
@@ -231,24 +236,31 @@ class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
     }
 }
 
+class ArticleViewModel : ViewModel() {
+    val busy = MutableLiveData(false)
+    val error = MutableLiveData(false)
+}
+
+class ArticleViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T {
+        @Suppress("UNCHECKED_CAST")
+        return ArticleViewModel() as T
+    }
+}
+
 class ArticleFragment : Fragment() {
-    private var busy = ViewBinder<Boolean, SwipeRefreshLayout>(false) { view, value -> view.post { view.isRefreshing = value } }
+    private val viewModel: ArticleViewModel by viewModels { ArticleViewModelFactory(this) }
     private val adapter by lazy { ArticleAdapter() }
     private var url: String? = null
-    private val error = object : ErrorBinder(false) {
-        override fun retry(): Unit = query(defurl, retry = true)
-    }
 
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
-        retainInstance = true
         if (saved != null) {
             val data = saved.getParcelableArray("data")
             if (data != null && data.isNotEmpty()) {
                 adapter.addAll(data.toList())
                 return
             }
-            error * saved.getBoolean("error", false)
         }
         query(defurl)
     }
@@ -260,33 +272,26 @@ class ArticleFragment : Fragment() {
 
     override fun onSaveInstanceState(out: Bundle) {
         out.putParcelableArray("data", adapter.data.toTypedArray())
-        out.putBoolean("error", error())
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        val root = inflater.inflate(R.layout.fragment_list, container, false)
-        error + root.findViewById(R.id.image1)
-        busy + root.findViewById(R.id.swipe)
-        busy.each {
-            it.setOnRefreshListener {
-                adapter.clear()
-                query(defurl)
-            }
-        }
-        val recycler: RecyclerView = root.findViewById(R.id.recycler)
-        val layout = StaggeredGridLayoutManager(resources.getInteger(R.integer.main_list_column), StaggeredGridLayoutManager.VERTICAL)
-        recycler.layoutManager = layout
-        recycler.setHasFixedSize(true)
-        recycler.adapter = adapter
-        recycler.loading { query(url) }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+            FragmentListBinding.inflate(inflater, container, false).apply {
+                viewModel.busy.observe(viewLifecycleOwner, { swipe.isRefreshing = it })
+                viewModel.error.observe(viewLifecycleOwner, { image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
+                image1.setOnClickListener { query(defurl, retry = true) }
+                swipe.setOnRefreshListener {
+                    adapter.clear()
+                    query(defurl)
+                }
+                recycler.setHasFixedSize(true)
+                recycler.adapter = adapter
+                recycler.loading { query(url) }
+            }.root
 
-        return root
-    }
-
-    fun query(uri: String?, retry: Boolean = false) {
-        if (busy() || uri.isNullOrEmpty()) return
-        busy * true
-        error * false
+    private fun query(uri: String?, retry: Boolean = false) {
+        if (viewModel.busy.value == true || uri.isNullOrEmpty()) return
+        viewModel.busy.postValue(true)
+        viewModel.error.postValue(false)
         doAsync {
             val result = uri.httpGet()?.jsoup { dom ->
                 dom.select("article").map { o -> Article(o) }.toList() to (dom.select("#wp_page_numbers a").lastOrNull()
@@ -297,8 +302,8 @@ class ArticleFragment : Fragment() {
             autoUiThread {
                 when (result) {
                     null -> {
-                        error * (adapter.size == 0)
-                        if (error()) if (retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
+                        viewModel.error.postValue(adapter.size == 0)
+                        if (adapter.size == 0) if (retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
                     }
                     else -> {
                         url = result.second
@@ -315,7 +320,7 @@ class ArticleFragment : Fragment() {
                         adapter.add(MsgItem(getString(msg)))
                     }
                 }
-                busy * false
+                viewModel.busy.postValue(false)
             }
         }
     }
