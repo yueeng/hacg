@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.circularreveal.cardview.CircularRevealCardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginLeft="5dp"
     android:layout_marginTop="2dp"
     android:layout_marginRight="5dp"
     android:layout_marginBottom="2dp"
-    android:descendantFocusability="blocksDescendants"
-    android:foreground="?android:attr/selectableItemBackground">
+    android:descendantFocusability="blocksDescendants">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -84,4 +83,4 @@
             android:textSize="@dimen/text_size_content" />
 
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.circularreveal.cardview.CircularRevealCardView>

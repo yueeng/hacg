@@ -16,7 +16,6 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
@@ -26,6 +25,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         }
         autoUiThread {
             result?.let { (v: String, t: String, u: String?) ->
-                AlertDialog.Builder(this@MainActivity)
+                MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle(getString(R.string.app_update_new, version(this@MainActivity), v))
                         .setMessage(t.html)
                         .setPositiveButton(R.string.app_update) { _, _ -> openWeb(this@MainActivity, u!!) }
@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.about -> {
-                AlertDialog.Builder(this)
+                MaterialAlertDialogBuilder(this)
                         .setTitle("${getString(R.string.app_name)} ${version(this)}")
                         .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openWeb(this@MainActivity, HAcg.wordpress) }
                         .setPositiveButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }

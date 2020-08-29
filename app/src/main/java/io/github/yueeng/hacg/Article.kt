@@ -12,6 +12,7 @@ import android.view.LayoutInflater
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.annotations.SerializedName
 import kotlinx.android.parcel.IgnoredOnParcel
@@ -153,7 +154,7 @@ object HAcg {
         val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null)
         val edit = view.findViewById<EditText>(R.id.edit1)
         edit.inputType = InputType.TYPE_TEXT_VARIATION_URI
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
                 .setTitle(title)
                 .setView(view)
                 .setNegativeButton(R.string.app_cancel, null)
@@ -170,7 +171,7 @@ object HAcg {
 
     fun setHostList(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val hosts = list().toList()
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
                 .setTitle(title)
                 .setSingleChoiceItems(hosts.toTypedArray(), hosts.indexOf(cur()).takeIf { it >= 0 }
                         ?: 0, null)
