@@ -14,6 +14,10 @@
          colorControlHighlight & colorSwitchThumbNormal. -->
         <item name="android:windowBackground">@color/background</item>
         <item name="android:colorBackground">@color/background</item>
+
+        <item name="appBarLayoutStyle">@style/AppThemeOverlayAppbarLayoutStyle</item>
+        <item name="actionOverflowMenuStyle">@style/Widget.AppCompat.PopupMenu.Overflow</item>
+        <item name="tabStyle">@style/Widget.MaterialComponents.TabLayout.PrimarySurface</item>
         <item name="textInputStyle">@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox</item>
     </style>
 
@@ -26,4 +30,7 @@
         <!--<item name="android:actionBarStyle">@style/DIYActionBar.Custom</item>-->
     </style>
 
+    <style name="AppThemeOverlayAppbarLayoutStyle" parent="Widget.MaterialComponents.AppBarLayout.Primary">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
+    </style>
 </resources>
