@@ -32,11 +32,15 @@ import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
+import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
 import androidx.slidingpanelayout.widget.SlidingPaneLayout
+import com.github.clans.fab.FloatingActionButton
+import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -166,6 +170,18 @@ fun Context.clipboard(label: String, text: String) {
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View =
         LayoutInflater.from(this.context).inflate(layout, this, attach)
+
+fun FloatingActionButton.setRandomColor(): FloatingActionButton = apply {
+    colorNormal = randomColor()
+    colorPressed = randomColor()
+    colorRipple = randomColor()
+}
+
+fun FloatingActionMenu.setRandomColor(): FloatingActionMenu = apply {
+    menuButtonColorNormal = randomColor()
+    menuButtonColorPressed = randomColor()
+    menuButtonColorRipple = randomColor()
+}
 
 private val img = listOf(".jpg", ".png", ".webp")
 
@@ -375,6 +391,8 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapt
         notifyItemRemoved(index)
         return this
     }
+
+    open fun getItem(position: Int): V? = data[position]
 }
 
 abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder> : DataAdapter<V, VH>() {
@@ -398,6 +416,31 @@ abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder> : DataAdapter<V, V
         super.addAll(v)
         if (fist && size != 0) refreshCh.offer(true)
         return this
+    }
+}
+
+class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val k: K?, factory: () -> PagingSource<K, V>) {
+    private var key: K?
+        get() = if (handle.contains("key")) handle["key"] else k
+        set(value) = handle.set("key", value)
+    val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
+    private val source by lazy(factory)
+    suspend fun query(refresh: Boolean = false): Pair<List<V>?, Throwable?> {
+        if (state.value is LoadState.Loading) return null to null
+        if (refresh) handle.remove<String?>("key")
+        if (key == null) return null to null
+        state.postValue(LoadState.Loading)
+        return when (val result = source.load(PagingSource.LoadParams.Append(key!!, 20, false))) {
+            is PagingSource.LoadResult.Page -> {
+                key = result.nextKey
+                state.postValue(LoadState.NotLoading(result.nextKey == null))
+                result.data to null
+            }
+            is PagingSource.LoadResult.Error -> {
+                state.postValue(LoadState.Error(result.throwable))
+                null to result.throwable
+            }
+        }
     }
 }
 

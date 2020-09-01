@@ -27,9 +27,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
-import androidx.paging.*
+import androidx.paging.LoadState
+import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -39,10 +39,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.gun0912.tedpermission.TedPermission
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
@@ -133,9 +130,7 @@ class InfoWebFragment : Fragment() {
                 _article.observe(viewLifecycleOwner, Observer { it?.title?.let { t -> requireActivity().title = t } })
                 viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
                 binding.image1.setOnClickListener { query(_url) }
-                binding.menu1.menuButtonColorNormal = randomColor()
-                binding.menu1.menuButtonColorPressed = randomColor()
-                binding.menu1.menuButtonColorRipple = randomColor()
+                binding.menu1.setRandomColor()
                 val click = View.OnClickListener { v ->
                     when (v.id) {
                         R.id.button1 -> openWeb(requireActivity(), _url)
@@ -230,9 +225,7 @@ class InfoWebFragment : Fragment() {
                 }
                 binding.web.addJavascriptInterface(JsFace(), "hacg")
                 listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
-                    b.colorNormal = randomColor()
-                    b.colorPressed = randomColor()
-                    b.colorRipple = randomColor()
+                    b.setRandomColor()
                 }
                 viewModel.web.observe(viewLifecycleOwner, Observer { value ->
                     if (value != null) binding.web.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null)
@@ -393,15 +386,13 @@ class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> I
 }
 
 class InfoCommentViewModel(id: Int, handle: SavedStateHandle) : ViewModel() {
-    val progress = handle.getLiveData("progress", false)
-    val sorting = handle.getLiveData("sorting", Sorting.Vote)
-    val data = Pager(PagingConfig(20, initialLoadSize = 20), 0 to 0) {
-        InfoCommentPagingSource(id) { sorting.value!! }
-    }.flow
-
     enum class Sorting(val sort: String) {
         Vote("by_vote"), Newest("newest"), Oldest("oldest")
     }
+
+    val progress = handle.getLiveData("progress", false)
+    val sorting = handle.getLiveData("sorting", Sorting.Vote)
+    val source = Paging(handle, 0 to 0) { InfoCommentPagingSource(id) { sorting.value!! } }
 }
 
 class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -423,44 +414,39 @@ class InfoCommentFragment : Fragment() {
     private val EMAIL = "wc_email"
     private var COMMENT = "wc_comment"
 
+    private fun query(refresh: Boolean = false) {
+        lifecycleScope.launchWhenCreated {
+            if (refresh) _adapter.clear()
+            val (list, _) = viewModel.source.query(refresh)
+            if (list != null) _adapter.addAll(list)
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
-                binding.list1.setHasFixedSize(true)
-                binding.list1.adapter = _adapter//.withLoadStateFooter(FooterAdapter(_adapter))
+                binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter({ _adapter.itemCount }) { query() })
                 viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
+                viewModel.source.state.observe(viewLifecycleOwner, Observer {
+                    _adapter.state.postValue(it)
+                    binding.swipe.isRefreshing = it is LoadState.Loading
+                })
                 lifecycleScope.launchWhenCreated {
-                    viewModel.data.collectLatest { _adapter.submitData(it) }
-                }
-                lifecycleScope.launchWhenCreated {
-                    _adapter.loadStateFlow.collectLatest { loadStates ->
-                        binding.swipe.isRefreshing = loadStates.refresh is LoadState.Loading
+                    _adapter.refreshFlow.collectLatest {
+                        binding.list1.scrollToPosition(0)
                     }
                 }
-                lifecycleScope.launchWhenCreated {
-                    _adapter.loadStateFlow
-                            .distinctUntilChangedBy { it.refresh }
-                            .filter { it.refresh is LoadState.NotLoading }
-                            .collect { binding.list1.scrollToPosition(0) }
-                }
-                viewModel.sorting.observe(viewLifecycleOwner, Observer { _adapter.refresh() })
-                binding.swipe.setOnRefreshListener {
-                    _adapter.refresh()
-                }
-                binding.button3.apply {
-                    setOnClickListener {
-                        comment(null) {
-                            //TODO _adapter.add(review, 0)
-                        }
-                    }
-                    colorNormal = randomColor()
-                    colorPressed = randomColor()
-                    colorRipple = randomColor()
+                binding.list1.loading { query() }
+                viewModel.sorting.observe(viewLifecycleOwner, Observer { query(true) })
+                binding.swipe.setOnRefreshListener { query(true) }
+                binding.button3.setRandomColor().setOnClickListener {
+                    comment(null) { _adapter.add(it, 0) }
                 }
             }.root
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        if (_adapter.size == 0) query()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -501,9 +487,7 @@ class InfoCommentFragment : Fragment() {
             binding.root.setOnClickListener {
                 comment.value?.let { parent ->
                     comment(parent) {
-//                        TODO
-//                        parent.children.add(it)
-//                        adapter.notifyDataSetChanged()
+                        adapter.add(it)
                     }
                 }
             }
@@ -520,7 +504,7 @@ class InfoCommentFragment : Fragment() {
             binding.text2.text = item.content
             binding.text3.text = item.time
             binding.text4.text = "${item.moderation}"
-            adapter.submitData(lifecycle, PagingData.from(item.children))
+            adapter.addAll(item.children)
             if (item.face.isEmpty()) {
                 binding.image1.setImageResource(R.mipmap.ic_launcher)
             } else {
@@ -529,12 +513,7 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    class CommentDiffCallback : DiffUtil.ItemCallback<Comment>() {
-        override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem.id == newItem.id
-        override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem == newItem
-    }
-
-    inner class CommentAdapter : PagingDataAdapter<Comment, CommentHolder>(CommentDiffCallback()) {
+    inner class CommentAdapter : PagingAdapter<Comment, CommentHolder>() {
         override fun onBindViewHolder(holder: CommentHolder, position: Int) {}
 
         override fun onBindViewHolder(holder: CommentHolder, position: Int, payloads: MutableList<Any>) {

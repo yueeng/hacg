@@ -246,33 +246,11 @@ class ArticlePagingSource : PagingSource<String, Article>() {
     }
 }
 
-class ArticleViewModel(private val handle: SavedStateHandle, private val args: Bundle?) : ViewModel() {
+class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     var retry: Boolean
         get() = handle.get("retry") ?: false
         set(value) = handle.set("retry", value)
-    private var key: String?
-        get() = if (handle.contains("key")) handle["key"] else args?.getString("url")
-        set(value) = handle.set("key", value)
-    val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
-    private val source = ArticlePagingSource()
-
-    suspend fun query(refresh: Boolean = false): Pair<List<Article>?, Throwable?> {
-        if (state.value is LoadState.Loading) return null to null
-        if (refresh) handle.remove<String?>("key")
-        if (key == null) return null to null
-        state.postValue(LoadState.Loading)
-        return when (val result = source.load(PagingSource.LoadParams.Append(key!!, 20, false))) {
-            is PagingSource.LoadResult.Page -> {
-                key = result.nextKey
-                state.postValue(LoadState.NotLoading(result.nextKey == null))
-                result.data to null
-            }
-            is PagingSource.LoadResult.Error -> {
-                state.postValue(LoadState.Error(result.throwable))
-                null to result.throwable
-            }
-        }
-    }
+    val source = Paging(handle, args?.getString("url")) { ArticlePagingSource() }
 }
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -290,7 +268,7 @@ class ArticleFragment : Fragment() {
     private fun query(refresh: Boolean = false) {
         lifecycleScope.launchWhenCreated {
             if (refresh) adapter.clear()
-            val (list, _) = viewModel.query(refresh)
+            val (list, _) = viewModel.source.query(refresh)
             if (list != null) adapter.addAll(list)
         }
     }
@@ -302,7 +280,7 @@ class ArticleFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             FragmentListBinding.inflate(inflater, container, false).apply {
-                viewModel.state.observe(viewLifecycleOwner, {
+                viewModel.source.state.observe(viewLifecycleOwner, {
                     adapter.state.postValue(it)
                     swipe.isRefreshing = it is LoadState.Loading
                     image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
