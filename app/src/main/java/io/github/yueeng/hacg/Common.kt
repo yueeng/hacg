@@ -31,11 +31,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.MutableLiveData
+import androidx.paging.LoadState
+import androidx.paging.LoadStateAdapter
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import androidx.recyclerview.widget.*
 import androidx.slidingpanelayout.widget.SlidingPaneLayout
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
@@ -44,6 +44,8 @@ import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import com.jakewharton.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
@@ -347,34 +349,57 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapt
 
     val size: Int get() = _data.size
     val data: List<V> get() = _data
-    fun clear(): DataAdapter<V, VH> {
+    open fun clear(): DataAdapter<V, VH> {
         val size = _data.size
         _data.clear()
         notifyItemRangeRemoved(0, size)
         return this
     }
 
-    fun add(v: V, index: Int = _data.size): DataAdapter<V, VH> {
+    open fun add(v: V, index: Int = _data.size): DataAdapter<V, VH> {
         _data.add(index, v)
         notifyItemInserted(index)
         return this
     }
 
-    fun addAll(v: List<V>): DataAdapter<V, VH> {
+    open fun addAll(v: List<V>): DataAdapter<V, VH> {
         _data.addAll(v)
         notifyItemRangeInserted(_data.size - v.size, v.size)
         return this
     }
 
-    fun remove(v: V): DataAdapter<V, VH> {
+    open fun remove(v: V): DataAdapter<V, VH> {
         val index = _data.indexOf(v)
         if (index == -1) return this
         _data.removeAt(index)
         notifyItemRemoved(index)
-        return remove(v)
+        return this
     }
 }
 
+abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder> : DataAdapter<V, VH>() {
+    private val refreshCh = Channel<Boolean>()
+    val refreshFlow = refreshCh.consumeAsFlow()
+    val state = MutableLiveData<LoadState>()
+    fun withLoadStateFooter(footer: LoadStateAdapter<*>): ConcatAdapter {
+        state.observeForever { footer.loadState = it }
+        return ConcatAdapter(this, footer)
+    }
+
+    override fun add(v: V, index: Int): DataAdapter<V, VH> {
+        val fist = size == 0
+        super.add(v, index)
+        if (fist && size != 0) refreshCh.offer(true)
+        return this
+    }
+
+    override fun addAll(v: List<V>): DataAdapter<V, VH> {
+        val fist = size == 0
+        super.addAll(v)
+        if (fist && size != 0) refreshCh.offer(true)
+        return this
+    }
+}
 
 class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
     private val linePadding = 2f // play around with these as needed

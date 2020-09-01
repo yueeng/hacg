@@ -1,6 +1,5 @@
 package io.github.yueeng.hacg
 
-import android.animation.ObjectAnimator
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -12,7 +11,6 @@ import android.os.Parcelable
 import android.provider.SearchRecentSuggestions
 import android.text.method.LinkMovementMethod
 import android.view.*
-import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -24,8 +22,9 @@ import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.paging.*
-import androidx.recyclerview.widget.DiffUtil
+import androidx.paging.LoadState
+import androidx.paging.LoadStateAdapter
+import androidx.paging.PagingSource
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -33,10 +32,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
 import okhttp3.Request
 import org.jetbrains.anko.doAsync
 import org.jsoup.Jsoup
@@ -250,10 +246,33 @@ class ArticlePagingSource : PagingSource<String, Article>() {
     }
 }
 
-class ArticleViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
-    val retry = handle.getLiveData("retry", false)
-    val error = handle.getLiveData("error", false)
-    val data = Pager(PagingConfig(20, initialLoadSize = 20), args?.getString("url")) { ArticlePagingSource() }.flow
+class ArticleViewModel(private val handle: SavedStateHandle, private val args: Bundle?) : ViewModel() {
+    var retry: Boolean
+        get() = handle.get("retry") ?: false
+        set(value) = handle.set("retry", value)
+    private var key: String?
+        get() = if (handle.contains("key")) handle["key"] else args?.getString("url")
+        set(value) = handle.set("key", value)
+    val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
+    private val source = ArticlePagingSource()
+
+    suspend fun query(refresh: Boolean = false): Pair<List<Article>?, Throwable?> {
+        if (state.value is LoadState.Loading) return null to null
+        if (refresh) handle.remove<String?>("key")
+        if (key == null) return null to null
+        state.postValue(LoadState.Loading)
+        return when (val result = source.load(PagingSource.LoadParams.Append(key!!, 20, false))) {
+            is PagingSource.LoadResult.Page -> {
+                key = result.nextKey
+                state.postValue(LoadState.NotLoading(result.nextKey == null))
+                result.data to null
+            }
+            is PagingSource.LoadResult.Error -> {
+                state.postValue(LoadState.Error(result.throwable))
+                null to result.throwable
+            }
+        }
+    }
 }
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -268,33 +287,41 @@ class ArticleFragment : Fragment() {
     private val defurl: String
         get() = requireArguments().getString("url")!!.let { uri -> if (uri.startsWith("/")) "${HAcg.web}$uri" else uri }
 
+    private fun query(refresh: Boolean = false) {
+        lifecycleScope.launchWhenCreated {
+            if (refresh) adapter.clear()
+            val (list, _) = viewModel.query(refresh)
+            if (list != null) adapter.addAll(list)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (adapter.size == 0) query()
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             FragmentListBinding.inflate(inflater, container, false).apply {
-                viewModel.error.observe(viewLifecycleOwner, { image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
+                viewModel.state.observe(viewLifecycleOwner, {
+                    adapter.state.postValue(it)
+                    swipe.isRefreshing = it is LoadState.Loading
+                    image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
+                    if (it is LoadState.Error && adapter.itemCount == 0) if (viewModel.retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
+                })
                 image1.setOnClickListener {
-                    viewModel.retry.postValue(true)
-                    adapter.refresh()
+                    viewModel.retry = true
+                    query(true)
                 }
-                swipe.setOnRefreshListener { adapter.refresh() }
+                swipe.setOnRefreshListener { query(true) }
                 recycler.setHasFixedSize(true)
-                recycler.adapter = adapter.withLoadStateFooter(FooterAdapter(adapter))
+                recycler.adapter = adapter.withLoadStateFooter(FooterAdapter({ adapter.itemCount }) {
+                    query()
+                })
+                recycler.loading { query() }
                 lifecycleScope.launchWhenCreated {
-                    viewModel.data.collectLatest { adapter.submitData(it) }
-                }
-                lifecycleScope.launchWhenCreated {
-                    adapter.loadStateFlow.collectLatest { loadStates ->
-                        swipe.isRefreshing = loadStates.refresh is LoadState.Loading
-                        viewModel.error.postValue(loadStates.refresh is LoadState.Error && adapter.itemCount == 0)
-                        if (loadStates.refresh is LoadState.Error) {
-                            if (viewModel.retry.value == true) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
-                        }
+                    adapter.refreshFlow.collectLatest {
+                        recycler.scrollToPosition(0)
                     }
-                }
-                lifecycleScope.launchWhenCreated {
-                    adapter.loadStateFlow
-                            .distinctUntilChangedBy { it.refresh }
-                            .filter { it.refresh is LoadState.NotLoading }
-                            .collect { recycler.scrollToPosition(0) }
                 }
             }.root
 
@@ -331,30 +358,14 @@ class ArticleFragment : Fragment() {
         }
     }
 
-
-    class ArticleDiffCallback : DiffUtil.ItemCallback<Article>() {
-        override fun areItemsTheSame(oldItem: Article, newItem: Article): Boolean = oldItem.id == newItem.id
-        override fun areContentsTheSame(oldItem: Article, newItem: Article): Boolean = oldItem == newItem
-    }
-
-    class ArticleAdapter : PagingDataAdapter<Article, ArticleHolder>(ArticleDiffCallback()) {
+    class ArticleAdapter : PagingAdapter<Article, ArticleHolder>() {
         override fun onBindViewHolder(holder: ArticleHolder, position: Int) {
-            holder.article = getItem(position)
-            if (position > last) {
-                last = holder.bindingAdapterPosition
-                ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0F)
-                        .setDuration(1000).also { it.interpolator = interpolator }.start()
-            }
+            holder.article = data[position]
         }
-
-        private var last: Int = -1
-        private val interpolator = DecelerateInterpolator(3F)
-        private val from: Float = 300F
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
                 ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }
-
 }
 
 class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : RecyclerView.ViewHolder(binding.root) {
@@ -378,12 +389,13 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
     }
 }
 
-class FooterAdapter<T : Any, VH : RecyclerView.ViewHolder>(private val adapter: PagingDataAdapter<T, VH>) : LoadStateAdapter<MsgHolder>() {
+class FooterAdapter(private val count: () -> Int, private val retry: () -> Unit) : LoadStateAdapter<MsgHolder>() {
     override fun displayLoadStateAsItem(loadState: LoadState): Boolean = true
+
     override fun onBindViewHolder(holder: MsgHolder, loadState: LoadState) {
-        holder.bind(loadState) { adapter.itemCount == 0 }
+        holder.bind(loadState) { count() == 0 }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): MsgHolder =
-            MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { adapter.retry() }
+            MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { retry() }
 }

@@ -426,7 +426,7 @@ class InfoCommentFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
                 binding.list1.setHasFixedSize(true)
-                binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter(_adapter))
+                binding.list1.adapter = _adapter//.withLoadStateFooter(FooterAdapter(_adapter))
                 viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
                 lifecycleScope.launchWhenCreated {
                     viewModel.data.collectLatest { _adapter.submitData(it) }
