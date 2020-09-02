@@ -543,31 +543,32 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
     private var mInitialMotionY: Float = 0F
     private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
 
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(ev: MotionEvent?): Boolean = super.onTouchEvent(ev)
-
-    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        return when (ev.action) {
-            MotionEvent.ACTION_DOWN -> {
-                mInitialMotionX = ev.x
-                mInitialMotionY = ev.y
-                null
-            }
-            MotionEvent.ACTION_MOVE -> {
-                val x = ev.x
-                val y = ev.y
-                if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
-                                (x - mInitialMotionX).roundToInt(), x.roundToInt(), y.roundToInt())) {
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = when (ev.action) {
+        MotionEvent.ACTION_DOWN -> {
+            mInitialMotionX = ev.x
+            mInitialMotionY = ev.y
+            null
+        }
+        MotionEvent.ACTION_MOVE -> {
+            val x = ev.x
+            val y = ev.y
+            val dx = (x - mInitialMotionX).roundToInt()
+            when {
+                mInitialMotionX <= mEdgeSlop -> null
+                isOpen -> null
+                dx == 0 -> null
+                !canScroll(this, false, dx, x.roundToInt(), y.roundToInt()) -> null
+                else -> {
                     val me = MotionEvent.obtain(ev)
                     me.action = MotionEvent.ACTION_CANCEL
                     super.onInterceptTouchEvent(me).also {
                         me.recycle()
                     }
-                } else null
+                }
             }
-            else -> null
-        } ?: super.onInterceptTouchEvent(ev)
-    }
+        }
+        else -> null
+    } ?: super.onInterceptTouchEvent(ev)
 }
 
 @SuppressLint("Registered")
