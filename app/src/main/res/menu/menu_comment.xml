@@ -9,14 +9,17 @@
         <menu>
             <item
                 android:id="@+id/vote"
+                android:checkable="true"
                 android:title="@string/comment_sort_vote"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/newest"
+                android:checkable="true"
                 android:title="@string/comment_sort_newest"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/oldest"
+                android:checkable="true"
                 android:title="@string/comment_sort_oldest"
                 app:showAsAction="ifRoom" />
         </menu>

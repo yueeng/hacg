@@ -438,7 +438,6 @@ class InfoCommentFragment : Fragment() {
                     }
                 }
                 binding.list1.loading { query() }
-                viewModel.sorting.observe(viewLifecycleOwner, Observer { query(true) })
                 binding.swipe.setOnRefreshListener { query(true) }
                 binding.button3.setRandomColor().setOnClickListener {
                     comment(null) {
@@ -465,6 +464,15 @@ class InfoCommentFragment : Fragment() {
         super.onCreateOptionsMenu(menu, inflater)
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        super.onPrepareOptionsMenu(menu)
+        when (viewModel.sorting.value) {
+            InfoCommentViewModel.Sorting.Newest -> menu.findItem(R.id.newest).isChecked = true
+            InfoCommentViewModel.Sorting.Oldest -> menu.findItem(R.id.oldest).isChecked = true
+            else -> menu.findItem(R.id.vote).isChecked = true
+        }
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.vote, R.id.newest, R.id.oldest -> {
             viewModel.sorting.postValue(when (item.itemId) {
@@ -472,6 +480,7 @@ class InfoCommentFragment : Fragment() {
                 R.id.newest -> InfoCommentViewModel.Sorting.Newest
                 else -> InfoCommentViewModel.Sorting.Vote
             })
+            query(true)
             true
         }
         else -> super.onOptionsItemSelected(item)
