@@ -96,6 +96,11 @@ class WebFragment : Fragment() {
         setHasOptionsMenu(true)
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        FragmentWebBinding.bind(requireView()).web.destroy()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val binding = FragmentWebBinding.inflate(inflater, container, false)
