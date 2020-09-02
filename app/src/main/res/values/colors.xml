@@ -9,7 +9,6 @@
 
     <color name="transparent">#0000</color>
     <color name="background">#F8F8F8</color>
-    <color name="comment_list_selector_color">#10000000</color>
 
     <color name="text_color_title">#222</color>
     <color name="text_color_content">#555</color>

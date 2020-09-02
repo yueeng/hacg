@@ -406,7 +406,7 @@ class InfoCommentFragment : Fragment() {
     private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
     private val _id by lazy { _article.value?.id ?: Article.getIdFromUrl(_url) ?: 0 }
     private val _adapter by lazy { CommentAdapter() }
-
+    private val adapterPool = RecyclerView.RecycledViewPool()
     private val CONFIG_AUTHOR = "config.author"
     private val CONFIG_EMAIL = "config.email"
     private val CONFIG_COMMENT = "config.comment"
@@ -475,6 +475,7 @@ class InfoCommentFragment : Fragment() {
         private var comment: Comment? = null
 
         init {
+            binding.list1.setRecycledViewPool(adapterPool)
             binding.list1.adapter = adapter
             listOf(binding.button1, binding.button2).forEach { b ->
                 b.setOnClickListener { view ->

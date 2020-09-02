@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.circularreveal.cardview.CircularRevealCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="3dp"
-    android:layout_marginLeft="5dp"
-    android:layout_marginRight="5dp"
+    android:layout_marginStart="5dp"
     android:layout_marginTop="2dp"
+    android:layout_marginEnd="5dp"
+    android:layout_marginBottom="3dp"
     android:descendantFocusability="blocksDescendants">
 
     <TextView
@@ -14,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_margin="10dp"
-        android:text="@string/app_name"
         android:textColor="@color/text_color_content"
-        android:textSize="@dimen/text_size_content" />
+        android:textSize="@dimen/text_size_content"
+        tools:text="@string/app_name" />
 </com.google.android.material.circularreveal.cardview.CircularRevealCardView>

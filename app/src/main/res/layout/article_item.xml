@@ -1,61 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.circularreveal.cardview.CircularRevealCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="5dp"
+    android:layout_marginStart="5dp"
     android:layout_marginTop="2dp"
-    android:layout_marginRight="5dp"
+    android:layout_marginEnd="5dp"
     android:layout_marginBottom="2dp"
     android:descendantFocusability="blocksDescendants">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="wrap_content">
 
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/image1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/app_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@drawable/loading" />
 
-            <ImageView
-                android:id="@+id/image1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:contentDescription="@string/app_name" />
-
-            <TextView
-                android:id="@+id/text3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end|top"
-                android:gravity="end"
-                android:lineSpacingExtra="6dp"
-                android:padding="5dp"
-                android:text="@string/app_name"
-                android:textSize="@dimen/text_size_title" />
-
-        </FrameLayout>
+        <TextView
+            android:id="@+id/text3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:lineSpacingExtra="6dp"
+            android:padding="5dp"
+            android:textSize="@dimen/text_size_title"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="@string/app_name" />
 
         <TextView
             android:id="@+id/text1"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="2"
-            android:paddingLeft="3dp"
-            android:paddingRight="3dp"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp"
             android:shadowColor="#000"
             android:shadowDx="1"
             android:shadowDy="1"
             android:shadowRadius="1"
-            android:text="@string/app_name"
             android:textColor="@color/text_color_title"
-            android:textSize="@dimen/text_size_large" />
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/image1"
+            tools:text="@string/app_name" />
 
         <TextView
             android:id="@+id/text4"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:ellipsize="end"
@@ -66,21 +69,26 @@
             android:shadowDx="1"
             android:shadowDy="1"
             android:shadowRadius="1"
-            android:text="@string/app_name"
             android:textColor="@color/text_color_title"
-            android:textSize="@dimen/text_size_content" />
+            android:textSize="@dimen/text_size_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text1"
+            tools:text="@string/app_name" />
 
         <TextView
             android:id="@+id/text2"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="4"
-            android:paddingLeft="3dp"
-            android:paddingRight="3dp"
-            android:text="@string/app_name"
+            android:paddingStart="3dp"
+            android:paddingEnd="3dp"
             android:textColor="@color/text_color_content"
-            android:textSize="@dimen/text_size_content" />
-
-    </LinearLayout>
+            android:textSize="@dimen/text_size_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text4"
+            tools:text="@string/app_name" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.circularreveal.cardview.CircularRevealCardView>
