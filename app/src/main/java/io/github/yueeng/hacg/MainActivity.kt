@@ -36,13 +36,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import okhttp3.Request
-import org.jetbrains.anko.doAsync
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.Future
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(state: Bundle?) {
@@ -68,8 +67,8 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun checkVersion(toast: Boolean = false): Future<Unit> = doAsync {
-        val result = "${HAcg.RELEASE}/latest".httpGet()?.jsoup { dom ->
+    private fun checkVersion(toast: Boolean = false) = lifecycleScope.launchWhenCreated {
+        val result = "${HAcg.RELEASE}/latest".httpGetAwait()?.jsoup { dom ->
             Triple(
                     dom.select("span.css-truncate-target").firstOrNull()?.text() ?: "",
                     dom.select(".markdown-body").html().trim(),
@@ -78,26 +77,26 @@ class MainActivity : AppCompatActivity() {
         }?.let { (v: String, t: String, u: String?) ->
             if (versionBefore(version(this@MainActivity), v)) Triple(v, t, u) else null
         }
-        autoUiThread {
-            result?.let { (v: String, t: String, u: String?) ->
-                MaterialAlertDialogBuilder(this@MainActivity)
-                        .setTitle(getString(R.string.app_update_new, version(this@MainActivity), v))
-                        .setMessage(t.html)
-                        .setPositiveButton(R.string.app_update) { _, _ -> openWeb(this@MainActivity, u!!) }
-                        .setNeutralButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }
-                        .setNegativeButton(R.string.app_cancel, null)
-                        .create().show()
-            } ?: {
-                if (toast) {
-                    Toast.makeText(this@MainActivity, getString(R.string.app_update_none, version(this@MainActivity)), Toast.LENGTH_SHORT).show()
-                }
-                checkConfig()
-            }()
-        }
+        result?.let { (v: String, t: String, u: String?) ->
+            MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(getString(R.string.app_update_new, version(this@MainActivity), v))
+                    .setMessage(t.html)
+                    .setPositiveButton(R.string.app_update) { _, _ -> openWeb(this@MainActivity, u!!) }
+                    .setNeutralButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }
+                    .setNegativeButton(R.string.app_cancel, null)
+                    .create().show()
+        } ?: {
+            if (toast) {
+                Toast.makeText(this@MainActivity, getString(R.string.app_update_none, version(this@MainActivity)), Toast.LENGTH_SHORT).show()
+            }
+            checkConfig()
+        }()
     }
 
-    private fun checkConfig(toast: Boolean = false): Unit = HAcg.update(this, toast) {
-        reload()
+    private fun checkConfig(toast: Boolean = false): Job = lifecycleScope.launchWhenCreated {
+        HAcg.update(this@MainActivity, toast) {
+            reload()
+        }
     }
 
     private fun reload() {
@@ -140,16 +139,14 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.auto -> {
-                doAsync {
+                lifecycleScope.launchWhenCreated {
                     val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second }
-                    autoUiThread {
-                        if (good != null) {
-                            HAcg.host = good.first
-                            toast(getString(R.string.settings_config_auto_choose, good.first))
-                            reload()
-                        } else {
-                            toast(R.string.settings_config_auto_failed)
-                        }
+                    if (good != null) {
+                        HAcg.host = good.first
+                        toast(getString(R.string.settings_config_auto_choose, good.first))
+                        reload()
+                    } else {
+                        toast(R.string.settings_config_auto_failed)
                     }
                 }
                 true

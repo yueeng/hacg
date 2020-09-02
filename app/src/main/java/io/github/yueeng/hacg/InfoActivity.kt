@@ -41,7 +41,6 @@ import com.gun0912.tedpermission.TedPermission
 import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.anko.childrenRecursiveSequence
 import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
 import java.util.*
@@ -261,11 +260,11 @@ class InfoWebFragment : Fragment() {
             uri?.let { share.putExtra(Intent.EXTRA_STREAM, uri) }
             startActivity(Intent.createChooser(share, title))
         }
-        url?.httpDownloadAsync(requireContext()) {
-            it?.let { file ->
+        lifecycleScope.launchWhenCreated {
+            url?.httpDownloadAwait()?.let { file ->
                 share(FileProvider.getUriForFile(requireActivity(), "${BuildConfig.APPLICATION_ID}.fileprovider", file))
             } ?: share()
-        } ?: share()
+        }
     }
 
     @Suppress("unused")

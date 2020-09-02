@@ -30,6 +30,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
+import androidx.core.view.children
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
@@ -48,6 +49,9 @@ import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import com.jakewharton.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -57,7 +61,6 @@ import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
 import okio.sink
-import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
@@ -69,7 +72,6 @@ import java.net.URL
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -176,6 +178,42 @@ fun Context.clipboard(label: String, text: String) {
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View =
         LayoutInflater.from(this.context).inflate(layout, this, attach)
 
+fun View.childrenSequence(): Sequence<View> = (this as? ViewGroup)?.children ?: emptySequence()
+fun View.childrenRecursiveSequence(): Sequence<View> = ViewChildrenRecursiveSequence(this)
+private class ViewChildrenRecursiveSequence(private val view: View) : Sequence<View> {
+    override fun iterator(): Iterator<View> {
+        if (view !is ViewGroup) return emptyList<View>().iterator()
+        return RecursiveViewIterator(view)
+    }
+
+    private class RecursiveViewIterator(view: View) : Iterator<View> {
+        private val sequences = arrayListOf(view.childrenSequence())
+        private var current = sequences.removeLast().iterator()
+
+        override fun next(): View {
+            if (!hasNext()) throw NoSuchElementException()
+            val view = current.next()
+            if (view is ViewGroup && view.childCount > 0) {
+                sequences.add(view.childrenSequence())
+            }
+            return view
+        }
+
+        override fun hasNext(): Boolean {
+            if (!current.hasNext() && sequences.isNotEmpty()) {
+                current = sequences.removeLast().iterator()
+            }
+            return current.hasNext()
+        }
+
+        @Suppress("NOTHING_TO_INLINE")
+        private inline fun <T : Any> MutableList<T>.removeLast(): T {
+            if (isEmpty()) throw NoSuchElementException()
+            return removeAt(size - 1)
+        }
+    }
+}
+
 fun FloatingActionButton.setRandomColor(): FloatingActionButton = apply {
     colorNormal = randomColor()
     colorPressed = randomColor()
@@ -193,21 +231,6 @@ private val img = listOf(".jpg", ".png", ".webp")
 @SuppressLint("DefaultLocale")
 fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
 
-fun String.httpGet(): Pair<String, String>? = try {
-    val request = Request.Builder().get().url(this).build()
-    val response = okhttp.newCall(request).execute()
-    val url = response.request.url.toString()
-    val html = response.body!!.string()
-    if (url.startsWith(HAcg.wordpress)) {
-        """"user_id":"(\d+)"""".toRegex().find(html)?.let {
-            user = it.groups[1]?.value?.toIntOrNull() ?: 0
-        }
-    }
-    html to url
-} catch (e: Exception) {
-    e.printStackTrace(); null
-}
-
 suspend fun String.httpGetAwait(): Pair<String, String>? = try {
     val request = Request.Builder().get().url(this).build()
     val (html, url) = okhttp.newCall(request).await { _, response -> response.body!!.string() to response.request.url.toString() }
@@ -221,20 +244,6 @@ suspend fun String.httpGetAwait(): Pair<String, String>? = try {
     e.printStackTrace(); null
 }
 
-fun String.httpGetAsync(context: Context, callback: (Pair<String, String>?) -> Unit): Future<Unit> = context.doAsync {
-    val result = this@httpGetAsync.httpGet()
-    autoUiThread { callback(result) }
-}
-
-fun String.httpPost(post: Map<String, String>): Pair<String, String>? = try {
-    val data = post.toList().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.first, o.second) }.build()
-    val request = Request.Builder().url(this).post(data).build()
-    val response = okhttp.newCall(request).execute()
-    (response.body!!.string() to response.request.url.toString())
-} catch (_: Exception) {
-    null
-}
-
 suspend fun String.httpPostAwait(post: Map<String, String>): Pair<String, String>? = try {
     val data = post.toList().fold(MultipartBody.Builder().setType(MultipartBody.FORM)) { b, o -> b.addFormDataPart(o.first, o.second) }.build()
     val request = Request.Builder().url(this).post(data).build()
@@ -246,26 +255,20 @@ suspend fun String.httpPostAwait(post: Map<String, String>): Pair<String, String
     null
 }
 
-fun String.httpDownloadAsync(context: Context, file: String? = null, fn: (File?) -> Unit): Future<Unit> = context.doAsync {
-    val result = httpDownload(file)
-    autoUiThread { fn(result) }
-}
-
-fun String.httpDownload(file: String? = null): File? = try {
+suspend fun String.httpDownloadAwait(file: String? = null): File? = try {
     val request = Request.Builder().get().url(this).build()
-    val response = okdownload.newCall(request).execute()
-
-    val target = if (file == null) {
-        val path = response.request.url.toUri().path
-        File(HAcgApplication.instance.externalCacheDir, path.substring(path.lastIndexOf('/') + 1))
-    } else {
-        File(file)
+    okdownload.newCall(request).await { _, response ->
+        val target = if (file == null) {
+            val path = response.request.url.toUri().path
+            File(HAcgApplication.instance.externalCacheDir, path.substring(path.lastIndexOf('/') + 1))
+        } else {
+            File(file)
+        }
+        val sink = target.sink().buffer()
+        sink.writeAll(response.body!!.source())
+        sink.close()
+        target
     }
-
-    val sink = target.sink().buffer()
-    sink.writeAll(response.body!!.source())
-    sink.close()
-    target
 } catch (e: Exception) {
     e.printStackTrace(); null
 }
@@ -329,8 +332,8 @@ fun versionBefore(local: String, online: String): Boolean = try {
     false
 }
 
-inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> = this.childrenRecursiveSequence()
-        .mapNotNull { it as? T }.filter { id == 0 || id == it.id }
+inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> =
+        this.childrenRecursiveSequence().mapNotNull { it as? T }.filter { id == 0 || id == it.id }
 
 fun Activity.snack(text: CharSequence, duration: Int = Snackbar.LENGTH_SHORT): Snackbar = this.window.decorView.let { view ->
     view.findViewByViewType<CoordinatorLayout>().firstOrNull()
@@ -343,7 +346,8 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
-fun <A, B> List<A>.pmap(f: (A) -> B): List<B> = map { doAsyncResult { f(it) } }.map { it.get() }
+val ioScope = CoroutineScope(Dispatchers.IO)
+suspend fun <A, B> List<A>.pmap(scope: CoroutineScope = ioScope, f: (A) -> B): List<B> = map { scope.async { f(it) } }.map { it.await() }
 
 fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
     override fun onPermissionGranted() {
@@ -583,7 +587,7 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
             }
 
             fun reset(height: Int) {
-                (window.decorView as? ViewGroup)?.firstChildOrNull { it is PagerSlidingPaneLayout }?.let {
+                (window.decorView as? ViewGroup)?.children?.firstOrNull { it is PagerSlidingPaneLayout }?.let {
                     it.layoutParams = (it.layoutParams as? FrameLayout.LayoutParams)?.apply {
                         bottomMargin = height
                     }
@@ -639,14 +643,4 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
     override fun onPanelClosed(panel: View) {
 
     }
-}
-
-fun <T> AnkoAsyncContext<T>.autoUiThread(f: (T) -> Unit): Boolean {
-    val context = weakRef.get() ?: return false
-    val activity: Activity? = when (context) {
-        is Fragment -> if (context.isDetached) null else context.activity
-        is Activity -> if (context.isFinishing) null else context
-        else -> null
-    }
-    return activity?.runOnUiThread { f(context) }?.let { true } ?: false
 }

@@ -112,26 +112,25 @@ object HAcg {
         if (_host().isNullOrEmpty()) host = (hosts().first())
     }
 
-    fun update(context: Activity, tip: Boolean, f: () -> Unit) {
-        "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAsync(context) { html ->
-            when {
-                html == null -> {
-                }
-                html.first != config_string() -> {
-                    context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
-                            .setAction(R.string.settings_config_update) { _ ->
-                                try {
-                                    val config = JSONObject(html.first)
-                                    host = (default_hosts(config).first())
-                                    PrintWriter(config_file).use { it.write(html.first) }
-                                    f()
-                                } catch (_: Exception) {
-                                }
-                            }.show()
-                }
-                else -> {
-                    if (tip) context.toast(R.string.settings_config_newest)
-                }
+    suspend fun update(context: Activity, tip: Boolean, f: () -> Unit) {
+        val html = "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAwait()
+        when {
+            html == null -> {
+            }
+            html.first != config_string() -> {
+                context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
+                        .setAction(R.string.settings_config_update) { _ ->
+                            try {
+                                val config = JSONObject(html.first)
+                                host = (default_hosts(config).first())
+                                PrintWriter(config_file).use { it.write(html.first) }
+                                f()
+                            } catch (_: Exception) {
+                            }
+                        }.show()
+            }
+            else -> {
+                if (tip) context.toast(R.string.settings_config_newest)
             }
         }
     }
