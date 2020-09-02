@@ -1,5 +1,6 @@
 package io.github.yueeng.hacg
 
+import android.animation.ObjectAnimator
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -10,7 +11,9 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.provider.SearchRecentSuggestions
 import android.text.method.LinkMovementMethod
+import android.util.TypedValue
 import android.view.*
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -350,9 +353,22 @@ class ArticleFragment : Fragment() {
     }
 
     class ArticleAdapter : PagingAdapter<Article, ArticleHolder>(ArticleDiffCallback()) {
+        private var last: Int = -1
+        private val interpolator = DecelerateInterpolator(3F)
+        private val from: Float by lazy {
+            TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200F, HAcgApplication.instance.resources.displayMetrics)
+        }
+
         override fun onBindViewHolder(holder: ArticleHolder, position: Int) {
             holder.article = data[position]
+            if (position > last) {
+                last = position
+                ObjectAnimator.ofFloat(holder.itemView, View.TRANSLATION_Y.name, from, 0F)
+                        .setDuration(1000).also { it.interpolator = interpolator }.start()
+            }
         }
+
+        override fun clear(): DataAdapter<Article, ArticleHolder> = super.clear().apply { last = -1 }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
                 ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
