@@ -150,7 +150,7 @@ class InfoWebFragment : Fragment() {
                 })
                 binding.button5.setOnClickListener(object : View.OnClickListener {
                     val max = 3
-                    var magnet = 3
+                    var magnet = 1
                     var toast: Toast? = null
 
                     override fun onClick(v: View): Unit = when {
