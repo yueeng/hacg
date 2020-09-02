@@ -234,7 +234,7 @@ class InfoWebFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        query(_url)
+        if (viewModel.web.value != null) query(_url)
     }
 
     override fun onDestroyView() {

@@ -426,7 +426,7 @@ class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val
     private var key: K?
         get() = if (handle.contains("key")) handle["key"] else k
         set(value) = handle.set("key", value)
-    val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
+    val state = MutableLiveData<LoadState>(LoadState.NotLoading(false))
     private val source by lazy(factory)
     private val mutex = Mutex()
     suspend fun query(refresh: Boolean = false): Pair<List<V>?, Throwable?> {
