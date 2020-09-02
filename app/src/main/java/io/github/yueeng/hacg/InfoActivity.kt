@@ -30,6 +30,7 @@ import androidx.lifecycle.Observer
 import androidx.paging.LoadState
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -451,7 +452,7 @@ class InfoCommentFragment : Fragment() {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
         viewModel.data.value?.let { _adapter.addAll(it) }
-        if (_adapter.size == 0) query()
+        if (_adapter.itemCount == 0) query()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -523,7 +524,12 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    inner class CommentAdapter : PagingAdapter<Comment, CommentHolder>() {
+    class CommentDiffCallback : DiffUtil.ItemCallback<Comment>() {
+        override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem == newItem
+    }
+
+    inner class CommentAdapter : PagingAdapter<Comment, CommentHolder>(CommentDiffCallback()) {
         override fun onBindViewHolder(holder: CommentHolder, position: Int) {}
 
         override fun onBindViewHolder(holder: CommentHolder, position: Int, payloads: MutableList<Any>) {

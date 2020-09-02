@@ -25,6 +25,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
 import androidx.paging.PagingSource
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -282,7 +283,7 @@ class ArticleFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.data.value?.let { adapter.addAll(it) }
-        if (adapter.size == 0) query()
+        if (adapter.itemCount == 0) query()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
@@ -343,7 +344,12 @@ class ArticleFragment : Fragment() {
         }
     }
 
-    class ArticleAdapter : PagingAdapter<Article, ArticleHolder>() {
+    class ArticleDiffCallback : DiffUtil.ItemCallback<Article>() {
+        override fun areItemsTheSame(oldItem: Article, newItem: Article): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: Article, newItem: Article): Boolean = oldItem == newItem
+    }
+
+    class ArticleAdapter : PagingAdapter<Article, ArticleHolder>(ArticleDiffCallback()) {
         override fun onBindViewHolder(holder: ArticleHolder, position: Int) {
             holder.article = data[position]
         }

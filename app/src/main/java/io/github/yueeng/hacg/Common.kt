@@ -363,42 +363,33 @@ fun TedPermission.Builder.onPermissionDenied(f: (ArrayList<String>?) -> Unit): T
     }
 })
 
-abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val _data: MutableList<V> = mutableListOf()) : RecyclerView.Adapter<VH>() {
-    override fun getItemCount(): Int = size
+abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val diffCallback: DiffUtil.ItemCallback<V>) : RecyclerView.Adapter<VH>() {
+    private val differ by lazy {
+        AsyncListDiffer(AdapterListUpdateCallback(this), AsyncDifferConfig.Builder(diffCallback).build())
+    }
+    val data: List<V> get() = differ.currentList
+    override fun getItemCount(): Int = differ.currentList.size
 
-    val size: Int get() = _data.size
-    val data: List<V> get() = _data
-    open fun clear(): DataAdapter<V, VH> {
-        val size = _data.size
-        _data.clear()
-        notifyItemRangeRemoved(0, size)
-        return this
+    open fun clear(): DataAdapter<V, VH> = apply {
+        differ.submitList(null)
     }
 
-    open fun add(v: V, index: Int = _data.size): DataAdapter<V, VH> {
-        _data.add(index, v)
-        notifyItemInserted(index)
-        return this
+    open fun add(v: V, index: Int = data.size): DataAdapter<V, VH> = apply {
+        differ.submitList(data.toMutableList().apply { add(index, v) })
     }
 
-    open fun addAll(v: List<V>): DataAdapter<V, VH> {
-        _data.addAll(v)
-        notifyItemRangeInserted(_data.size - v.size, v.size)
-        return this
+    open fun addAll(v: List<V>): DataAdapter<V, VH> = apply {
+        differ.submitList(data.toMutableList().apply { addAll(v) })
     }
 
-    open fun remove(v: V): DataAdapter<V, VH> {
-        val index = _data.indexOf(v)
-        if (index == -1) return this
-        _data.removeAt(index)
-        notifyItemRemoved(index)
-        return this
+    open fun remove(v: V): DataAdapter<V, VH> = apply {
+        differ.submitList(data.toMutableList().apply { remove(v) })
     }
 
     open fun getItem(position: Int): V? = data[position]
 }
 
-abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(_data: MutableList<V> = mutableListOf()) : DataAdapter<V, VH>(_data) {
+abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(diffCallback: DiffUtil.ItemCallback<V>) : DataAdapter<V, VH>(diffCallback) {
     private val refreshCh = Channel<Boolean>()
     val refreshFlow = refreshCh.consumeAsFlow()
     val state = MutableLiveData<LoadState>()
@@ -407,18 +398,16 @@ abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(_data: MutableList
         return ConcatAdapter(this, footer)
     }
 
-    override fun add(v: V, index: Int): DataAdapter<V, VH> {
-        val fist = size == 0
+    override fun add(v: V, index: Int): DataAdapter<V, VH> = apply {
+        val fist = itemCount == 0
         super.add(v, index)
-        if (fist && size != 0) refreshCh.offer(true)
-        return this
+        if (fist && itemCount != 0) refreshCh.offer(true)
     }
 
-    override fun addAll(v: List<V>): DataAdapter<V, VH> {
-        val fist = size == 0
+    override fun addAll(v: List<V>): DataAdapter<V, VH> = apply {
+        val fist = itemCount == 0
         super.addAll(v)
-        if (fist && size != 0) refreshCh.offer(true)
-        return this
+        if (fist && itemCount != 0) refreshCh.offer(true)
     }
 }
 
