@@ -10,6 +10,7 @@
     <string name="app_exit_confirm">要退出吗？</string>
     <string name="app_list_complete">没有更多了</string>
     <string name="app_list_empty">列表空</string>
+    <string name="app_list_failed">加载失败</string>
     <string name="app_list_loading">加载中…</string>
     <string name="app_list_time">发表于%1$s由%2$s|%3$d条回复</string>
     <string name="app_magnet">链接</string>
@@ -38,14 +39,14 @@
     <string name="comment_refresh">刷新</string>
     <string name="comment_review">回复</string>
     <string name="comment_review_to">回复: %1$s</string>
+    <string name="comment_sort">评论排序</string>
+    <string name="comment_sort_newest">最新的评论</string>
+    <string name="comment_sort_oldest">最旧的评论</string>
+    <string name="comment_sort_vote">得票最多的评论</string>
     <string name="comment_submit">提交</string>
     <string name="comment_succeeded">提交成功</string>
     <string name="comment_title">评论</string>
     <string name="comment_verify">部分字段为空。</string>
-    <string name="comment_sort">评论排序</string>
-    <string name="comment_sort_vote">得票最多的评论</string>
-    <string name="comment_sort_newest">最新的评论</string>
-    <string name="comment_sort_oldest">最旧的评论</string>
 
     <string name="permission_write_external_storage">需要写外部存储权限。</string>
 

@@ -354,16 +354,16 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
     private var state: LoadState? = null
     fun bind(value: LoadState, empty: () -> Boolean) {
         state = value
-        binding.text1.text = when (value) {
-            is LoadState.Error -> value.error.message
-            is LoadState.Loading -> binding.root.resources.getString(R.string.app_list_loading)
+        binding.text1.setText(when (value) {
+            is LoadState.Error -> (R.string.app_list_failed)
+            is LoadState.Loading -> (R.string.app_list_loading)
             is LoadState.NotLoading -> {
                 if (value.endOfPaginationReached) {
-                    if (empty()) binding.root.resources.getString(R.string.app_list_empty)
-                    else binding.root.resources.getString(R.string.app_list_complete)
-                } else binding.root.resources.getString(R.string.app_list_loading)
+                    if (empty()) (R.string.app_list_empty)
+                    else (R.string.app_list_complete)
+                } else (R.string.app_list_loading)
             }
-        }
+        })
     }
 }
 

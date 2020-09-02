@@ -230,7 +230,7 @@ data class Comment(val id: Int, val parent: Int, val content: String, val user: 
 data class JComment(
         @SerializedName("last_parent_id") val lastParentId: String,
         @SerializedName("is_show_load_more") val isShowLoadMore: Boolean,
-        @SerializedName("comment_list") val commentList: String,
+        @SerializedName("comment_list") val commentList: String?,
         @SerializedName("loadLastCommentId") val loadLastCommentId: String
 )
 

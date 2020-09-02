@@ -372,7 +372,7 @@ class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> I
                 "postId" to "$_id")
         val json = HAcg.wpdiscuz.httpPostAwait(data)
         val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
-        val list = Jsoup.parse(comments!!.data.commentList, HAcg.wpdiscuz)
+        val list = Jsoup.parse(comments!!.data.commentList ?: "", HAcg.wpdiscuz)
                 .select("body>.wpd-comment").map { Comment(it) }.toList()
         val next = if (comments.data.isShowLoadMore) {
             comments.data.lastParentId.toIntOrNull() to (_postOffset + 1)

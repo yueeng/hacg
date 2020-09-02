@@ -10,6 +10,7 @@
     <string name="app_exit_confirm">Want to exit?</string>
     <string name="app_list_complete">Nothing more</string>
     <string name="app_list_empty">Empty</string>
+    <string name="app_list_failed">Load failed</string>
     <string name="app_list_loading">Loading…</string>
     <string name="app_list_time">Posted on %1$s by %2$s | %3$d Replies</string>
     <string name="app_magnet">Link</string>
@@ -38,14 +39,14 @@
     <string name="comment_refresh">Refresh</string>
     <string name="comment_review">Review</string>
     <string name="comment_review_to">Review: %1$s</string>
+    <string name="comment_sort">Reviews sort</string>
+    <string name="comment_sort_newest">Latest reviews</string>
+    <string name="comment_sort_oldest">Oldest reviews</string>
+    <string name="comment_sort_vote">Most votes received comments</string>
     <string name="comment_submit">Submit</string>
     <string name="comment_succeeded">Submit succeeded</string>
     <string name="comment_title">Comment</string>
     <string name="comment_verify">Some fields are empty.</string>
-    <string name="comment_sort">Reviews sort</string>
-    <string name="comment_sort_vote">Most votes received comments</string>
-    <string name="comment_sort_newest">Latest reviews</string>
-    <string name="comment_sort_oldest">Oldest reviews</string>
 
     <string name="permission_write_external_storage">Request write external storage permission.</string>
 
