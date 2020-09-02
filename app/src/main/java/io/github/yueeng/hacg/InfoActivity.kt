@@ -439,7 +439,10 @@ class InfoCommentFragment : Fragment() {
                 viewModel.sorting.observe(viewLifecycleOwner, Observer { query(true) })
                 binding.swipe.setOnRefreshListener { query(true) }
                 binding.button3.setRandomColor().setOnClickListener {
-                    comment(null) { _adapter.add(it, 0) }
+                    comment(null) {
+                        _adapter.add(it, 0)
+                        binding.list1.smoothScrollToPosition(0)
+                    }
                 }
             }.root
 
@@ -469,26 +472,24 @@ class InfoCommentFragment : Fragment() {
     inner class CommentHolder(private val binding: CommentItemBinding) : RecyclerView.ViewHolder(binding.root) {
         private val adapter = CommentAdapter()
         private val context: Context? get() = view?.context
-        private var comment = MutableLiveData<Comment>()
+        private var comment: Comment? = null
 
         init {
             binding.list1.adapter = adapter
-            binding.list1.setHasFixedSize(true)
             listOf(binding.button1, binding.button2).forEach { b ->
                 b.setOnClickListener { view ->
                     val v = if (view.id == R.id.button1) -1 else 1
-                    val item = comment.value ?: return@setOnClickListener
+                    val item = comment ?: return@setOnClickListener
+                    val pos = bindingAdapterPosition
                     vote(item, v) {
                         item.moderation = it
-                        bindingAdapter?.notifyItemChanged(bindingAdapterPosition, "moderation")
+                        bindingAdapter?.notifyItemChanged(pos, "moderation")
                     }
                 }
             }
             binding.root.setOnClickListener {
-                comment.value?.let { parent ->
-                    comment(parent) {
-                        adapter.add(it)
-                    }
+                comment(comment!!) {
+                    adapter.add(it)
                 }
             }
         }
@@ -498,12 +499,13 @@ class InfoCommentFragment : Fragment() {
                 binding.text4.text = "${item.moderation}"
                 return
             }
-            comment.postValue(item)
+            comment = item
             itemView.tag = item
             binding.text1.text = item.user
             binding.text2.text = item.content
             binding.text3.text = item.time
             binding.text4.text = "${item.moderation}"
+            adapter.clear()
             adapter.addAll(item.children)
             if (item.face.isEmpty()) {
                 binding.image1.setImageResource(R.mipmap.ic_launcher)

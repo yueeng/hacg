@@ -51,6 +51,8 @@ import com.squareup.picasso.Picasso
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
@@ -87,11 +89,14 @@ val okhttp = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .cache(Cache(HAcgApplication.instance.cacheDir, 1024 * 1024 * 256))
         .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 val okdownload = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
+        .cache(Cache(HAcgApplication.instance.cacheDir, 1024 * 1024 * 256))
+        .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
@@ -358,9 +363,7 @@ fun TedPermission.Builder.onPermissionDenied(f: (ArrayList<String>?) -> Unit): T
     }
 })
 
-abstract class DataAdapter<V, VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
-    private val _data = mutableListOf<V>()
-
+abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val _data: MutableList<V> = mutableListOf()) : RecyclerView.Adapter<VH>() {
     override fun getItemCount(): Int = size
 
     val size: Int get() = _data.size
@@ -425,11 +428,14 @@ class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val
         set(value) = handle.set("key", value)
     val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
     private val source by lazy(factory)
+    private val mutex = Mutex()
     suspend fun query(refresh: Boolean = false): Pair<List<V>?, Throwable?> {
-        if (state.value is LoadState.Loading) return null to null
-        if (refresh) handle.remove<String?>("key")
-        if (key == null) return null to null
-        state.postValue(LoadState.Loading)
+        mutex.withLock {
+            if (state.value is LoadState.Loading) return null to null
+            if (refresh) handle.remove<String?>("key")
+            if (key == null) return null to null
+            state.setValue(LoadState.Loading)
+        }
         return when (val result = source.load(PagingSource.LoadParams.Append(key!!, 20, false))) {
             is PagingSource.LoadResult.Page -> {
                 key = result.nextKey
