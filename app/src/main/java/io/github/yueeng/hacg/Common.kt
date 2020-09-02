@@ -398,7 +398,7 @@ abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val _data: M
     open fun getItem(position: Int): V? = data[position]
 }
 
-abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder> : DataAdapter<V, VH>() {
+abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(_data: MutableList<V> = mutableListOf()) : DataAdapter<V, VH>(_data) {
     private val refreshCh = Channel<Boolean>()
     val refreshFlow = refreshCh.consumeAsFlow()
     val state = MutableLiveData<LoadState>()

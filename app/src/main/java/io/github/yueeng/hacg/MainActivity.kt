@@ -251,6 +251,7 @@ class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : Vi
         get() = handle.get("retry") ?: false
         set(value) = handle.set("retry", value)
     val source = Paging(handle, args?.getString("url")) { ArticlePagingSource() }
+    val data = handle.getLiveData<List<Article>>("data")
 }
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -273,8 +274,14 @@ class ArticleFragment : Fragment() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        viewModel.data.value = adapter.data
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.data.value?.let { adapter.addAll(it) }
         if (adapter.size == 0) query()
     }
 

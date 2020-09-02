@@ -393,6 +393,7 @@ class InfoCommentViewModel(id: Int, handle: SavedStateHandle) : ViewModel() {
     val progress = handle.getLiveData("progress", false)
     val sorting = handle.getLiveData("sorting", Sorting.Vote)
     val source = Paging(handle, 0 to 0) { InfoCommentPagingSource(id) { sorting.value!! } }
+    val data = handle.getLiveData<List<Comment>>("data")
 }
 
 class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -449,7 +450,13 @@ class InfoCommentFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        viewModel.data.value?.let { _adapter.addAll(it) }
         if (_adapter.size == 0) query()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        viewModel.data.value = _adapter.data
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
