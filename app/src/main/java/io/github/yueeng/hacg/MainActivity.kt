@@ -34,7 +34,6 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
-import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -323,7 +322,7 @@ class ArticleFragment : Fragment() {
                 binding.text4.text = context.getString(R.string.app_list_time, datafmt.format(item.time ?: Date()), item.author?.name ?: "", item.comments)
                 binding.text4.setTextColor(color)
                 binding.text4.visibility = if (binding.text4.text.isNullOrEmpty()) View.GONE else View.VISIBLE
-                Picasso.with(context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(binding.image1)
+                GlideApp.with(context).load(item.img).placeholder(R.drawable.loading).error(R.drawable.placeholder).into(binding.image1)
             }
 
         init {

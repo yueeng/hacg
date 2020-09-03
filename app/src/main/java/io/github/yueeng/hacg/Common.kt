@@ -12,6 +12,7 @@ import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -40,6 +41,17 @@ import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
 import androidx.slidingpanelayout.widget.SlidingPaneLayout
+import com.bumptech.glide.Glide
+import com.bumptech.glide.GlideBuilder
+import com.bumptech.glide.Registry
+import com.bumptech.glide.annotation.Excludes
+import com.bumptech.glide.annotation.GlideModule
+import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.bumptech.glide.module.AppGlideModule
+import com.bumptech.glide.request.RequestOptions
 import com.github.clans.fab.FloatingActionButton
 import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.snackbar.Snackbar
@@ -47,8 +59,6 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
-import com.jakewharton.picasso.OkHttp3Downloader
-import com.squareup.picasso.Picasso
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -65,6 +75,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -100,6 +111,21 @@ val okdownload = OkHttpClient.Builder()
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
+@GlideModule
+@Excludes(com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule::class)
+class HacgAppGlideModule : AppGlideModule() {
+    override fun applyOptions(context: Context, builder: GlideBuilder) {
+        builder.setDefaultRequestOptions(RequestOptions().format(DecodeFormat.PREFER_RGB_565))
+    }
+
+    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okhttp))
+    }
+}
+
+fun GlideRequest<Drawable>.crossFade(): GlideRequest<Drawable> =
+        this.transition(DrawableTransitionOptions.withCrossFade())
+
 class HAcgApplication : Application() {
     companion object {
 
@@ -110,13 +136,6 @@ class HAcgApplication : Application() {
 
     init {
         _instance = this
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        Picasso.setSingletonInstance(Picasso.Builder(this)
-                .downloader(OkHttp3Downloader(okhttp))
-                .build())
     }
 }
 

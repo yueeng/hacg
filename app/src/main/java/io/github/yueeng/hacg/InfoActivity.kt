@@ -38,7 +38,6 @@ import androidx.viewpager2.widget.ViewPager2
 import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.gun0912.tedpermission.TedPermission
-import com.squareup.picasso.Picasso
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.flow.collectLatest
 import org.jsoup.Jsoup
@@ -275,7 +274,7 @@ class InfoWebFragment : Fragment() {
                 val uri = Uri.parse(url)
                 val image = ImageView(activity)
                 image.adjustViewBounds = true
-                Picasso.with(activity).load(uri).placeholder(R.drawable.loading).into(image)
+                GlideApp.with(requireActivity()).load(uri).placeholder(R.drawable.loading).into(image)
                 val alert = MaterialAlertDialogBuilder(activity!!)
                         .setView(image)
                         .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
@@ -481,7 +480,6 @@ class InfoCommentFragment : Fragment() {
 
     inner class CommentHolder(private val binding: CommentItemBinding) : RecyclerView.ViewHolder(binding.root) {
         private val adapter = CommentAdapter()
-        private val context: Context? get() = view?.context
         private var comment: Comment? = null
 
         init {
@@ -521,7 +519,7 @@ class InfoCommentFragment : Fragment() {
             if (item.face.isEmpty()) {
                 binding.image1.setImageResource(R.mipmap.ic_launcher)
             } else {
-                Picasso.with(context).load(item.face).placeholder(R.mipmap.ic_launcher).into(binding.image1)
+                GlideApp.with(requireContext()).load(item.face).placeholder(R.mipmap.ic_launcher).into(binding.image1)
             }
         }
     }
