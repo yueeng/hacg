@@ -68,29 +68,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkVersion(toast: Boolean = false) = lifecycleScope.launchWhenCreated {
-        val result = "${HAcg.RELEASE}/latest".httpGetAwait()?.jsoup { dom ->
-            Triple(
-                    dom.select("span.css-truncate-target").firstOrNull()?.text() ?: "",
-                    dom.select(".markdown-body").html().trim(),
-                    dom.select(".release a[href$=.apk]").firstOrNull()?.attr("abs:href")
-            )
-        }?.let { (v: String, t: String, u: String?) ->
-            if (versionBefore(version(this@MainActivity), v)) Triple(v, t, u) else null
-        }
-        result?.let { (v: String, t: String, u: String?) ->
+        val url = "${HAcg.RELEASE}/latest"
+        val dom = url.httpGetAwait()?.jsoup()
+        val ver = Version.from(dom?.select("span.css-truncate-target")?.firstOrNull()?.text())
+        val body = dom?.select(".markdown-body")?.html()?.trim()
+        val apk = dom?.select(".release a[href$=.apk]")?.firstOrNull()?.attr("abs:href")
+        val local = version()
+        if (local != null && ver != null && local < ver) {
             MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(getString(R.string.app_update_new, version(this@MainActivity), v))
-                    .setMessage(t.html)
-                    .setPositiveButton(R.string.app_update) { _, _ -> openUri(this@MainActivity, u!!) }
-                    .setNeutralButton(R.string.app_publish) { _, _ -> openUri(this@MainActivity, HAcg.RELEASE) }
+                    .setTitle(getString(R.string.app_update_new, local, ver))
+                    .setMessage(body?.html ?: "")
+                    .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
+                    .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
                     .setNegativeButton(R.string.app_cancel, null)
                     .create().show()
-        } ?: {
-            if (toast) {
-                Toast.makeText(this@MainActivity, getString(R.string.app_update_none, version(this@MainActivity)), Toast.LENGTH_SHORT).show()
-            }
+        } else {
+            if (toast) Toast.makeText(this@MainActivity, getString(R.string.app_update_none, local), Toast.LENGTH_SHORT).show()
             checkConfig()
-        }()
+        }
     }
 
     private fun checkConfig(toast: Boolean = false): Job = lifecycleScope.launchWhenCreated {
@@ -164,9 +159,9 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.about -> {
                 MaterialAlertDialogBuilder(this)
-                        .setTitle("${getString(R.string.app_name)} ${version(this)}")
-                        .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(this@MainActivity, HAcg.wordpress) }
-                        .setPositiveButton(R.string.app_publish) { _, _ -> openUri(this@MainActivity, HAcg.RELEASE) }
+                        .setTitle("${getString(R.string.app_name)} ${version()}")
+                        .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(HAcg.wordpress) }
+                        .setPositiveButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
                         .setNeutralButton(R.string.app_update_check) { _, _ -> checkVersion(true) }
                         .setNegativeButton(R.string.app_cancel, null)
                         .create().show()

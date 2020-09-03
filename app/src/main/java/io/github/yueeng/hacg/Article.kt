@@ -23,6 +23,7 @@ import org.jsoup.nodes.Element
 import java.io.File
 import java.io.PrintWriter
 import java.util.*
+import kotlin.math.min
 
 object HAcg {
     private val SYSTEM_HOST: String = "system.host"
@@ -320,4 +321,35 @@ data class Article(val id: Int, val title: String,
                     e.select(".author a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .cat-links a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .tag-links a").map { Tag(it) }.toList())
+}
+
+data class Version(val ver: List<Int>) {
+    operator fun compareTo(other: Version): Int {
+        val v1 = ver
+        val v2 = other.ver
+        for (i in 0 until min(v1.size, v2.size)) {
+            val v = v1[i] - v2[i]
+            when {
+                v > 0 -> return 1
+                v < 0 -> return -1
+            }
+        }
+        return when {
+            v1.size > v2.size && v1.drop(v2.size).any { it != 0 } -> 1
+            v1.size < v2.size && v2.drop(v1.size).any { it != 0 } -> -1
+            else -> 0
+        }
+    }
+
+    override fun toString(): String = ver.joinToString(".")
+
+    constructor(ver: String) : this(ver.split('.').map { it.toInt() })
+
+    companion object {
+        fun from(ver: String?) = try {
+            ver?.let { Version(ver) }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

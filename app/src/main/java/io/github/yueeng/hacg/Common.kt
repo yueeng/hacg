@@ -75,7 +75,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 fun debug(call: () -> Unit) {
@@ -157,14 +156,14 @@ fun String.toDate(fmt: SimpleDateFormat? = null): Date? = try {
 
 val String.html: Spanned get() = HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT)
 
-fun openUri(context: Context, url: String?, web: (() -> Unit)? = null): Unit = when {
+fun Context.openUri(url: String?, web: (() -> Unit)? = null): Unit = when {
     url.isNullOrEmpty() -> Unit
     !url.startsWith(HAcg.wordpress) -> Uri.parse(url).let { uri ->
-        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
     }
-    Article.getIdFromUrl(url) != null -> context.startActivity(Intent(context, InfoActivity::class.java).putExtra("url", url))
-    Article.isList(url) -> context.startActivity(Intent(context, ListActivity::class.java).putExtra("url", url))
-    else -> web?.invoke() ?: context.startActivity(Intent(context, WebActivity::class.java).putExtra("url", url))
+    Article.getIdFromUrl(url) != null -> startActivity(Intent(this, InfoActivity::class.java).putExtra("url", url))
+    Article.isList(url) -> startActivity(Intent(this, ListActivity::class.java).putExtra("url", url))
+    else -> web?.invoke() ?: startActivity(Intent(this, WebActivity::class.java).putExtra("url", url))
 }
 
 val random = Random(System.currentTimeMillis())
@@ -313,30 +312,10 @@ fun Pair<String, String>.jsoup(): Document = this.let { h ->
 }
 
 fun <T> Pair<String, String>.jsoup(f: (Document) -> T?): T? = f(this.jsoup())
-fun version(context: Context): String = try {
-    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+fun Context.version(): Version? = try {
+    Version(packageManager.getPackageInfo(packageName, 0).versionName)
 } catch (e: Exception) {
-    e.printStackTrace(); ""
-}
-
-fun versionBefore(local: String, online: String): Boolean = try {
-    val l = local.split('.').map { it.toInt() }.toList()
-    val o = online.split('.').map { it.toInt() }.toList()
-    for (i in 0 until min(l.size, o.size)) {
-        (l[i] - o[i]).let { x ->
-            when {
-                x > 0 -> return false
-                x < 0 -> return true
-                else -> {
-                }
-            }
-        }
-    }
-    if (o.size > l.size) {
-        o.drop(l.size).any { it != 0 }
-    } else false
-} catch (_: Exception) {
-    false
+    e.printStackTrace(); null
 }
 
 inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> =

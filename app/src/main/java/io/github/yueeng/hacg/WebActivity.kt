@@ -85,7 +85,7 @@ class WebFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.open -> {
-            openUri(requireActivity(), viewModel.uri.value!!)
+            activity?.openUri(viewModel.uri.value!!)
             true
         }
         else -> super.onOptionsItemSelected(item)
@@ -116,7 +116,7 @@ class WebFragment : Fragment() {
         val fore = binding.button3
         binding.web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
-                openUri(requireActivity(), url) { view?.loadUrl(url) }
+                activity?.openUri(url) { view?.loadUrl(url) }
                 return true
             }
 
