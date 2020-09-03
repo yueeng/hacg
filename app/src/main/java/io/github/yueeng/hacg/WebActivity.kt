@@ -24,7 +24,6 @@ class WebActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(ActivityWebBinding.inflate(layoutInflater).also { binding ->
             setSupportActionBar(binding.toolbar)
-            supportActionBar?.setLogo(R.mipmap.ic_launcher)
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
         }.root)
 
@@ -115,10 +114,8 @@ class WebFragment : Fragment() {
         val back = binding.button2
         val fore = binding.button3
         binding.web.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
-                activity?.openUri(url) { view?.loadUrl(url) }
-                return true
-            }
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean =
+                    activity?.openUri(url, false) == true
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 viewModel.busy.postValue(true)

@@ -179,7 +179,6 @@ class ListActivity : BaseSlideCloseActivity() {
         val binding = ActivityListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setLogo(R.mipmap.ic_launcher)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         val (url: String?, name: String?) = intent.let { i ->
             when {

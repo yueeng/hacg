@@ -86,7 +86,6 @@ class InfoFragment : Fragment() {
             FragmentInfoBinding.inflate(inflater, container, false).also { binding ->
                 val activity = activity as AppCompatActivity
                 activity.setSupportActionBar(binding.toolbar)
-                activity.supportActionBar?.setLogo(R.mipmap.ic_launcher)
                 activity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
                 binding.container.adapter = InfoAdapter(this)
             }.root
