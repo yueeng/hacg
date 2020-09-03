@@ -48,7 +48,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(state)
         val binding = ActivityMainBinding.inflate(layoutInflater).apply {
             setSupportActionBar(toolbar)
-            supportActionBar?.setLogo(R.mipmap.ic_launcher)
             container.adapter = ArticleFragmentAdapter(this@MainActivity)
             TabLayoutMediator(tab, container) { tab, position -> tab.text = (container.adapter as ArticleFragmentAdapter).getPageTitle(position) }.attach()
         }

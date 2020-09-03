@@ -2,19 +2,17 @@
 
 package io.github.yueeng.hacg
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
 import android.os.Parcelable
-import android.text.InputType
 import android.view.LayoutInflater
-import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.annotations.SerializedName
+import io.github.yueeng.hacg.databinding.AlertHostBinding
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
 import org.json.JSONArray
@@ -152,22 +150,17 @@ object HAcg {
     val wpdiscuz
         get() = "$wordpress/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
-    @SuppressLint("InflateParams")
     fun setHostEdit(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
-        val view = LayoutInflater.from(context).inflate(R.layout.alert_host, null)
-        val edit = view.findViewById<EditText>(R.id.edit1)
-        edit.inputType = InputType.TYPE_TEXT_VARIATION_URI
+        val view = AlertHostBinding.inflate(LayoutInflater.from(context))
         MaterialAlertDialogBuilder(context)
                 .setTitle(title)
-                .setView(view)
+                .setView(view.root)
                 .setNegativeButton(R.string.app_cancel, null)
                 .setOnDismissListener { setHostList(context, title, list, cur, set, ok, reset) }
                 .setNeutralButton(R.string.settings_host_reset) { _, _ -> reset() }
                 .setPositiveButton(R.string.app_ok) { _, _ ->
-                    val host = edit.text.toString()
-                    if (host.isNotEmpty()) {
-                        ok(host)
-                    }
+                    val host = view.edit1.text.toString()
+                    if (host.isNotEmpty()) ok(host)
                 }
                 .create().show()
     }

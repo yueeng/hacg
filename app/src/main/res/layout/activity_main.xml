@@ -18,7 +18,10 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:layout_collapseMode="pin"
-            app:layout_scrollFlags="scroll|enterAlways|enterAlwaysCollapsed" />
+            app:layout_scrollFlags="scroll|enterAlways|enterAlwaysCollapsed"
+            app:logo="@mipmap/ic_launcher_round_icon"
+            app:title="@string/app_name"
+            tools:menu="@menu/menu_main" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab"
