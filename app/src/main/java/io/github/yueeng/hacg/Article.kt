@@ -289,6 +289,10 @@ data class Article(val id: Int, val title: String,
         fun parseID(str: String?) = str?.let { s -> ID.find(s)?.let { it.groups[1]?.value?.toInt() } }
         val URL: Regex get() = """${HAcg.wordpress}/(\d+)\.html""".toRegex()
         fun getIdFromUrl(str: String?) = str?.let { s -> URL.find(s)?.let { it.groups[1]?.value?.toInt() } }
+        fun isList(url: String) = HAcg.categories.map { "${HAcg.web}$it" }.contains(url)
+                || url.startsWith("${HAcg.wordpress}/tag/")
+                || url.startsWith("${HAcg.wordpress}/author/")
+                || url.startsWith("${HAcg.wordpress}/?s=")
     }
 
     constructor(msg: String) : this(0, msg, null, null, null, null, 0, null, null, listOf())

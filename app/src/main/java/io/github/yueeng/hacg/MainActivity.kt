@@ -81,8 +81,8 @@ class MainActivity : AppCompatActivity() {
             MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle(getString(R.string.app_update_new, version(this@MainActivity), v))
                     .setMessage(t.html)
-                    .setPositiveButton(R.string.app_update) { _, _ -> openWeb(this@MainActivity, u!!) }
-                    .setNeutralButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }
+                    .setPositiveButton(R.string.app_update) { _, _ -> openUri(this@MainActivity, u!!) }
+                    .setNeutralButton(R.string.app_publish) { _, _ -> openUri(this@MainActivity, HAcg.RELEASE) }
                     .setNegativeButton(R.string.app_cancel, null)
                     .create().show()
         } ?: {
@@ -165,8 +165,8 @@ class MainActivity : AppCompatActivity() {
             R.id.about -> {
                 MaterialAlertDialogBuilder(this)
                         .setTitle("${getString(R.string.app_name)} ${version(this)}")
-                        .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openWeb(this@MainActivity, HAcg.wordpress) }
-                        .setPositiveButton(R.string.app_publish) { _, _ -> openWeb(this@MainActivity, HAcg.RELEASE) }
+                        .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(this@MainActivity, HAcg.wordpress) }
+                        .setPositiveButton(R.string.app_publish) { _, _ -> openUri(this@MainActivity, HAcg.RELEASE) }
                         .setNeutralButton(R.string.app_update_check) { _, _ -> checkVersion(true) }
                         .setNegativeButton(R.string.app_cancel, null)
                         .create().show()

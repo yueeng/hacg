@@ -157,8 +157,15 @@ fun String.toDate(fmt: SimpleDateFormat? = null): Date? = try {
 
 val String.html: Spanned get() = HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT)
 
-fun openWeb(context: Context, uri: String): Unit =
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+fun openUri(context: Context, url: String?, web: (() -> Unit)? = null): Unit = when {
+    url.isNullOrEmpty() -> Unit
+    !url.startsWith(HAcg.wordpress) -> Uri.parse(url).let { uri ->
+        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
+    }
+    Article.getIdFromUrl(url) != null -> context.startActivity(Intent(context, InfoActivity::class.java).putExtra("url", url))
+    Article.isList(url) -> context.startActivity(Intent(context, ListActivity::class.java).putExtra("url", url))
+    else -> web?.invoke() ?: context.startActivity(Intent(context, WebActivity::class.java).putExtra("url", url))
+}
 
 val random = Random(System.currentTimeMillis())
 
