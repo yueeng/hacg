@@ -15,52 +15,55 @@ import com.google.gson.annotations.SerializedName
 import io.github.yueeng.hacg.databinding.AlertHostBinding
 import kotlinx.android.parcel.IgnoredOnParcel
 import kotlinx.android.parcel.Parcelize
-import org.json.JSONArray
-import org.json.JSONObject
 import org.jsoup.nodes.Element
 import java.io.File
-import java.io.PrintWriter
 import java.util.*
 import kotlin.math.min
+
 
 object HAcg {
     private val SYSTEM_HOST: String = "system.host"
     private val SYSTEM_HOSTS: String = "system.hosts"
 
-    private val config_file: File get() = File(HAcgApplication.instance.filesDir, "config.json")
+    data class HacgConfig(
+            @SerializedName("bbs") val bbs: String,
+            @SerializedName("category") val category: List<Category>,
+            @SerializedName("host") val host: List<String>
+    )
+
+    data class Category(
+            @SerializedName("name") val name: String,
+            @SerializedName("url") val url: String
+    )
+
+    private val configFile: File get() = File(HAcgApplication.instance.filesDir, "config.json")
 
     @Synchronized
-    private fun config_string(): String = if (config_file.exists())
-        config_file.readText()
-    else HAcgApplication.instance.assets.open("config.json").use { s ->
-        s.reader().use { it.readText() }
-    }
-
-    @Synchronized
-    private fun default_config(): JSONObject? = try {
-        JSONObject(config_string())
+    private fun defaultConfig(): HacgConfig? = try {
+        val str = if (configFile.exists())
+            configFile.readText()
+        else HAcgApplication.instance.assets.open("config.json").use { s ->
+            s.reader().use { it.readText() }
+        }
+        gson.fromJson(str, HacgConfig::class.java)
     } catch (_: Exception) {
         null
     }
 
-    private fun default_hosts(cfg: JSONObject? = null): Sequence<String> = try {
-        (cfg ?: default_config())!!.getJSONArray("host").let { json ->
-            (0 until json.length()).asSequence().map { json.getString(it) }
-        }
+    private fun defaultHosts(cfg: HacgConfig? = null): List<String> = try {
+        (cfg ?: defaultConfig())!!.host
     } catch (_: Exception) {
-        sequenceOf("www.hacg.me")
+        listOf("www.hacg.me")
     }
 
-    private fun default_category(cfg: JSONObject? = null): Sequence<Pair<String, String>> = try {
-        (cfg ?: default_config())!!.getJSONArray("category").let { a ->
-            (0 until a.length()).asSequence().map { a.getJSONObject(it) }.map { it.getString("url") to it.getString("name") }
-        }
+    private fun defaultCategory(cfg: HacgConfig? = null): List<Pair<String, String>> = try {
+        (cfg ?: defaultConfig())!!.category.map { it.url to it.name }
     } catch (_: Exception) {
-        sequenceOf()
+        listOf()
     }
 
-    private fun default_bbs(cfg: JSONObject? = null): String = try {
-        (cfg ?: default_config())!!.getString("bbs")
+    private fun defaultBbs(cfg: HacgConfig? = null): String = try {
+        (cfg ?: defaultConfig())!!.bbs
     } catch (_: Exception) {
         "/wp/bbs"
     }
@@ -68,69 +71,61 @@ object HAcg {
     private val config = PreferenceManager.getDefaultSharedPreferences(HAcgApplication.instance).also { c ->
         val avc = "app.version.code"
         if (c.getInt(avc, 0) < BuildConfig.VERSION_CODE) {
-            c.edit()
-                    .remove(SYSTEM_HOST)
+            c.edit().remove(SYSTEM_HOST)
                     .remove(SYSTEM_HOSTS)
                     .putInt(avc, BuildConfig.VERSION_CODE)
                     .apply()
-            config_file.delete()
+            configFile.delete()
         }
     }
 
-    private var save_hosts: Sequence<String>
+    private var saveHosts: List<String>
         get() = try {
             config.getString(SYSTEM_HOSTS, null).let { s ->
-                JSONArray(s).let { a -> (0 until a.length()).asSequence().map { k -> a.getString(k) } }
+                gson.fromJson(s, Array<String>::class.java).toList()
             }
         } catch (_: Exception) {
-            sequenceOf()
+            listOf()
         }
         set(hosts): Unit = config.edit().also { c ->
             c.remove(SYSTEM_HOSTS)
             if (hosts.any())
-                c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, hosts.distinct().fold(JSONArray()) { j, i -> j.put(i) }.toString())
+                c.remove(SYSTEM_HOSTS).putString(SYSTEM_HOSTS, gson.toJson(hosts.distinct()))
         }.apply()
 
-    fun hosts(): Sequence<String> = (save_hosts + default_hosts()).distinct()
-
-    private fun _host(): String? = config.getString(SYSTEM_HOST, null)
+    fun hosts(): List<String> = (saveHosts + defaultHosts()).distinct()
 
     var host: String
-        get() = _host()?.takeIf { it.isNotEmpty() } ?: (hosts().first())
+        get() = config.getString(SYSTEM_HOST, null)?.takeIf { it.isNotEmpty() } ?: (hosts().first())
         set(host): Unit = config.edit().also { c ->
             if (host.isEmpty()) c.remove(SYSTEM_HOST) else c.putString(SYSTEM_HOST, host)
         }.apply()
 
     val bbs: String
-        get() = default_bbs()
+        get() = defaultBbs()
 
-    val categories: Sequence<Pair<String, String>>
-        get() = default_category()
+    val categories: List<Pair<String, String>>
+        get() = defaultCategory()
 
-    init {
-        if (_host().isNullOrEmpty()) host = (hosts().first())
-    }
-
-    suspend fun update(context: Activity, tip: Boolean, f: () -> Unit) {
+    suspend fun update(context: Activity, tip: Boolean, updated: () -> Unit) {
         val html = "https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/assets/config.json".httpGetAwait()
-        when {
-            html == null -> {
-            }
-            html.first != config_string() -> {
-                context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
-                        .setAction(R.string.settings_config_update) { _ ->
-                            try {
-                                val config = JSONObject(html.first)
-                                host = (default_hosts(config).first())
-                                PrintWriter(config_file).use { it.write(html.first) }
-                                f()
-                            } catch (_: Exception) {
-                            }
-                        }.show()
-            }
-            else -> {
-                if (tip) context.toast(R.string.settings_config_newest)
-            }
+        val config = try {
+            gson.fromJson(html?.first, HacgConfig::class.java)
+        } catch (_: Exception) {
+            null
+        }
+        when (config) {
+            null -> Unit
+            defaultConfig() -> if (tip) context.toast(R.string.settings_config_newest)
+            else -> context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
+                    .setAction(R.string.settings_config_update) {
+                        try {
+                            host = defaultHosts(config).first()
+                            configFile.writeText(html!!.first)
+                            updated()
+                        } catch (_: Exception) {
+                        }
+                    }.show()
         }
     }
 
@@ -150,7 +145,7 @@ object HAcg {
     val wpdiscuz
         get() = "$wordpress/wp-content/plugins/wpdiscuz/utils/ajax/wpdiscuz-ajax.php"
 
-    fun setHostEdit(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
+    fun setHostEdit(context: Context, title: Int, list: () -> List<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val view = AlertHostBinding.inflate(LayoutInflater.from(context))
         MaterialAlertDialogBuilder(context)
                 .setTitle(title)
@@ -165,7 +160,7 @@ object HAcg {
                 .create().show()
     }
 
-    fun setHostList(context: Context, title: Int, list: () -> Sequence<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
+    fun setHostList(context: Context, title: Int, list: () -> List<String>, cur: () -> String, set: (String) -> Unit, ok: (String) -> Unit, reset: () -> Unit) {
         val hosts = list().toList()
         MaterialAlertDialogBuilder(context)
                 .setTitle(title)
@@ -186,9 +181,40 @@ object HAcg {
                     host = it
                     ok(host)
                 },
-                { host -> save_hosts = (save_hosts + host) },
-                { save_hosts = (sequenceOf()) }
+                { host -> saveHosts = (saveHosts + host) },
+                { saveHosts = (listOf()) }
         )
+    }
+}
+
+data class Version(val ver: List<Int>) {
+    operator fun compareTo(other: Version): Int {
+        val v1 = ver
+        val v2 = other.ver
+        for (i in 0 until min(v1.size, v2.size)) {
+            val v = v1[i] - v2[i]
+            when {
+                v > 0 -> return 1
+                v < 0 -> return -1
+            }
+        }
+        return when {
+            v1.size > v2.size && v1.drop(v2.size).any { it != 0 } -> 1
+            v1.size < v2.size && v2.drop(v1.size).any { it != 0 } -> -1
+            else -> 0
+        }
+    }
+
+    override fun toString(): String = ver.joinToString(".")
+
+    constructor(ver: String) : this(ver.split('.').map { it.toInt() })
+
+    companion object {
+        fun from(ver: String?) = try {
+            ver?.let { Version(ver) }
+        } catch (_: Exception) {
+            null
+        }
     }
 }
 
@@ -314,35 +340,4 @@ data class Article(val id: Int, val title: String,
                     e.select(".author a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .cat-links a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .tag-links a").map { Tag(it) }.toList())
-}
-
-data class Version(val ver: List<Int>) {
-    operator fun compareTo(other: Version): Int {
-        val v1 = ver
-        val v2 = other.ver
-        for (i in 0 until min(v1.size, v2.size)) {
-            val v = v1[i] - v2[i]
-            when {
-                v > 0 -> return 1
-                v < 0 -> return -1
-            }
-        }
-        return when {
-            v1.size > v2.size && v1.drop(v2.size).any { it != 0 } -> 1
-            v1.size < v2.size && v2.drop(v1.size).any { it != 0 } -> -1
-            else -> 0
-        }
-    }
-
-    override fun toString(): String = ver.joinToString(".")
-
-    constructor(ver: String) : this(ver.split('.').map { it.toInt() })
-
-    companion object {
-        fun from(ver: String?) = try {
-            ver?.let { Version(ver) }
-        } catch (_: Exception) {
-            null
-        }
-    }
 }

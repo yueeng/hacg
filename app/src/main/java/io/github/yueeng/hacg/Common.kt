@@ -68,7 +68,6 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.net.URL
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -281,10 +280,9 @@ suspend fun String.httpDownloadAwait(file: String? = null): File? = try {
 }
 
 fun String.test(timeout: Int = 1000): Pair<Boolean, Int> = try {
-    val uri = URL("https://$this")
+    val uri = Uri.parse("https://$this")
     (Socket()).use { socket ->
-        val address = InetSocketAddress(InetAddress.getByName(uri.host), uri.port.takeIf { it != -1 }
-                ?: 80)
+        val address = InetSocketAddress(InetAddress.getByName(uri.host), uri.port.takeIf { it > 0 } ?: 443)
         val begin = System.currentTimeMillis()
         socket.connect(address, timeout)
         (socket.isConnected to (System.currentTimeMillis() - begin).toInt())
