@@ -294,7 +294,11 @@ class ArticleFragment : Fragment() {
                 recycler.adapter = adapter.withLoadStateFooter(FooterAdapter({ adapter.itemCount }) {
                     query()
                 })
-                recycler.loading { query() }
+                recycler.loading {
+                    when (viewModel.source.state.value) {
+                        LoadState.NotLoading(false) -> query()
+                    }
+                }
                 lifecycleScope.launchWhenCreated {
                     adapter.refreshFlow.collectLatest {
                         recycler.scrollToPosition(0)

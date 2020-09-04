@@ -429,7 +429,11 @@ class InfoCommentFragment : Fragment() {
                         binding.list1.scrollToPosition(0)
                     }
                 }
-                binding.list1.loading { query() }
+                binding.list1.loading {
+                    when (viewModel.source.state.value) {
+                        LoadState.NotLoading(false) -> query()
+                    }
+                }
                 binding.swipe.setOnRefreshListener { query(true) }
                 binding.button3.setRandomColor().setOnClickListener {
                     comment(null) {
