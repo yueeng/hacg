@@ -26,7 +26,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
-import androidx.paging.LoadStateAdapter
 import androidx.paging.PagingSource
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -385,7 +384,11 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
 }
 
 class FooterAdapter(private val count: () -> Int, private val retry: () -> Unit) : LoadStateAdapter<MsgHolder>() {
-    override fun displayLoadStateAsItem(loadState: LoadState): Boolean = true
+    override fun displayLoadStateAsItem(loadState: LoadState): Boolean = when (loadState) {
+        is LoadState.NotLoading -> count() != 0 || loadState.endOfPaginationReached
+        is LoadState.Loading -> count() != 0
+        else -> true
+    }
 
     override fun onBindViewHolder(holder: MsgHolder, loadState: LoadState) {
         holder.bind(loadState) { count() == 0 }

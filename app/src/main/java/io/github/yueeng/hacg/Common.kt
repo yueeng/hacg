@@ -36,7 +36,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.LoadState
-import androidx.paging.LoadStateAdapter
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
@@ -417,6 +416,43 @@ abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(diffCallback: Diff
         super.addAll(v)
         if (fist && itemCount != 0) refreshCh.offer(true)
     }
+}
+
+abstract class LoadStateAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
+    private var display: Boolean = false
+        set(value) {
+            if (field != value) {
+                if (value) notifyItemInserted(0) else notifyItemRemoved(0)
+                field = value
+            }
+        }
+    var loadState: LoadState = LoadState.NotLoading(endOfPaginationReached = false)
+        set(value) {
+            if (field != value) {
+                val new = displayLoadStateAsItem(value)
+                if (display != new) {
+                    display = new
+                } else {
+                    notifyItemChanged(0)
+                }
+                field = value
+            }
+        }
+
+    final override fun getItemCount(): Int = if (display) 1 else 0
+    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        return onCreateViewHolder(parent, loadState)
+    }
+
+    final override fun onBindViewHolder(holder: VH, position: Int) {
+        onBindViewHolder(holder, loadState)
+    }
+
+    final override fun getItemViewType(position: Int): Int = getStateViewType(loadState)
+    abstract fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): VH
+    abstract fun onBindViewHolder(holder: VH, loadState: LoadState)
+    open fun getStateViewType(loadState: LoadState): Int = 0
+    open fun displayLoadStateAsItem(loadState: LoadState): Boolean = loadState is LoadState.Loading || loadState is LoadState.Error
 }
 
 class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val k: K?, factory: () -> PagingSource<K, V>) {
