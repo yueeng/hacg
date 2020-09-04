@@ -26,6 +26,7 @@ object HAcg {
     private val SYSTEM_HOSTS: String = "system.hosts"
 
     data class HacgConfig(
+            @SerializedName("version") val version: Int,
             @SerializedName("bbs") val bbs: String,
             @SerializedName("category") val category: List<Category>,
             @SerializedName("host") val host: List<String>
@@ -114,9 +115,9 @@ object HAcg {
         } catch (_: Exception) {
             null
         }
-        when (config) {
-            null -> Unit
-            defaultConfig() -> if (tip) context.toast(R.string.settings_config_newest)
+        when {
+            config == null -> Unit
+            config.version <= defaultConfig()?.version ?: 0 -> if (tip) context.toast(R.string.settings_config_newest)
             else -> context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
                     .setAction(R.string.settings_config_update) {
                         try {
