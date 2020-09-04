@@ -11,8 +11,8 @@ android {
         applicationId "io.github.yueeng.hacg"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 36
-        versionName "1.5.0"
+        versionCode 37
+        versionName "1.5.1"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
