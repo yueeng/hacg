@@ -103,26 +103,26 @@ class InfoFragment : Fragment() {
             .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
 }
 
-class InfoWebViewModel(handle: SavedStateHandle) : ViewModel() {
+class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     val web = handle.getLiveData<Pair<String, String>>("web")
     val error = handle.getLiveData("error", false)
     val magnet = handle.getLiveData<List<String>>("magnet", emptyList())
     val progress = handle.getLiveData("progress", false)
+    val article: MutableLiveData<Article> = handle.getLiveData("article", args?.getParcelable("article"))
 }
 
-class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel(handle) as T
+    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel(handle, defaultArgs) as T
 }
 
 class InfoWebFragment : Fragment() {
-    private val viewModel: InfoWebViewModel by viewModels { InfoWebViewModelFactory(this) }
-    private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
-    private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
+    private val viewModel: InfoWebViewModel by viewModels { InfoWebViewModelFactory(this, arguments) }
+    private val _url by lazy { viewModel.article.value?.link ?: requireArguments().getString("url")!! }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
             FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
-                _article.observe(viewLifecycleOwner, Observer { it?.title?.let { t -> requireActivity().title = t } })
+                viewModel.article.observe(viewLifecycleOwner, Observer { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } })
                 viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
                 binding.image1.setOnClickListener { query(_url) }
                 binding.menu1.setRandomColor()
@@ -237,8 +237,8 @@ class InfoWebFragment : Fragment() {
             val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _url)
             val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.takeIf { it.isNotEmpty() }
                     ?: "text/plain"
-            val title = _article.value?.title ?: ""
-            val intro = _article.value?.content ?: ""
+            val title = viewModel.article.value?.title ?: ""
+            val intro = viewModel.article.value?.content ?: ""
             val link = _url
             val share = Intent(Intent.ACTION_SEND)
                     .setType(mime)
@@ -333,7 +333,7 @@ class InfoWebFragment : Fragment() {
                         ?.replace("{{body}}", entry.html())
             }
             val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
-            if (article != null) _article.postValue(article)
+            if (article != null) viewModel.article.postValue(article)
             when (html) {
                 null -> {
                     viewModel.error.postValue(viewModel.web.value == null)
@@ -392,9 +392,9 @@ class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val ar
 
 class InfoCommentFragment : Fragment() {
     private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this, bundleOf("id" to _id)) }
-    private val _article by lazy { MutableLiveData<Article>(requireArguments().getParcelable("article")) }
-    private val _url by lazy { _article.value?.link ?: requireArguments().getString("url")!! }
-    private val _id by lazy { _article.value?.id ?: Article.getIdFromUrl(_url) ?: 0 }
+    private val _article by lazy { requireArguments().getParcelable<Article>("article") }
+    private val _url by lazy { _article?.link ?: requireArguments().getString("url")!! }
+    private val _id by lazy { _article?.id ?: Article.getIdFromUrl(_url) ?: 0 }
     private val _adapter by lazy { CommentAdapter() }
     private val adapterPool = RecyclerView.RecycledViewPool()
     private val CONFIG_AUTHOR = "config.author"
