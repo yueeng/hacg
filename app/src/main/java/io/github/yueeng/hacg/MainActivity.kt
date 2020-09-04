@@ -243,6 +243,7 @@ class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : Vi
         set(value) = handle.set("retry", value)
     val source = Paging(handle, args?.getString("url")) { ArticlePagingSource() }
     val data = handle.getLiveData<List<Article>>("data")
+    val last = handle.getLiveData("last", -1)
 }
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
@@ -267,11 +268,13 @@ class ArticleFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        viewModel.last.value = adapter.last
         viewModel.data.value = adapter.data
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.last.value?.let { adapter.last = it }
         viewModel.data.value?.let { adapter.addAll(it) }
         if (adapter.itemCount == 0) query()
     }
@@ -344,7 +347,7 @@ class ArticleFragment : Fragment() {
     }
 
     class ArticleAdapter : PagingAdapter<Article, ArticleHolder>(ArticleDiffCallback()) {
-        private var last: Int = -1
+        var last: Int = -1
         private val interpolator = DecelerateInterpolator(3F)
         private val from: Float by lazy {
             TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200F, HAcgApplication.instance.resources.displayMetrics)
