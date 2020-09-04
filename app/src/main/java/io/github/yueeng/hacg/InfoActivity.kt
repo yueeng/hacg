@@ -4,7 +4,6 @@ package io.github.yueeng.hacg
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.app.DownloadManager
 import android.app.DownloadManager.Request
 import android.content.ClipData
@@ -18,7 +17,6 @@ import android.os.Environment
 import android.view.*
 import android.webkit.*
 import android.widget.*
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -197,24 +195,24 @@ class InfoWebFragment : Fragment() {
                         return true
                     }
 
-                    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
                     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
                             when (request?.url?.scheme?.toLowerCase(Locale.getDefault())) {
-                                "http", "https" -> {
+                                "http", "https" -> try {
                                     val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
                                         request.requestHeaders?.forEach { header(it.key, it.value) }
                                     }.build()
-                                    try {
-                                        val response = okhttp.newCall(call).execute()
-                                        WebResourceResponse(response.header("content-type", "text/html; charset=UTF-8"),
-                                                response.header("content-encoding", "utf-8"),
-                                                response.body?.byteStream())
-                                    } catch (_: Exception) {
-                                        super.shouldInterceptRequest(view, request)
-                                    }
+                                    val response = okhttp.newCall(call).execute()
+                                    WebResourceResponse(response.header("Content-Type", "text/html; charset=UTF-8"),
+                                            response.header("Content-Encoding", "utf-8"),
+                                            response.code,
+                                            response.message,
+                                            response.headers.toMap(),
+                                            response.body?.byteStream())
+                                } catch (_: Exception) {
+                                    null
                                 }
-                                else -> super.shouldInterceptRequest(view, request)
-                            }
+                                else -> null
+                            } ?: super.shouldInterceptRequest(view, request)
                 }
                 binding.web.addJavascriptInterface(JsFace(), "hacg")
                 listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
@@ -235,7 +233,6 @@ class InfoWebFragment : Fragment() {
         FragmentInfoWebBinding.bind(requireView()).web.destroy()
     }
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     fun share(url: String? = null) {
         fun share(uri: Uri? = null) {
             val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _url)
