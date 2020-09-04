@@ -12,6 +12,7 @@
     <string name="app_list_empty">Empty</string>
     <string name="app_list_failed">Load failed</string>
     <string name="app_list_loading">Loading…</string>
+    <string name="app_list_loadmore">Load more</string>
     <string name="app_list_time">Posted on %1$s by %2$s | %3$d Replies</string>
     <string name="app_magnet">Link</string>
     <string name="app_name">HAcg</string>

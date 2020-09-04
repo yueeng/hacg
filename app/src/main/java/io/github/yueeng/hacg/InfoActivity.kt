@@ -25,7 +25,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
-import androidx.paging.LoadState
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil

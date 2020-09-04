@@ -25,7 +25,6 @@ import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.paging.LoadState
 import androidx.paging.PagingSource
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -376,13 +375,13 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
     fun bind(value: LoadState, empty: () -> Boolean) {
         state = value
         binding.text1.setText(when (value) {
-            is LoadState.Error -> R.string.app_list_failed
-            is LoadState.Loading -> R.string.app_list_loading
             is LoadState.NotLoading -> when {
                 value.endOfPaginationReached && empty() -> R.string.app_list_empty
                 value.endOfPaginationReached -> R.string.app_list_complete
-                else -> R.string.app_list_loading
+                else -> R.string.app_list_loadmore
             }
+            is LoadState.Error -> R.string.app_list_failed
+            else -> R.string.app_list_loading
         })
     }
 }

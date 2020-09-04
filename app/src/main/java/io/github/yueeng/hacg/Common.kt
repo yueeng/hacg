@@ -35,7 +35,6 @@ import androidx.core.view.children
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
-import androidx.paging.LoadState
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
@@ -58,6 +57,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
+import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -428,14 +428,10 @@ abstract class LoadStateAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Ada
         }
     var loadState: LoadState = LoadState.NotLoading(endOfPaginationReached = false)
         set(value) {
-            if (field != value) {
-                val new = displayLoadStateAsItem(value)
-                if (display != new) {
-                    display = new
-                } else {
-                    notifyItemChanged(0)
-                }
-                field = value
+            if (field != value) field = value
+            val new = displayLoadStateAsItem(value)
+            if (display != new) display = new else {
+                if (field != value) notifyItemChanged(0)
             }
         }
 
@@ -455,11 +451,53 @@ abstract class LoadStateAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Ada
     open fun displayLoadStateAsItem(loadState: LoadState): Boolean = loadState is LoadState.Loading || loadState is LoadState.Error
 }
 
+fun <T : Any> SavedStateHandle.saveAsJson(it: T, name: String) {
+    set("${name}-Class", it.javaClass.name)
+    set("${name}-Json", gson.toJson(it))
+}
+
+fun <T : Any> SavedStateHandle.loadForJson(name: String, def: () -> T): T? {
+    val clazz = get<String>("${name}-Class")?.let { Class.forName(it) }
+    val json = get<String>("${name}-Json")
+    @Suppress("UNCHECKED_CAST")
+    return (if (clazz != null && json != null)
+        gson.fromJson(json, clazz) as? T
+    else null) ?: def()
+}
+
+@Parcelize
+open class LoadState : Parcelable {
+    @Parcelize
+    class NotLoading(val endOfPaginationReached: Boolean) : LoadState() {
+        override fun toString(): String = "NotLoading(endOfPaginationReached=$endOfPaginationReached)"
+        override fun equals(other: Any?): Boolean = other is NotLoading && endOfPaginationReached == other.endOfPaginationReached
+        override fun hashCode(): Int = endOfPaginationReached.hashCode()
+
+        internal companion object {
+            internal val Complete = NotLoading(endOfPaginationReached = true)
+            internal val Incomplete = NotLoading(endOfPaginationReached = false)
+        }
+    }
+
+    @Parcelize
+    object Loading : LoadState() {
+        override fun toString(): String = "Loading"
+        override fun equals(other: Any?): Boolean = other is Loading
+    }
+
+    @Parcelize
+    class Error(val error: Throwable) : LoadState() {
+        override fun equals(other: Any?): Boolean = other is Error && error == other.error
+        override fun hashCode(): Int = error.hashCode()
+        override fun toString(): String = "Error(error=$error)"
+    }
+}
+
 class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val k: K?, factory: () -> PagingSource<K, V>) {
     private var key: K?
         get() = if (handle.contains("key")) handle["key"] else k
         set(value) = handle.set("key", value)
-    val state = MutableLiveData<LoadState>(LoadState.NotLoading(false))
+    val state = handle.getLiveData<LoadState>("state", LoadState.NotLoading(false))
     private val source by lazy(factory)
     private val mutex = Mutex()
     suspend fun query(refresh: Boolean = false): Pair<List<V>?, Throwable?> {
