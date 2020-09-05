@@ -212,6 +212,12 @@ class InfoWebFragment : Fragment() {
                                 }
                                 else -> null
                             } ?: super.shouldInterceptRequest(view, request)
+
+                    override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                        binding.scroll.removeView(binding.web)
+                        binding.web.destroy()
+                        return true
+                    }
                 }
                 binding.web.addJavascriptInterface(JsFace(), "hacg")
                 listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
@@ -229,7 +235,7 @@ class InfoWebFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        FragmentInfoWebBinding.bind(requireView()).web.destroy()
+        view?.findViewById<WebView>(R.id.web)?.destroy()
     }
 
     fun share(url: String? = null) {
