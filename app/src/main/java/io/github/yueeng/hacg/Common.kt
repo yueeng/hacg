@@ -59,7 +59,6 @@ import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -349,8 +348,7 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
-val ioScope = CoroutineScope(Dispatchers.IO)
-suspend fun <A, B> List<A>.pmap(scope: CoroutineScope = ioScope, f: (A) -> B): List<B> = map { scope.async { f(it) } }.map { it.await() }
+suspend fun <A, B> List<A>.pmap(scope: CoroutineScope, f: (A) -> B): List<B> = map { scope.async { f(it) } }.map { it.await() }
 
 fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
     override fun onPermissionGranted() {

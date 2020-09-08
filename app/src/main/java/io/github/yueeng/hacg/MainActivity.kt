@@ -33,8 +33,10 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.yueeng.hacg.databinding.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
@@ -131,7 +133,7 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.auto -> {
                 lifecycleScope.launchWhenCreated {
-                    val good = HAcg.hosts().toList().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second }
+                    val good = withContext(Dispatchers.IO) { HAcg.hosts().toList().pmap(this) { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
                     if (good != null) {
                         HAcg.host = good.first
                         toast(getString(R.string.settings_config_auto_choose, good.first))
