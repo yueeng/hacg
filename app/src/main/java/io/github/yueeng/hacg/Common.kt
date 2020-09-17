@@ -351,21 +351,13 @@ fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.p
 suspend fun <A, B> List<A>.pmap(scope: CoroutineScope, f: (A) -> B): List<B> = map { scope.async { f(it) } }.map { it.await() }
 
 fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
-    override fun onPermissionGranted() {
-        f()
-    }
-
-    override fun onPermissionDenied(deniedPermissions: ArrayList<String>?) {
-    }
+    override fun onPermissionGranted() = f()
+    override fun onPermissionDenied(deniedPermissions: MutableList<String>?) = Unit
 })
 
-fun TedPermission.Builder.onPermissionDenied(f: (ArrayList<String>?) -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
-    override fun onPermissionGranted() {
-    }
-
-    override fun onPermissionDenied(deniedPermissions: ArrayList<String>?) {
-        f(deniedPermissions)
-    }
+fun TedPermission.Builder.onPermissionDenied(f: (List<String>?) -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
+    override fun onPermissionGranted() = Unit
+    override fun onPermissionDenied(deniedPermissions: MutableList<String>?) = f(deniedPermissions)
 })
 
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val diffCallback: DiffUtil.ItemCallback<V>) : RecyclerView.Adapter<VH>() {
