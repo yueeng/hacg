@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.auto -> {
                 lifecycleScope.launchWhenCreated {
-                    val good = withContext(Dispatchers.IO) { HAcg.hosts().toList().pmap(this) { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
+                    val good = withContext(Dispatchers.IO) { HAcg.hosts().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
                     if (good != null) {
                         HAcg.host = good.first
                         toast(getString(R.string.settings_config_auto_choose, good.first))

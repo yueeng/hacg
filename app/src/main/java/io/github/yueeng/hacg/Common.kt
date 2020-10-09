@@ -58,9 +58,10 @@ import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -348,7 +349,7 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
-suspend fun <A, B> List<A>.pmap(scope: CoroutineScope, f: (A) -> B): List<B> = map { scope.async { f(it) } }.map { it.await() }
+suspend fun <A, B> Iterable<A>.pmap(f: suspend (A) -> B): List<B> = coroutineScope { map { async { f(it) } }.awaitAll() }
 
 fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
     override fun onPermissionGranted() = f()
