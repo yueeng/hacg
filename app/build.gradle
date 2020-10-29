@@ -51,9 +51,9 @@ dependencies {
     implementation 'androidx.slidingpanelayout:slidingpanelayout:1.1.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01'
     implementation 'androidx.viewpager2:viewpager2:1.1.0-alpha01'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.3'
     implementation 'androidx.fragment:fragment-ktx:1.3.0-beta01'
-    implementation 'androidx.paging:paging-runtime-ktx:3.0.0-alpha07'
+    implementation 'androidx.paging:paging-runtime-ktx:3.0.0-alpha08'
     implementation 'com.github.clans:fab:1.6.4'
     implementation "com.squareup.okhttp3:okhttp:$okhttp_version"
     implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
