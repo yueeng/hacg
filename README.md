@@ -2,8 +2,6 @@
 
 ![HACG](https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)
 
-这个是为了学习新Android库和Scala写的练习项目，应用的所有内容全部来自hacg.me。
-
 发布：https://github.com/yueeng/hacg/releases
 
 ![HACG](https://user-images.githubusercontent.com/4374375/33003955-f2ed932c-cdf8-11e7-961c-8a7a536e0fd5.png)
