@@ -1,10 +1,10 @@
 # Hacg
 
-![HACG](https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)
+[![HACG](https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)](https://github.com/yueeng/hacg/releases/latest)
 
 发布：https://github.com/yueeng/hacg/releases
 
-![HACG](https://user-images.githubusercontent.com/4374375/33003955-f2ed932c-cdf8-11e7-961c-8a7a536e0fd5.png)
+[![HACG](https://user-images.githubusercontent.com/4374375/33003955-f2ed932c-cdf8-11e7-961c-8a7a536e0fd5.png)](https://github.com/yueeng/hacg/releases/latest/download/app-release.apk)
 
 首页 | 内容 | 评论
 ------------ | ------------- | -------------
