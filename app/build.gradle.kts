@@ -52,6 +52,15 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    applicationVariants.all {
+        if (name != "release") return@all
+        outputs.all {
+            project.tasks.getByName("assembleRelease").doLast {
+                val folder = File(rootDir, "release").also { it.mkdirs() }
+                outputFile.parentFile.listFiles()?.forEach { it.copyTo(File(folder, it.name), true) }
+            }
+        }
+    }
 }
 
 dependencies {
