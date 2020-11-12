@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -18,11 +20,21 @@ android {
         resConfigs("zh-rCN")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        create("release") {
+            val config = gradleLocalProperties(rootDir)
+            storeFile = file(config.getProperty("storeFile"))
+            storePassword = config.getProperty("storePassword")
+            keyAlias = config.getProperty("keyAlias")
+            keyPassword = config.getProperty("keyPassword")
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     buildFeatures {
