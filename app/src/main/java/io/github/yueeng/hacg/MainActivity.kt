@@ -66,16 +66,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkVersion(toast: Boolean = false) = lifecycleScope.launchWhenCreated {
-        val url = "${HAcg.RELEASE}/latest"
-        val dom = url.httpGetAwait()?.jsoup()
-        val ver = Version.from(dom?.select("span.css-truncate-target")?.firstOrNull()?.text())
-        val body = dom?.select(".markdown-body")?.html()?.trim()
-        val apk = dom?.select(".release a[href$=.apk]")?.firstOrNull()?.attr("abs:href")
+        val release = "https://api.github.com/repos/yueeng/hacg/releases/latest".httpGetAwait()?.let {
+            gson.fromJson(it.first, JGitHubRelease::class.java)
+        }
+        val ver = Version.from(release?.tagName)
+        val apk = release?.assets?.firstOrNull { it.name == "app-release.apk" }?.browserDownloadUrl
         val local = version()
         if (local != null && ver != null && local < ver) {
             MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle(getString(R.string.app_update_new, local, ver))
-                    .setMessage(body?.html ?: "")
+                    .setMessage(release?.body ?: "")
                     .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
                     .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
                     .setNegativeButton(R.string.app_cancel, null)

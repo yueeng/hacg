@@ -342,3 +342,82 @@ data class Article(val id: Int, val title: String,
                     e.select("footer .cat-links a").take(1).map { Tag(it) }.firstOrNull(),
                     e.select("footer .tag-links a").map { Tag(it) }.toList())
 }
+
+data class JGitHubRelease(
+        @SerializedName("assets") val assets: List<JGitHubReleaseAsset>,
+        @SerializedName("assets_url") val assetsUrl: String,
+        @SerializedName("author") val author: JGitHubReleaseAuthor,
+        @SerializedName("body") val body: String,
+        @SerializedName("created_at") val createdAt: String,
+        @SerializedName("draft") val draft: Boolean,
+        @SerializedName("html_url") val htmlUrl: String,
+        @SerializedName("id") val id: Int,
+        @SerializedName("name") val name: String,
+        @SerializedName("node_id") val nodeId: String,
+        @SerializedName("prerelease") val prerelease: Boolean,
+        @SerializedName("published_at") val publishedAt: String,
+        @SerializedName("tag_name") val tagName: String,
+        @SerializedName("tarball_url") val tarballUrl: String,
+        @SerializedName("target_commitish") val targetCommitish: String,
+        @SerializedName("upload_url") val uploadUrl: String,
+        @SerializedName("url") val url: String,
+        @SerializedName("zipball_url") val zipballUrl: String
+)
+
+data class JGitHubReleaseAsset(
+        @SerializedName("browser_download_url") val browserDownloadUrl: String,
+        @SerializedName("content_type") val contentType: String,
+        @SerializedName("created_at") val createdAt: String,
+        @SerializedName("download_count") val downloadCount: Int,
+        @SerializedName("id") val id: Int,
+        @SerializedName("label") val label: Any,
+        @SerializedName("name") val name: String,
+        @SerializedName("node_id") val nodeId: String,
+        @SerializedName("size") val size: Int,
+        @SerializedName("state") val state: String,
+        @SerializedName("updated_at") val updatedAt: String,
+        @SerializedName("uploader") val uploader: JGitHubReleaseUploader,
+        @SerializedName("url") val url: String
+)
+
+data class JGitHubReleaseAuthor(
+        @SerializedName("avatar_url") val avatarUrl: String,
+        @SerializedName("events_url") val eventsUrl: String,
+        @SerializedName("followers_url") val followersUrl: String,
+        @SerializedName("following_url") val followingUrl: String,
+        @SerializedName("gists_url") val gistsUrl: String,
+        @SerializedName("gravatar_id") val gravatarId: String,
+        @SerializedName("html_url") val htmlUrl: String,
+        @SerializedName("id") val id: Int,
+        @SerializedName("login") val login: String,
+        @SerializedName("node_id") val nodeId: String,
+        @SerializedName("organizations_url") val organizationsUrl: String,
+        @SerializedName("received_events_url") val receivedEventsUrl: String,
+        @SerializedName("repos_url") val reposUrl: String,
+        @SerializedName("site_admin") val siteAdmin: Boolean,
+        @SerializedName("starred_url") val starredUrl: String,
+        @SerializedName("subscriptions_url") val subscriptionsUrl: String,
+        @SerializedName("type") val type: String,
+        @SerializedName("url") val url: String
+)
+
+data class JGitHubReleaseUploader(
+        @SerializedName("avatar_url") val avatarUrl: String,
+        @SerializedName("events_url") val eventsUrl: String,
+        @SerializedName("followers_url") val followersUrl: String,
+        @SerializedName("following_url") val followingUrl: String,
+        @SerializedName("gists_url") val gistsUrl: String,
+        @SerializedName("gravatar_id") val gravatarId: String,
+        @SerializedName("html_url") val htmlUrl: String,
+        @SerializedName("id") val id: Int,
+        @SerializedName("login") val login: String,
+        @SerializedName("node_id") val nodeId: String,
+        @SerializedName("organizations_url") val organizationsUrl: String,
+        @SerializedName("received_events_url") val receivedEventsUrl: String,
+        @SerializedName("repos_url") val reposUrl: String,
+        @SerializedName("site_admin") val siteAdmin: Boolean,
+        @SerializedName("starred_url") val starredUrl: String,
+        @SerializedName("subscriptions_url") val subscriptionsUrl: String,
+        @SerializedName("type") val type: String,
+        @SerializedName("url") val url: String
+)
