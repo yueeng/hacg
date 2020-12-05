@@ -120,7 +120,7 @@ class InfoWebFragment : Fragment() {
     private val viewModel: InfoWebViewModel by viewModels { InfoWebViewModelFactory(this, arguments) }
     private val _url by lazy { viewModel.article.value?.link ?: requireArguments().getString("url")!! }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
                 viewModel.article.observe(viewLifecycleOwner, Observer { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } })
                 viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
@@ -418,7 +418,7 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
                 binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter({ _adapter.itemCount }) { query() })
                 viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })

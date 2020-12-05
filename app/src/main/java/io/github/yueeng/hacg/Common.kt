@@ -57,7 +57,6 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
-import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -66,6 +65,7 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.parcelize.Parcelize
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.buffer
@@ -447,7 +447,7 @@ fun <T : Any> SavedStateHandle.saveAsJson(it: T, name: String) {
     set("${name}-Json", gson.toJson(it))
 }
 
-fun <T : Any> SavedStateHandle.loadForJson(name: String, def: () -> T): T? {
+fun <T : Any> SavedStateHandle.loadForJson(name: String, def: () -> T?): T? {
     val clazz = get<String>("${name}-Class")?.let { Class.forName(it) }
     val json = get<String>("${name}-Json")
     @Suppress("UNCHECKED_CAST")
