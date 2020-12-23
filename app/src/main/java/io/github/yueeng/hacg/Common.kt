@@ -172,10 +172,22 @@ fun String.toDate(fmt: SimpleDateFormat? = null): Date? = try {
 }
 
 val String.html: Spanned get() = HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT)
+fun String.isSameHost(base: String?) = try {
+    if (base != null) Uri.parse(this).host == Uri.parse(base).host else false
+} catch (_: Exception) {
+    false
+}
+
+val String.isWordpress
+    get() = try {
+        Uri.parse(this).path?.startsWith("/wp/") ?: false
+    } catch (_: Exception) {
+        false
+    }
 
 fun Context.openUri(url: String?, web: Boolean = true): Boolean = when {
     url.isNullOrEmpty() -> null
-    !url.startsWith(HAcg.wordpress) -> Uri.parse(url).let { uri ->
+    !url.isWordpress -> Uri.parse(url).let { uri ->
         startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
     }
     Article.getIdFromUrl(url) != null -> startActivity(Intent(this, InfoActivity::class.java).putExtra("url", url))

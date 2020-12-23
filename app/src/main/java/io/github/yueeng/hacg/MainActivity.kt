@@ -37,8 +37,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
-import okhttp3.Request
-import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -224,11 +222,11 @@ class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
     }
 }
 
-class ArticlePagingSource : PagingSource<String, Article>() {
+class ArticlePagingSource(private val title: (String) -> Unit) : PagingSource<String, Article>() {
     override suspend fun load(params: LoadParams<String>): LoadResult<String, Article> = try {
-        val uri = params.key!!
-        val html = okhttp.newCall(Request.Builder().url(uri).build()).await { _, response -> response.body?.string() }
-        val dom = Jsoup.parse(html, uri)
+        val dom = params.key!!.httpGetAwait()!!.jsoup()
+        listOf("h1.page-title>span", "h1#site-title", "title").asSequence().map { dom.select(it).text() }
+                .firstOrNull { it.isNotEmpty() }?.let(title::invoke)
         val articles = dom.select("article").map { o -> Article(o) }.toList()
         val next = (dom.select("#wp_page_numbers a").lastOrNull()
                 ?.takeIf { ">" == it.text() }?.attr("abs:href")
@@ -243,7 +241,8 @@ class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : Vi
     var retry: Boolean
         get() = handle.get("retry") ?: false
         set(value) = handle.set("retry", value)
-    val source = Paging(handle, args?.getString("url")) { ArticlePagingSource() }
+    val title = handle.getLiveData<String>("title")
+    val source = Paging(handle, args?.getString("url")) { ArticlePagingSource { title.postValue(it) } }
     val data = handle.getLiveData<List<Article>>("data")
     val last = handle.getLiveData("last", -1)
 }
@@ -289,6 +288,12 @@ class ArticleFragment : Fragment() {
                     image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
                     if (it is LoadState.Error && adapter.itemCount == 0) if (viewModel.retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
                 })
+                if (requireActivity().title.isNullOrEmpty()) {
+                    requireActivity().title = getString(R.string.app_name)
+                    viewModel.title.observe(viewLifecycleOwner, {
+                        requireActivity().title = it
+                    })
+                }
                 image1.setOnClickListener {
                     viewModel.retry = true
                     query(true)

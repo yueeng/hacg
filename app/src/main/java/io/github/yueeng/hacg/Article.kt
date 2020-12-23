@@ -5,6 +5,7 @@ package io.github.yueeng.hacg
 import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
+import android.net.Uri
 import android.os.Parcelable
 import android.view.LayoutInflater
 import androidx.appcompat.app.AlertDialog
@@ -120,11 +121,10 @@ object HAcg {
             config.version <= defaultConfig()?.version ?: 0 -> if (tip) context.toast(R.string.settings_config_newest)
             else -> context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
                     .setAction(R.string.settings_config_update) {
-                        try {
+                        runCatching {
                             host = defaultHosts(config).first()
                             configFile.writeText(html!!.first)
                             updated()
-                        } catch (_: Exception) {
                         }
                     }.show()
         }
@@ -308,12 +308,12 @@ data class Article(val id: Int, val title: String,
     companion object {
         val ID: Regex = """post-(\d+)""".toRegex()
         fun parseID(str: String?) = str?.let { s -> ID.find(s)?.let { it.groups[1]?.value?.toInt() } }
-        val URL: Regex get() = """${HAcg.wordpress}/(\d+)\.html""".toRegex()
+        private val URL: Regex = """/wp/(\d+)\.html""".toRegex()
         fun getIdFromUrl(str: String?) = str?.let { s -> URL.find(s)?.let { it.groups[1]?.value?.toInt() } }
-        fun isList(url: String) = HAcg.categories.map { "${HAcg.web}$it" }.contains(url)
-                || url.startsWith("${HAcg.wordpress}/tag/")
-                || url.startsWith("${HAcg.wordpress}/author/")
-                || url.startsWith("${HAcg.wordpress}/?s=")
+        private val LIST = listOf("/wp/tag/", "/wp/author/", "/wp/?s=")
+        fun isList(url: String): Boolean = Uri.parse(url).path?.let { path ->
+            HAcg.categories.any { path == it.first } || LIST.any { path.startsWith(it) }
+        } ?: false
     }
 
     constructor(msg: String) : this(0, msg, null, null, null, null, 0, null, null, listOf())
