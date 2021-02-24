@@ -26,6 +26,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
 import androidx.paging.PagingSource
+import androidx.paging.PagingState
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -378,6 +379,8 @@ class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> I
     } catch (e: Exception) {
         LoadResult.Error(e)
     }
+
+    override fun getRefreshKey(state: PagingState<Pair<Int?, Int>, Comment>): Pair<Int?, Int>? = null
 }
 
 class InfoCommentViewModel(id: Int, handle: SavedStateHandle) : ViewModel() {

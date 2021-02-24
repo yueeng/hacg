@@ -26,6 +26,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.PagingSource
+import androidx.paging.PagingState
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
@@ -235,6 +236,8 @@ class ArticlePagingSource(private val title: (String) -> Unit) : PagingSource<St
     } catch (e: Exception) {
         LoadResult.Error(e)
     }
+
+    override fun getRefreshKey(state: PagingState<String, Article>): String? = null
 }
 
 class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : ViewModel() {
