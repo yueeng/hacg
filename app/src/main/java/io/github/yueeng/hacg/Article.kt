@@ -247,18 +247,21 @@ data class Comment(val id: Int, val parent: Int, val content: String, val user: 
             )
 }
 
+@Parcelize
 data class JComment(
         @SerializedName("last_parent_id") val lastParentId: String,
         @SerializedName("is_show_load_more") val isShowLoadMore: Boolean,
         @SerializedName("comment_list") val commentList: String?,
         @SerializedName("loadLastCommentId") val loadLastCommentId: String
-)
+) : Parcelable
 
+@Parcelize
 data class JWpdiscuzComment(
         @SerializedName("success") val success: Boolean,
         @SerializedName("data") val data: JComment
-)
+) : Parcelable
 
+@Parcelize
 data class JCommentResult(
         @SerializedName("code") val code: String,
         @SerializedName("comment_author") val commentAuthor: String,
@@ -273,27 +276,31 @@ data class JCommentResult(
         @SerializedName("uniqueid") val uniqueid: String,
         @SerializedName("wc_all_comments_count_new") val wcAllCommentsCountNew: String,
         @SerializedName("wc_all_comments_count_new_html") val wcAllCommentsCountNewHtml: String
-)
+) : Parcelable
 
+@Parcelize
 data class JWpdiscuzCommentResult(
         @SerializedName("success") val success: Boolean,
         @SerializedName("data") val data: JCommentResult
-)
+) : Parcelable
 
+@Parcelize
 data class JWpdiscuzVote(
         @SerializedName("success") val success: Boolean,
         @SerializedName("data") val data: String
-)
+) : Parcelable
 
+@Parcelize
 data class JWpdiscuzVoteSucceed(
         @SerializedName("success") val success: Boolean,
         @SerializedName("data") val data: JWpdiscuzVoteSucceedData
-)
+) : Parcelable
 
+@Parcelize
 data class JWpdiscuzVoteSucceedData(
         @SerializedName("buttonsStyle") val buttonsStyle: String,
         @SerializedName("votes") val votes: String
-)
+) : Parcelable
 
 @Parcelize
 data class Article(val id: Int, val title: String,
