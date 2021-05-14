@@ -196,7 +196,7 @@ class InfoWebFragment : Fragment() {
                     }
 
                     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
-                            when (request?.url?.scheme?.toLowerCase(Locale.getDefault())) {
+                            when (request?.url?.scheme?.lowercase(Locale.getDefault())) {
                                 "http", "https" -> try {
                                     val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
                                         request.requestHeaders?.forEach { header(it.key, it.value) }

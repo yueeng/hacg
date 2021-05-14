@@ -265,7 +265,7 @@ fun FloatingActionMenu.setRandomColor(): FloatingActionMenu = apply {
 private val img = listOf(".jpg", ".png", ".webp")
 
 @SuppressLint("DefaultLocale")
-fun String.isImg(): Boolean = img.any { this.toLowerCase().endsWith(it) }
+fun String.isImg(): Boolean = img.any { this.lowercase(Locale.getDefault()).endsWith(it) }
 
 suspend fun String.httpGetAwait(): Pair<String, String>? = try {
     val request = Request.Builder().get().url(this).build()
