@@ -62,14 +62,13 @@ dependencies {
     val glideVersion = "4.12.0"
     val okhttpVersion = "4.9.1"
     val kotlinxCoroutinesVersion = "1.4.3"
-    implementation("androidx.appcompat:appcompat:1.3.0-rc01")
+    implementation("androidx.appcompat:appcompat:1.2.0")
     implementation("com.google.android.material:material:1.3.0")
     implementation("androidx.preference:preference-ktx:1.1.1")
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.2.0")
     implementation("androidx.slidingpanelayout:slidingpanelayout:1.1.0")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
-    implementation("androidx.viewpager2:viewpager2:1.1.0-alpha01")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
     implementation("androidx.fragment:fragment-ktx:1.3.3")
     implementation("androidx.paging:paging-runtime-ktx:3.0.0")
