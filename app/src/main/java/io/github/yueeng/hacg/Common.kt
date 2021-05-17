@@ -411,13 +411,13 @@ abstract class PagingAdapter<V, VH : RecyclerView.ViewHolder>(diffCallback: Diff
     override fun add(v: V, index: Int): DataAdapter<V, VH> = apply {
         val fist = itemCount == 0
         super.add(v, index)
-        if (fist && itemCount != 0) refreshCh.offer(true)
+        if (fist && itemCount != 0) refreshCh.trySend(true)
     }
 
     override fun addAll(v: List<V>): DataAdapter<V, VH> = apply {
         val fist = itemCount == 0
         super.addAll(v)
-        if (fist && itemCount != 0) refreshCh.offer(true)
+        if (fist && itemCount != 0) refreshCh.trySend(true)
     }
 }
 
