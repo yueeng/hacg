@@ -82,5 +82,5 @@ dependencies {
     kapt("com.github.bumptech.glide:compiler:$glideVersion")
     implementation("org.jsoup:jsoup:1.13.1")
     implementation("gun0912.ted:tedpermission:2.2.3")
-    implementation("com.google.code.gson:gson:2.8.6")
+    implementation("com.google.code.gson:gson:2.8.7")
 }
