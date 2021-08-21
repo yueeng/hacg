@@ -8,16 +8,16 @@ plugins {
 }
 
 android {
-    compileSdkVersion(30)
+    compileSdk = 30
     buildToolsVersion = "30.0.3"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
-        minSdkVersion(21)
-        targetSdkVersion(30)
+        minSdk = 21
+        targetSdk = 30
         versionCode = 39
         versionName = "1.5.3"
-        resConfigs("zh-rCN")
+        resourceConfigurations.add("zh-rCN")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
