@@ -73,12 +73,12 @@ class MainActivity : AppCompatActivity() {
         val local = version()
         if (local != null && ver != null && local < ver) {
             MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(getString(R.string.app_update_new, local, ver))
-                    .setMessage(release?.body ?: "")
-                    .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
-                    .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
-                    .setNegativeButton(R.string.app_cancel, null)
-                    .create().show()
+                .setTitle(getString(R.string.app_update_new, local, ver))
+                .setMessage(release?.body ?: "")
+                .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
+                .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
+                .setNegativeButton(R.string.app_cancel, null)
+                .create().show()
         } else {
             if (toast) Toast.makeText(this@MainActivity, getString(R.string.app_update_none, local), Toast.LENGTH_SHORT).show()
             checkConfig()
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount(): Int = data.size
 
         override fun createFragment(position: Int): Fragment =
-                ArticleFragment().arguments(Bundle().string("url", data[position].first))
+            ArticleFragment().arguments(Bundle().string("url", data[position].first))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -156,12 +156,12 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.about -> {
                 MaterialAlertDialogBuilder(this)
-                        .setTitle("${getString(R.string.app_name)} ${version()}")
-                        .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(HAcg.wordpress) }
-                        .setPositiveButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
-                        .setNeutralButton(R.string.app_update_check) { _, _ -> checkVersion(true) }
-                        .setNegativeButton(R.string.app_cancel, null)
-                        .create().show()
+                    .setTitle("${getString(R.string.app_name)} ${version()}")
+                    .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(HAcg.wordpress) }
+                    .setPositiveButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
+                    .setNeutralButton(R.string.app_update_check) { _, _ -> checkVersion(true) }
+                    .setNegativeButton(R.string.app_cancel, null)
+                    .create().show()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -196,7 +196,7 @@ class ListActivity : BaseSlideCloseActivity() {
         title = name
         val transaction = supportFragmentManager.beginTransaction()
         val fragment = supportFragmentManager.findFragmentById(R.id.container).takeIf { it is ArticleFragment }
-                ?: ArticleFragment().arguments(Bundle().string("url", url))
+            ?: ArticleFragment().arguments(Bundle().string("url", url))
         transaction.replace(R.id.container, fragment)
         transaction.commit()
     }
@@ -227,11 +227,11 @@ class ArticlePagingSource(private val title: (String) -> Unit) : PagingSource<St
     override suspend fun load(params: LoadParams<String>): LoadResult<String, Article> = try {
         val dom = params.key!!.httpGetAwait()!!.jsoup()
         listOf("h1.page-title>span", "h1#site-title", "title").asSequence().map { dom.select(it).text() }
-                .firstOrNull { it.isNotEmpty() }?.let(title::invoke)
+            .firstOrNull { it.isNotEmpty() }?.let(title::invoke)
         val articles = dom.select("article").map { o -> Article(o) }.toList()
         val next = (dom.select("#wp_page_numbers a").lastOrNull()
-                ?.takeIf { ">" == it.text() }?.attr("abs:href")
-                ?: dom.select("#nav-below .nav-previous a").firstOrNull()?.attr("abs:href"))
+            ?.takeIf { ">" == it.text() }?.attr("abs:href")
+            ?: dom.select("#nav-below .nav-previous a").firstOrNull()?.attr("abs:href"))
         LoadResult.Page(articles, null, next)
     } catch (e: Exception) {
         LoadResult.Error(e)
@@ -284,39 +284,39 @@ class ArticleFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-            FragmentListBinding.inflate(inflater, container, false).apply {
-                viewModel.source.state.observe(viewLifecycleOwner, {
-                    adapter.state.postValue(it)
-                    swipe.isRefreshing = it is LoadState.Loading
-                    image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
-                    if (it is LoadState.Error && adapter.itemCount == 0) if (viewModel.retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
+        FragmentListBinding.inflate(inflater, container, false).apply {
+            viewModel.source.state.observe(viewLifecycleOwner, {
+                adapter.state.postValue(it)
+                swipe.isRefreshing = it is LoadState.Loading
+                image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
+                if (it is LoadState.Error && adapter.itemCount == 0) if (viewModel.retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
+            })
+            if (requireActivity().title.isNullOrEmpty()) {
+                requireActivity().title = getString(R.string.app_name)
+                viewModel.title.observe(viewLifecycleOwner, {
+                    requireActivity().title = it
                 })
-                if (requireActivity().title.isNullOrEmpty()) {
-                    requireActivity().title = getString(R.string.app_name)
-                    viewModel.title.observe(viewLifecycleOwner, {
-                        requireActivity().title = it
-                    })
+            }
+            image1.setOnClickListener {
+                viewModel.retry = true
+                query(true)
+            }
+            swipe.setOnRefreshListener { query(true) }
+            recycler.setHasFixedSize(true)
+            recycler.adapter = adapter.withLoadStateFooter(FooterAdapter({ adapter.itemCount }) {
+                query()
+            })
+            recycler.loading {
+                when (viewModel.source.state.value) {
+                    LoadState.NotLoading(false) -> query()
                 }
-                image1.setOnClickListener {
-                    viewModel.retry = true
-                    query(true)
+            }
+            lifecycleScope.launchWhenCreated {
+                adapter.refreshFlow.collectLatest {
+                    recycler.scrollToPosition(0)
                 }
-                swipe.setOnRefreshListener { query(true) }
-                recycler.setHasFixedSize(true)
-                recycler.adapter = adapter.withLoadStateFooter(FooterAdapter({ adapter.itemCount }) {
-                    query()
-                })
-                recycler.loading {
-                    when (viewModel.source.state.value) {
-                        LoadState.NotLoading(false) -> query()
-                    }
-                }
-                lifecycleScope.launchWhenCreated {
-                    adapter.refreshFlow.collectLatest {
-                        recycler.scrollToPosition(0)
-                    }
-                }
-            }.root
+            }
+        }.root
 
     class ArticleHolder(private val binding: ArticleItemBinding) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
         private val datafmt = SimpleDateFormat("yyyy-MM-dd hh:ss", Locale.getDefault())
@@ -368,14 +368,14 @@ class ArticleFragment : Fragment() {
             if (position > last) {
                 last = position
                 ObjectAnimator.ofFloat(holder.itemView, View.TRANSLATION_Y.name, from, 0F)
-                        .setDuration(1000).also { it.interpolator = interpolator }.start()
+                    .setDuration(1000).also { it.interpolator = interpolator }.start()
             }
         }
 
         override fun clear(): DataAdapter<Article, ArticleHolder> = super.clear().apply { last = -1 }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticleHolder =
-                ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+            ArticleHolder(ArticleItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }
 }
 
@@ -387,15 +387,17 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
     private var state: LoadState? = null
     fun bind(value: LoadState, empty: () -> Boolean) {
         state = value
-        binding.text1.setText(when (value) {
-            is LoadState.NotLoading -> when {
-                value.endOfPaginationReached && empty() -> R.string.app_list_empty
-                value.endOfPaginationReached -> R.string.app_list_complete
-                else -> R.string.app_list_loadmore
+        binding.text1.setText(
+            when (value) {
+                is LoadState.NotLoading -> when {
+                    value.endOfPaginationReached && empty() -> R.string.app_list_empty
+                    value.endOfPaginationReached -> R.string.app_list_complete
+                    else -> R.string.app_list_loadmore
+                }
+                is LoadState.Error -> R.string.app_list_failed
+                else -> R.string.app_list_loading
             }
-            is LoadState.Error -> R.string.app_list_failed
-            else -> R.string.app_list_loading
-        })
+        )
     }
 }
 
@@ -411,5 +413,5 @@ class FooterAdapter(private val count: () -> Int, private val retry: () -> Unit)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): MsgHolder =
-            MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { retry() }
+        MsgHolder(ListMsgItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)) { retry() }
 }

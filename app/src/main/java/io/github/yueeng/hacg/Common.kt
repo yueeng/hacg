@@ -9,6 +9,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -16,6 +17,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
+import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -26,13 +28,19 @@ import android.view.*
 import android.webkit.CookieManager
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.commitNow
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingSource
@@ -55,8 +63,6 @@ import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.gun0912.tedpermission.PermissionListener
-import com.gun0912.tedpermission.TedPermission
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -96,19 +102,19 @@ var user: Int
 
 val gson: Gson = GsonBuilder().create()
 val okhttp = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .writeTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .cache(Cache(HAcgApplication.instance.cacheDir, 1024 * 1024 * 256))
-        .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
-        .build()
+    .connectTimeout(10, TimeUnit.SECONDS)
+    .writeTimeout(20, TimeUnit.SECONDS)
+    .readTimeout(30, TimeUnit.SECONDS)
+    .cache(Cache(HAcgApplication.instance.cacheDir, 1024L * 1024L * 256L))
+    .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
+    .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+    .build()
 val okdownload = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .cache(Cache(HAcgApplication.instance.cacheDir, 1024 * 1024 * 256))
-        .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
-        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
-        .build()
+    .connectTimeout(10, TimeUnit.SECONDS)
+    .cache(Cache(HAcgApplication.instance.cacheDir, 1024L * 1024L * 256L))
+    .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
+    .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
+    .build()
 
 @GlideModule
 @Excludes(com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule::class)
@@ -123,7 +129,7 @@ class HacgAppGlideModule : AppGlideModule() {
 }
 
 fun GlideRequest<Drawable>.crossFade(): GlideRequest<Drawable> =
-        this.transition(DrawableTransitionOptions.withCrossFade())
+    this.transition(DrawableTransitionOptions.withCrossFade())
 
 class HAcgApplication : Application() {
     companion object {
@@ -212,7 +218,7 @@ fun Context.clipboard(label: String, text: String) {
 }
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View =
-        LayoutInflater.from(this.context).inflate(layout, this, attach)
+    LayoutInflater.from(this.context).inflate(layout, this, attach)
 
 fun View.childrenSequence(): Sequence<View> = (this as? ViewGroup)?.children ?: emptySequence()
 fun View.childrenRecursiveSequence(): Sequence<View> = ViewChildrenRecursiveSequence(this)
@@ -348,11 +354,11 @@ fun Context.version(): Version? = try {
 }
 
 inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> =
-        this.childrenRecursiveSequence().mapNotNull { it as? T }.filter { id == 0 || id == it.id }
+    this.childrenRecursiveSequence().mapNotNull { it as? T }.filter { id == 0 || id == it.id }
 
 fun Activity.snack(text: CharSequence, duration: Int = Snackbar.LENGTH_SHORT): Snackbar = this.window.decorView.let { view ->
     view.findViewByViewType<CoordinatorLayout>().firstOrNull()
-            ?: view
+        ?: view
 }.let { Snackbar.make(it, text, duration) }
 
 fun Fragment.arguments(b: Bundle?): Fragment = this.also { it.arguments = b }
@@ -362,16 +368,6 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
 suspend fun <A, B> Iterable<A>.pmap(f: suspend (A) -> B): List<B> = coroutineScope { map { async { f(it) } }.awaitAll() }
-
-fun TedPermission.Builder.onPermissionGranted(f: () -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
-    override fun onPermissionGranted() = f()
-    override fun onPermissionDenied(deniedPermissions: MutableList<String>?) = Unit
-})
-
-fun TedPermission.Builder.onPermissionDenied(f: (List<String>?) -> Unit): TedPermission.Builder = setPermissionListener(object : PermissionListener {
-    override fun onPermissionGranted() = Unit
-    override fun onPermissionDenied(deniedPermissions: MutableList<String>?) = f(deniedPermissions)
-})
 
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val diffCallback: DiffUtil.ItemCallback<V>) : RecyclerView.Adapter<VH>() {
     private val differ by lazy {
@@ -528,15 +524,17 @@ class RoundedBackgroundColorSpan(private val backgroundColor: Int) : Replacement
     private val linePadding = 2f // play around with these as needed
     private val sidePadding = 5f // play around with these as needed
     private fun measureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float =
-            paint.measureText(text, start, end)
+        paint.measureText(text, start, end)
 
     override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int =
-            (measureText(paint, text, start, end) + (2 * sidePadding)).roundToInt()
+        (measureText(paint, text, start, end) + (2 * sidePadding)).roundToInt()
 
     override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-        val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
-                x + getSize(paint, text, start, end, paint.fontMetricsInt),
-                y + paint.fontMetrics.bottom + linePadding)
+        val rect = RectF(
+            x, y + paint.fontMetrics.top - linePadding,
+            x + getSize(paint, text, start, end, paint.fontMetricsInt),
+            y + paint.fontMetrics.bottom + linePadding
+        )
         paint.color = backgroundColor
         canvas.drawRoundRect(rect, 5F, 5F, paint)
         paint.color = 0xFFFFFFFF.toInt()
@@ -723,5 +721,68 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
 
     override fun onPanelClosed(panel: View) {
 
+    }
+}
+
+
+class HacgPermissionFragment : Fragment() {
+    private lateinit var callback: (Map<String, Boolean>) -> Unit
+    private val requestPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+        callback.invoke(permissions)
+    }
+
+    fun request(vararg permissions: String, call: (Map<String, Boolean>) -> Unit) {
+        callback = call
+        requestPermissions.launch(permissions)
+    }
+
+}
+
+@Suppress("MemberVisibilityCanBePrivate", "unused")
+class HacgPermission(val fragmentManager: FragmentManager) {
+    fun request(vararg permissions: String, call: (Map<String, Boolean>) -> Unit) {
+        val fragment = HacgPermissionFragment()
+        fragmentManager.commitNow { add(fragment, HacgPermissionFragment::class.java.simpleName) }
+        fragment.request(*permissions) {
+            fragmentManager.commitNow { remove(fragment) }
+            call(it)
+        }
+    }
+
+    companion object {
+        fun with(fragment: Fragment) = HacgPermission(fragment.childFragmentManager)
+        fun with(activity: FragmentActivity) = HacgPermission(activity.supportFragmentManager)
+        fun Context.isPermissionGranted(vararg permission: String): Boolean = permission.all {
+            PermissionChecker.checkSelfPermission(this, it) == PermissionChecker.PERMISSION_GRANTED
+        }
+
+        fun Activity.showRequestPermissionRationale(permission: String) =
+            !isPermissionGranted(permission) && ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
+
+        fun HacgPermission.checkPermissions(activity: Activity, vararg permission: String, granted: () -> Unit) = activity.run {
+            if (isPermissionGranted(*permission)) {
+                granted()
+                return@run
+            }
+            request(*permission) { permissions ->
+                if (permissions.all { it.value }) granted()
+                else {
+                    val message = permissions.filter { !it.value }
+                        .map { packageManager.getPermissionInfo(it.key, PackageManager.GET_META_DATA) }
+                        .mapNotNull { it.loadDescription(packageManager) }
+                        .joinToString(",")
+                    activity.snack(message, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.app_settings) {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                        }.show()
+                }
+            }
+        }
+
+        fun FragmentActivity.checkPermissions(vararg permission: String, granted: () -> Unit) =
+            with(this).checkPermissions(this, *permission, granted = granted)
+
+        fun Fragment.checkPermissions(vararg permission: String, granted: () -> Unit) =
+            with(this).checkPermissions(requireActivity(), *permission, granted = granted)
     }
 }

@@ -11,7 +11,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.*
@@ -35,11 +34,11 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.gun0912.tedpermission.TedPermission
+import io.github.yueeng.hacg.HacgPermission.Companion.checkPermissions
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.flow.collectLatest
 import org.jsoup.Jsoup
-import org.jsoup.safety.Whitelist
+import org.jsoup.safety.Safelist
 import java.util.*
 
 /**
@@ -54,14 +53,14 @@ class InfoActivity : BaseSlideCloseActivity() {
         val manager = supportFragmentManager
 
         val fragment = manager.findFragmentById(R.id.container)?.takeIf { it is InfoFragment }
-                ?: InfoFragment().arguments(intent.extras)
+            ?: InfoFragment().arguments(intent.extras)
 
         manager.beginTransaction().replace(R.id.container, fragment).commit()
     }
 
     override fun onBackPressed() {
         supportFragmentManager.findFragmentById(R.id.container)?.let { it as InfoFragment }?.takeIf { it.onBackPressed() }
-                ?: super.onBackPressed()
+            ?: super.onBackPressed()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
@@ -80,12 +79,12 @@ class InfoFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-            FragmentInfoBinding.inflate(inflater, container, false).also { binding ->
-                val activity = activity as AppCompatActivity
-                activity.setSupportActionBar(binding.toolbar)
-                activity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-                binding.container.adapter = InfoAdapter(this)
-            }.root
+        FragmentInfoBinding.inflate(inflater, container, false).also { binding ->
+            val activity = activity as AppCompatActivity
+            activity.setSupportActionBar(binding.toolbar)
+            activity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            binding.container.adapter = InfoAdapter(this)
+        }.root
 
     inner class InfoAdapter(fm: Fragment) : FragmentStateAdapter(fm) {
         override fun getItemCount(): Int = 2
@@ -101,7 +100,7 @@ class InfoFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean = FragmentInfoBinding.bind(requireView()).container
-            .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
+        .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
 }
 
 class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
@@ -122,112 +121,112 @@ class InfoWebFragment : Fragment() {
     private val _url by lazy { viewModel.article.value?.link ?: requireArguments().getString("url")!! }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-            FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
-                viewModel.article.observe(viewLifecycleOwner, Observer { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } })
-                viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
-                binding.image1.setOnClickListener { query(_url) }
-                binding.menu1.setRandomColor()
-                val click = View.OnClickListener { v ->
-                    when (v.id) {
-                        R.id.button1 -> activity?.openUri(_url)
-                        R.id.button2 -> activity?.window?.decorView
-                                ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
-                        R.id.button4 -> share()
-                    }
-                    view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
+        FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
+            viewModel.article.observe(viewLifecycleOwner, Observer { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } })
+            viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
+            binding.image1.setOnClickListener { query(_url) }
+            binding.menu1.setRandomColor()
+            val click = View.OnClickListener { v ->
+                when (v.id) {
+                    R.id.button1 -> activity?.openUri(_url)
+                    R.id.button2 -> activity?.window?.decorView
+                        ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
+                    R.id.button4 -> share()
                 }
-                listOf(binding.button1, binding.button2, binding.button4).forEach { it.setOnClickListener(click) }
-                viewModel.progress.observe(viewLifecycleOwner, Observer {
-                    binding.progress.isIndeterminate = it
-                    binding.progress.visibility = if (it) View.VISIBLE else View.INVISIBLE
-                })
-                viewModel.magnet.observe(viewLifecycleOwner, Observer {
-                    binding.button5.visibility = if (it.isNotEmpty()) View.VISIBLE else View.GONE
-                })
-                binding.button5.setOnClickListener(object : View.OnClickListener {
-                    val max = 3
-                    var magnet = 1
-                    var toast: Toast? = null
+                view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
+            }
+            listOf(binding.button1, binding.button2, binding.button4).forEach { it.setOnClickListener(click) }
+            viewModel.progress.observe(viewLifecycleOwner, Observer {
+                binding.progress.isIndeterminate = it
+                binding.progress.visibility = if (it) View.VISIBLE else View.INVISIBLE
+            })
+            viewModel.magnet.observe(viewLifecycleOwner, Observer {
+                binding.button5.visibility = if (it.isNotEmpty()) View.VISIBLE else View.GONE
+            })
+            binding.button5.setOnClickListener(object : View.OnClickListener {
+                val max = 3
+                var magnet = 1
+                var toast: Toast? = null
 
-                    override fun onClick(v: View): Unit = when {
-                        magnet == max -> {
-                            val magnets = viewModel.magnet.value ?: emptyList()
-                            MaterialAlertDialogBuilder(activity!!)
-                                    .setTitle(R.string.app_magnet)
-                                    .setSingleChoiceItems(magnets.map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
-                                    .setNegativeButton(R.string.app_cancel, null)
-                                    .setPositiveButton(R.string.app_open) { d, _ ->
-                                        val pos = (d as AlertDialog).listView.checkedItemPosition
-                                        val item = magnets[pos]
-                                        val link = if (item.contains(",")) {
-                                            val baidu = item.split(",")
-                                            context?.clipboard(getString(R.string.app_magnet), baidu.last())
-                                            "https://yun.baidu.com/s/${baidu.first()}"
-                                        } else "magnet:?xt=urn:btih:${magnets[pos]}"
-                                        startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
-                                    }
-                                    .setNeutralButton(R.string.app_copy) { d, _ ->
-                                        val pos = (d as AlertDialog).listView.checkedItemPosition
-                                        val item = magnets[pos]
-                                        val link = if (item.contains(",")) "https://yun.baidu.com/s/${item.split(",").first()}" else "magnet:?xt=urn:btih:${magnets[pos]}"
-                                        context?.clipboard(getString(R.string.app_magnet), link)
-                                    }.create().show()
-                            binding.menu1.close(true)
+                override fun onClick(v: View): Unit = when {
+                    magnet == max -> {
+                        val magnets = viewModel.magnet.value ?: emptyList()
+                        MaterialAlertDialogBuilder(activity!!)
+                            .setTitle(R.string.app_magnet)
+                            .setSingleChoiceItems(magnets.map { m -> "${if (m.contains(",")) "baidu" else "magnet"}:$m" }.toTypedArray(), 0, null)
+                            .setNegativeButton(R.string.app_cancel, null)
+                            .setPositiveButton(R.string.app_open) { d, _ ->
+                                val pos = (d as AlertDialog).listView.checkedItemPosition
+                                val item = magnets[pos]
+                                val link = if (item.contains(",")) {
+                                    val baidu = item.split(",")
+                                    context?.clipboard(getString(R.string.app_magnet), baidu.last())
+                                    "https://yun.baidu.com/s/${baidu.first()}"
+                                } else "magnet:?xt=urn:btih:${magnets[pos]}"
+                                startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(link)), getString(R.string.app_magnet)))
+                            }
+                            .setNeutralButton(R.string.app_copy) { d, _ ->
+                                val pos = (d as AlertDialog).listView.checkedItemPosition
+                                val item = magnets[pos]
+                                val link = if (item.contains(",")) "https://yun.baidu.com/s/${item.split(",").first()}" else "magnet:?xt=urn:btih:${magnets[pos]}"
+                                context?.clipboard(getString(R.string.app_magnet), link)
+                            }.create().show()
+                        binding.menu1.close(true)
+                    }
+                    magnet < max -> {
+                        magnet += 1
+                        toast?.cancel()
+                        toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
+                    }
+                    else -> Unit
+                }
+            })
+            CookieManager.getInstance().acceptThirdPartyCookies(binding.web)
+            val settings = binding.web.settings
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            @SuppressLint("SetJavaScriptEnabled")
+            settings.javaScriptEnabled = true
+            binding.web.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                    activity?.openUri(url)
+                    return true
+                }
+
+                override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
+                    when (request?.url?.scheme?.lowercase(Locale.getDefault())) {
+                        "http", "https" -> try {
+                            val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
+                                request.requestHeaders?.forEach { header(it.key, it.value) }
+                            }.build()
+                            val response = okhttp.newCall(call).execute()
+                            WebResourceResponse(
+                                response.header("Content-Type", "text/html; charset=UTF-8"),
+                                response.header("Content-Encoding", "utf-8"),
+                                response.code,
+                                response.message,
+                                response.headers.toMap(),
+                                response.body?.byteStream()
+                            )
+                        } catch (_: Exception) {
+                            null
                         }
-                        magnet < max -> {
-                            magnet += 1
-                            toast?.cancel()
-                            toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
-                        }
-                        else -> Unit
-                    }
-                })
-                CookieManager.getInstance().acceptThirdPartyCookies(binding.web)
-                val settings = binding.web.settings
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                }
-                @SuppressLint("SetJavaScriptEnabled")
-                settings.javaScriptEnabled = true
-                binding.web.webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                        activity?.openUri(url)
-                        return true
-                    }
+                        else -> null
+                    } ?: super.shouldInterceptRequest(view, request)
 
-                    override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
-                            when (request?.url?.scheme?.lowercase(Locale.getDefault())) {
-                                "http", "https" -> try {
-                                    val call = okhttp3.Request.Builder().method(request.method, null).url(request.url.toString()).apply {
-                                        request.requestHeaders?.forEach { header(it.key, it.value) }
-                                    }.build()
-                                    val response = okhttp.newCall(call).execute()
-                                    WebResourceResponse(response.header("Content-Type", "text/html; charset=UTF-8"),
-                                            response.header("Content-Encoding", "utf-8"),
-                                            response.code,
-                                            response.message,
-                                            response.headers.toMap(),
-                                            response.body?.byteStream())
-                                } catch (_: Exception) {
-                                    null
-                                }
-                                else -> null
-                            } ?: super.shouldInterceptRequest(view, request)
-
-                    override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
-                        binding.scroll.removeView(binding.web)
-                        binding.web.destroy()
-                        return true
-                    }
+                override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                    binding.scroll.removeView(binding.web)
+                    binding.web.destroy()
+                    return true
                 }
-                binding.web.addJavascriptInterface(JsFace(), "hacg")
-                listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
-                    b.setRandomColor()
-                }
-                viewModel.web.observe(viewLifecycleOwner, Observer { value ->
-                    if (value != null) binding.web.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null)
-                })
-            }.root
+            }
+            binding.web.addJavascriptInterface(JsFace(), "hacg")
+            listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
+                b.setRandomColor()
+            }
+            viewModel.web.observe(viewLifecycleOwner, Observer { value ->
+                if (value != null) binding.web.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null)
+            })
+        }.root
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -243,16 +242,16 @@ class InfoWebFragment : Fragment() {
         fun share(uri: Uri? = null) {
             val ext = MimeTypeMap.getFileExtensionFromUrl(uri?.toString() ?: _url)
             val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.takeIf { it.isNotEmpty() }
-                    ?: "text/plain"
+                ?: "text/plain"
             val title = viewModel.article.value?.title ?: ""
             val intro = viewModel.article.value?.content ?: ""
             val link = _url
             val share = Intent(Intent.ACTION_SEND)
-                    .setType(mime)
-                    .putExtra(Intent.EXTRA_TITLE, title)
-                    .putExtra(Intent.EXTRA_SUBJECT, title)
-                    .putExtra(Intent.EXTRA_TEXT, "$title\n$intro $link")
-                    .putExtra(Intent.EXTRA_REFERRER, Uri.parse(link))
+                .setType(mime)
+                .putExtra(Intent.EXTRA_TITLE, title)
+                .putExtra(Intent.EXTRA_SUBJECT, title)
+                .putExtra(Intent.EXTRA_TEXT, "$title\n$intro $link")
+                .putExtra(Intent.EXTRA_REFERRER, Uri.parse(link))
             uri?.let { share.putExtra(Intent.EXTRA_STREAM, uri) }
             startActivity(Intent.createChooser(share, title))
         }
@@ -267,8 +266,12 @@ class InfoWebFragment : Fragment() {
     inner class JsFace {
         @JavascriptInterface
         fun play(name: String, url: String) {
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(Uri.parse(url), "video/mp4"), name))
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(Uri.parse(url), "video/mp4"), name
+                )
+            )
         }
 
         @JavascriptInterface
@@ -279,31 +282,25 @@ class InfoWebFragment : Fragment() {
                 image.adjustViewBounds = true
                 GlideApp.with(requireActivity()).load(uri).placeholder(R.drawable.loading).into(image)
                 val alert = MaterialAlertDialogBuilder(activity!!)
-                        .setView(image)
-                        .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
-                        .setPositiveButton(R.string.app_save) { _, _ ->
-                            TedPermission.with(activity)
-                                    .onPermissionGranted {
-                                        val name = uri.path?.split("/")?.last()
-                                                ?: UUID.randomUUID().toString()
-                                        val ext = MimeTypeMap.getFileExtensionFromUrl(name)
-                                        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
-                                        val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                        manager.enqueue(Request(uri).apply {
-                                            setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "hacg/$name")
-                                            setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                            setTitle(name)
-                                            setMimeType(mime)
-                                        })
-                                    }
-                                    .setDeniedCloseButtonText(R.string.app_close)
-                                    .setGotoSettingButtonText(R.string.app_settings)
-                                    .setDeniedMessage(R.string.permission_write_external_storage)
-                                    .setPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                    .check()
+                    .setView(image)
+                    .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
+                    .setPositiveButton(R.string.app_save) { _, _ ->
+                        checkPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE) {
+                            val name = uri.path?.split("/")?.last()
+                                ?: UUID.randomUUID().toString()
+                            val ext = MimeTypeMap.getFileExtensionFromUrl(name)
+                            val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                            val manager = HAcgApplication.instance.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                            manager.enqueue(Request(uri).apply {
+                                setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "hacg/$name")
+                                setNotificationVisibility(Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                setTitle(name)
+                                setMimeType(mime)
+                            })
                         }
-                        .setNegativeButton(R.string.app_cancel, null)
-                        .create()
+                    }
+                    .setNegativeButton(R.string.app_cancel, null)
+                    .create()
                 image.setOnClickListener { alert.dismiss() }
                 alert.show()
             }
@@ -318,26 +315,28 @@ class InfoWebFragment : Fragment() {
             val dom = url.httpGetAwait()?.jsoup()
             val article = dom?.select("article")?.firstOrNull()?.let { Article(it) }
             val entry = dom?.select(".entry-content")?.let { entry ->
-                val clean = Jsoup.clean(entry.html(), url, Whitelist.basicWithImages()
+                val clean = Jsoup.clean(
+                    entry.html(), url, Safelist.basicWithImages()
                         .addTags("audio", "video", "source")
                         .addAttributes("audio", "controls", "src")
                         .addAttributes("video", "controls", "src")
-                        .addAttributes("source", "type", "src", "media"))
+                        .addAttributes("source", "type", "src", "media")
+                )
 
                 Jsoup.parse(clean, url).select("body").also { e ->
                     e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
                     e.select("img[src]").forEach {
                         it.attr("data-original", it.attr("src"))
-                                .addClass("lazy")
-                                .removeAttr("src")
-                                .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
+                            .addClass("lazy")
+                            .removeAttr("src")
+                            .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
                     }
                 }
             }
             val html = entry?.let {
                 activity?.resources?.openRawResource(R.raw.template)?.bufferedReader()?.readText()
-                        ?.replace("{{title}}", article?.title ?: "")
-                        ?.replace("{{body}}", entry.html())
+                    ?.replace("{{title}}", article?.title ?: "")
+                    ?.replace("{{body}}", entry.html())
             }
             val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
             if (article != null) viewModel.article.postValue(article)
@@ -359,17 +358,18 @@ class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> I
     override suspend fun load(params: LoadParams<Pair<Int?, Int>>): LoadResult<Pair<Int?, Int>, Comment> = try {
         val (_postParentId, _postOffset) = params.key!!
         val data = mapOf(
-                "action" to "wpdLoadMoreComments",
-                "sorting" to sorting().sort,
-                "offset" to "$_postOffset",
-                "lastParentId" to "$_postParentId",
-                "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
-                "wpdType" to "",
-                "postId" to "$_id")
+            "action" to "wpdLoadMoreComments",
+            "sorting" to sorting().sort,
+            "offset" to "$_postOffset",
+            "lastParentId" to "$_postParentId",
+            "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
+            "wpdType" to "",
+            "postId" to "$_id"
+        )
         val json = HAcg.wpdiscuz.httpPostAwait(data)
         val comments = gson.fromJsonOrNull<JWpdiscuzComment>(json?.first)
         val list = Jsoup.parse(comments!!.data.commentList ?: "", HAcg.wpdiscuz)
-                .select("body>.wpd-comment").map { Comment(it) }.toList()
+            .select("body>.wpd-comment").map { Comment(it) }.toList()
         val next = if (comments.data.isShowLoadMore) {
             comments.data.lastParentId.toIntOrNull() to (_postOffset + 1)
         } else {
@@ -422,31 +422,31 @@ class InfoCommentFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-            FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
-                binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter({ _adapter.itemCount }) { query() })
-                viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
-                viewModel.source.state.observe(viewLifecycleOwner, Observer {
-                    _adapter.state.postValue(it)
-                    binding.swipe.isRefreshing = it is LoadState.Loading
-                })
-                lifecycleScope.launchWhenCreated {
-                    _adapter.refreshFlow.collectLatest {
-                        binding.list1.scrollToPosition(0)
-                    }
+        FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
+            binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter({ _adapter.itemCount }) { query() })
+            viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
+            viewModel.source.state.observe(viewLifecycleOwner, Observer {
+                _adapter.state.postValue(it)
+                binding.swipe.isRefreshing = it is LoadState.Loading
+            })
+            lifecycleScope.launchWhenCreated {
+                _adapter.refreshFlow.collectLatest {
+                    binding.list1.scrollToPosition(0)
                 }
-                binding.list1.loading {
-                    when (viewModel.source.state.value) {
-                        LoadState.NotLoading(false) -> query()
-                    }
+            }
+            binding.list1.loading {
+                when (viewModel.source.state.value) {
+                    LoadState.NotLoading(false) -> query()
                 }
-                binding.swipe.setOnRefreshListener { query(true) }
-                binding.button3.setRandomColor().setOnClickListener {
-                    comment(null) {
-                        _adapter.add(it, 0)
-                        binding.list1.smoothScrollToPosition(0)
-                    }
+            }
+            binding.swipe.setOnRefreshListener { query(true) }
+            binding.button3.setRandomColor().setOnClickListener {
+                comment(null) {
+                    _adapter.add(it, 0)
+                    binding.list1.smoothScrollToPosition(0)
                 }
-            }.root
+            }
+        }.root
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -476,11 +476,13 @@ class InfoCommentFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.vote, R.id.newest, R.id.oldest -> {
-            viewModel.sorting.postValue(when (item.itemId) {
-                R.id.oldest -> InfoCommentViewModel.Sorting.Oldest
-                R.id.newest -> InfoCommentViewModel.Sorting.Newest
-                else -> InfoCommentViewModel.Sorting.Vote
-            })
+            viewModel.sorting.postValue(
+                when (item.itemId) {
+                    R.id.oldest -> InfoCommentViewModel.Sorting.Oldest
+                    R.id.newest -> InfoCommentViewModel.Sorting.Newest
+                    else -> InfoCommentViewModel.Sorting.Vote
+                }
+            )
             query(true)
             true
         }
@@ -546,17 +548,20 @@ class InfoCommentFragment : Fragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentHolder =
-                CommentHolder(CommentItemBinding.inflate(layoutInflater, parent, false))
+            CommentHolder(CommentItemBinding.inflate(layoutInflater, parent, false))
     }
 
     fun vote(c: Comment?, v: Int, call: (Int) -> Unit) {
         if (c == null) return
         lifecycleScope.launchWhenCreated {
-            val result = HAcg.wpdiscuz.httpPostAwait(mapOf(
+            val result = HAcg.wpdiscuz.httpPostAwait(
+                mapOf(
                     "action" to "wpdVoteOnComment",
                     "commentId" to "${c.id}",
                     "voteType" to "$v",
-                    "postId" to "$_id"))
+                    "postId" to "$_id"
+                )
+            )
             val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
             if (succeed?.success != true) {
                 val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
@@ -573,22 +578,22 @@ class InfoCommentFragment : Fragment() {
             return
         }
         MaterialAlertDialogBuilder(requireActivity())
-                .setTitle(c.user)
-                .setMessage(c.content)
-                .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, succeed) }
-                .setNegativeButton(R.string.app_cancel, null)
-                .setNeutralButton(R.string.app_copy) { _, _ ->
-                    val clipboard = requireActivity().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText(c.user, c.content)
-                    clipboard.setPrimaryClip(clip)
-                    Toast.makeText(activity, requireActivity().getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
-                }.create().apply {
-                    setOnShowListener { dialog ->
-                        dialog.let { it as? AlertDialog }?.window?.decorView?.childrenRecursiveSequence()
-                                ?.mapNotNull { it as? TextView }?.filter { it !is Button }
-                                ?.forEach { it.setTextIsSelectable(true) }
-                    }
-                }.show()
+            .setTitle(c.user)
+            .setMessage(c.content)
+            .setPositiveButton(R.string.comment_review) { _, _ -> commenting(c, succeed) }
+            .setNegativeButton(R.string.app_cancel, null)
+            .setNeutralButton(R.string.app_copy) { _, _ ->
+                val clipboard = requireActivity().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText(c.user, c.content)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(activity, requireActivity().getString(R.string.app_copied, c.content), Toast.LENGTH_SHORT).show()
+            }.create().apply {
+                setOnShowListener { dialog ->
+                    dialog.let { it as? AlertDialog }?.window?.decorView?.childrenRecursiveSequence()
+                        ?.mapNotNull { it as? TextView }?.filter { it !is Button }
+                        ?.forEach { it.setTextIsSelectable(true) }
+                }
+            }.show()
     }
 
     @SuppressLint("InflateParams")
@@ -621,44 +626,44 @@ class InfoCommentFragment : Fragment() {
             post[EMAIL] = email.text.toString()
             post[COMMENT] = content.text.toString()
             preference.edit().putString(CONFIG_AUTHOR, post[AUTHOR])
-                    .putString(CONFIG_EMAIL, post[EMAIL])
-                    .putString(CONFIG_COMMENT, post[COMMENT]).apply()
+                .putString(CONFIG_EMAIL, post[EMAIL])
+                .putString(CONFIG_COMMENT, post[COMMENT]).apply()
         }
 
         MaterialAlertDialogBuilder(requireActivity())
-                .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
-                .setView(input.root)
-                .setPositiveButton(R.string.comment_submit) { _, _ ->
-                    fill()
-                    if (post[COMMENT].isNullOrBlank() || (user == 0 && (post[AUTHOR].isNullOrBlank() || post[EMAIL].isNullOrBlank()))) {
-                        Toast.makeText(requireActivity(), getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
-                        return@setPositiveButton
-                    }
-                    viewModel.progress.postValue(true)
-                    lifecycleScope.launchWhenCreated {
+            .setTitle(if (c != null) getString(R.string.comment_review_to, c.user) else getString(R.string.comment_title))
+            .setView(input.root)
+            .setPositiveButton(R.string.comment_submit) { _, _ ->
+                fill()
+                if (post[COMMENT].isNullOrBlank() || (user == 0 && (post[AUTHOR].isNullOrBlank() || post[EMAIL].isNullOrBlank()))) {
+                    Toast.makeText(requireActivity(), getString(R.string.comment_verify), Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                viewModel.progress.postValue(true)
+                lifecycleScope.launchWhenCreated {
 //                        delay(100)
 //                        succeed(Comment(random.nextInt(), c?.id ?: 0, "Test", "ZS", "", 0, datefmt.format(Date()), mutableListOf()))
-                        val result = HAcg.wpdiscuz.httpPostAwait(post.toMap())
-                        val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
-                        val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
-                                .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
-                        if (review == null) {
-                            Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
-                        } else {
-                            post[COMMENT] = ""
-                            succeed(review)
-                        }
-                        viewModel.progress.postValue(false)
+                    val result = HAcg.wpdiscuz.httpPostAwait(post.toMap())
+                    val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
+                    val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
+                        .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
+                    if (review == null) {
+                        Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
+                    } else {
+                        post[COMMENT] = ""
+                        succeed(review)
                     }
+                    viewModel.progress.postValue(false)
                 }
-                .setNegativeButton(R.string.app_cancel, null)
-                .apply {
-                    if (user != 0) return@apply
-                    setNeutralButton(R.string.app_user_login) { _, _ ->
-                        startActivity(Intent(requireActivity(), WebActivity::class.java).putExtra("login", true))
-                    }
+            }
+            .setNegativeButton(R.string.app_cancel, null)
+            .apply {
+                if (user != 0) return@apply
+                setNeutralButton(R.string.app_user_login) { _, _ ->
+                    startActivity(Intent(requireActivity(), WebActivity::class.java).putExtra("login", true))
                 }
-                .setOnDismissListener { fill() }
-                .create().show()
+            }
+            .setOnDismissListener { fill() }
+            .create().show()
     }
 }

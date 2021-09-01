@@ -28,17 +28,17 @@ class WebActivity : AppCompatActivity() {
         }.root)
 
         supportFragmentManager.beginTransaction()
-                .replace(R.id.container, supportFragmentManager.findFragmentById(R.id.container)
-                        ?.let { it as? WebFragment }
-                        ?: WebFragment().arguments(intent.extras))
-                .commit()
+            .replace(R.id.container, supportFragmentManager.findFragmentById(R.id.container)
+                ?.let { it as? WebFragment }
+                ?: WebFragment().arguments(intent.extras))
+            .commit()
     }
 
     override fun onBackPressed() {
         supportFragmentManager.findFragmentById(R.id.container)
-                ?.let { it as? WebFragment }
-                ?.takeIf { it.onBackPressed() }
-                ?: super.onBackPressed()
+            ?.let { it as? WebFragment }
+            ?.takeIf { it.onBackPressed() }
+            ?: super.onBackPressed()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
@@ -65,7 +65,7 @@ class WebFragment : Fragment() {
 
     private val defuri: String
         get() = arguments?.takeIf { it.containsKey("url") }?.getString("url")
-                ?: (if (isLogin) "${HAcg.philosophy}?foro=signin" else HAcg.philosophy)
+            ?: (if (isLogin) "${HAcg.philosophy}?foro=signin" else HAcg.philosophy)
     private val isLogin: Boolean get() = arguments?.getBoolean("login", false) ?: false
 
     fun onBackPressed(): Boolean {
@@ -115,7 +115,7 @@ class WebFragment : Fragment() {
         val fore = binding.button3
         binding.web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean =
-                    activity?.openUri(url, false) == true
+                activity?.openUri(url, false) == true
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 viewModel.busy.postValue(true)
@@ -152,7 +152,7 @@ class WebFragment : Fragment() {
             }
         }
         listOf(binding.button1, binding.button2, binding.button3, binding.button4)
-                .forEach { it.setOnClickListener(click) }
+            .forEach { it.setOnClickListener(click) }
 
         binding.web.loadUrl(viewModel.uri.value!!)
         return binding.root
