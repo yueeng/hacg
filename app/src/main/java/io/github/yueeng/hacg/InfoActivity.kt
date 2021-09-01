@@ -64,9 +64,8 @@ class InfoActivity : BaseSlideCloseActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        android.R.id.home -> {
+        android.R.id.home -> true.also {
             onBackPressed()
-            true
         }
         else -> super.onOptionsItemSelected(item)
     }
@@ -475,7 +474,7 @@ class InfoCommentFragment : Fragment() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.vote, R.id.newest, R.id.oldest -> {
+        R.id.vote, R.id.newest, R.id.oldest -> true.also {
             viewModel.sorting.postValue(
                 when (item.itemId) {
                     R.id.oldest -> InfoCommentViewModel.Sorting.Oldest
@@ -484,7 +483,6 @@ class InfoCommentFragment : Fragment() {
                 }
             )
             query(true)
-            true
         }
         else -> super.onOptionsItemSelected(item)
     }

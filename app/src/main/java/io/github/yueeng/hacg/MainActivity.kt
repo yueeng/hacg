@@ -117,20 +117,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.search_clear -> {
+            R.id.search_clear -> true.also {
                 val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
                 suggestions.clearHistory()
-                true
             }
-            R.id.config -> {
+            R.id.config -> true.also {
                 checkConfig(true)
-                true
             }
-            R.id.settings -> {
+            R.id.settings -> true.also {
                 HAcg.setHost(this) { reload() }
-                true
             }
-            R.id.auto -> {
+            R.id.auto -> true.also {
                 lifecycleScope.launchWhenCreated {
                     val good = withContext(Dispatchers.IO) { HAcg.hosts().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
                     if (good != null) {
@@ -141,20 +138,17 @@ class MainActivity : AppCompatActivity() {
                         toast(R.string.settings_config_auto_failed)
                     }
                 }
-                true
             }
-            R.id.user -> {
+            R.id.user -> true.also {
                 startActivity(Intent(this, WebActivity::class.java).apply {
                     if (user != 0) putExtra("url", "${HAcg.philosophy}/profile/$user")
                     else putExtra("login", true)
                 })
-                true
             }
-            R.id.philosophy -> {
+            R.id.philosophy -> true.also {
                 startActivity(Intent(this, WebActivity::class.java))
-                true
             }
-            R.id.about -> {
+            R.id.about -> true.also {
                 MaterialAlertDialogBuilder(this)
                     .setTitle("${getString(R.string.app_name)} ${version()}")
                     .setItems(arrayOf(getString(R.string.app_name))) { _, _ -> openUri(HAcg.wordpress) }
@@ -162,7 +156,6 @@ class MainActivity : AppCompatActivity() {
                     .setNeutralButton(R.string.app_update_check) { _, _ -> checkVersion(true) }
                     .setNegativeButton(R.string.app_cancel, null)
                     .create().show()
-                true
             }
             else -> super.onOptionsItemSelected(item)
         }
@@ -203,9 +196,8 @@ class ListActivity : BaseSlideCloseActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> {
+            android.R.id.home -> true.also {
                 onBackPressed()
-                true
             }
             else -> super.onOptionsItemSelected(item)
         }

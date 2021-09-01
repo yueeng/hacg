@@ -42,9 +42,8 @@ class WebActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        android.R.id.home -> {
+        android.R.id.home -> true.also {
             super.onBackPressed()
-            true
         }
         else -> super.onOptionsItemSelected(item)
     }
@@ -83,9 +82,8 @@ class WebFragment : Fragment() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.open -> {
+        R.id.open -> true.also {
             activity?.openUri(viewModel.uri.value!!)
-            true
         }
         else -> super.onOptionsItemSelected(item)
     }
