@@ -15,8 +15,8 @@ android {
         applicationId = "io.github.yueeng.hacg"
         minSdk = 21
         targetSdk = 31
-        versionCode = 39
-        versionName = "1.5.3"
+        versionCode = 40
+        versionName = "1.5.4"
         resourceConfigurations.add("zh-rCN")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
