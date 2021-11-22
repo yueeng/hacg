@@ -221,9 +221,9 @@ class ArticlePagingSource(private val title: (String) -> Unit) : PagingSource<St
         listOf("h1.page-title>span", "h1#site-title", "title").asSequence().map { dom.select(it).text() }
             .firstOrNull { it.isNotEmpty() }?.let(title::invoke)
         val articles = dom.select("article").map { o -> Article(o) }.toList()
-        val next = (dom.select("#wp_page_numbers a").lastOrNull()
-            ?.takeIf { ">" == it.text() }?.attr("abs:href")
-            ?: dom.select("#nav-below .nav-previous a").firstOrNull()?.attr("abs:href"))
+        val next = dom.select("a.nextpostslink").lastOrNull()?.takeIf { "»" == it.text() }?.attr("abs:href")
+            ?: dom.select("#wp_page_numbers a").lastOrNull()?.takeIf { ">" == it.text() }?.attr("abs:href")
+            ?: dom.select("#nav-below .nav-previous a").firstOrNull()?.attr("abs:href")
         LoadResult.Page(articles, null, next)
     } catch (e: Exception) {
         LoadResult.Error(e)

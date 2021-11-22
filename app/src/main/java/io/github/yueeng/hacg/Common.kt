@@ -516,6 +516,10 @@ class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val
                 state.postValue(LoadState.Error(result.throwable))
                 null to result.throwable
             }
+            is PagingSource.LoadResult.Invalid -> {
+                state.postValue(LoadState.Error(Exception("Invalid")))
+                null to Exception("Invalid")
+            }
         }
     }
 }
