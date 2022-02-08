@@ -59,7 +59,7 @@ android {
 }
 
 dependencies {
-    val glideVersion = "4.12.0"
+    val glideVersion = "4.13.0"
     val okhttpVersion = "4.9.3"
     val kotlinxCoroutinesVersion = "1.6.0-native-mt"
     implementation("androidx.appcompat:appcompat:1.4.1")
