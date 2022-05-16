@@ -4,10 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.*
-import android.webkit.CookieManager
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -56,7 +53,7 @@ class WebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
 
 class WebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = WebViewModel(handle, defaultArgs) as T
+    override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = WebViewModel(handle, defaultArgs) as T
 }
 
 class WebFragment : Fragment() {
@@ -102,7 +99,7 @@ class WebFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val binding = FragmentWebBinding.inflate(inflater, container, false)
         CookieManager.getInstance().acceptThirdPartyCookies(binding.web)
-        viewModel.busy.observe(viewLifecycleOwner, { binding.swipe.isRefreshing = it })
+        viewModel.busy.observe(viewLifecycleOwner) { binding.swipe.isRefreshing = it }
         binding.swipe.setOnRefreshListener { binding.web.loadUrl(viewModel.uri.value!!) }
 
         val settings = binding.web.settings

@@ -8,13 +8,13 @@ plugins {
 }
 
 android {
-    compileSdk = 31
-    buildToolsVersion = "31.0.0"
+    compileSdk = 32
+    buildToolsVersion = "32.0.0"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
         minSdk = 21
-        targetSdk = 31
+        targetSdk = 32
         versionCode = 40
         versionName = "1.5.4"
         resourceConfigurations.add("zh-rCN")
@@ -47,6 +47,7 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    namespace = "io.github.yueeng.hacg"
     applicationVariants.all {
         if (name != "release") return@all
         outputs.all {
@@ -80,6 +81,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:$glideVersion")
     implementation("com.github.bumptech.glide:okhttp3-integration:$glideVersion")
     kapt("com.github.bumptech.glide:compiler:$glideVersion")
-    implementation("org.jsoup:jsoup:1.14.3")
+    implementation("org.jsoup:jsoup:1.15.1")
     implementation("com.google.code.gson:gson:2.9.0")
 }

@@ -118,7 +118,7 @@ object HAcg {
         }
         when {
             config == null -> Unit
-            config.version <= defaultConfig()?.version ?: 0 -> if (tip) context.toast(R.string.settings_config_newest)
+            config.version <= (defaultConfig()?.version ?: 0) -> if (tip) context.toast(R.string.settings_config_newest)
             else -> context.snack(context.getString(R.string.settings_config_updating), Snackbar.LENGTH_LONG)
                 .setAction(R.string.settings_config_update) {
                     runCatching {

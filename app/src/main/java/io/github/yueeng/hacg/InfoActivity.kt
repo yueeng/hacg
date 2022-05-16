@@ -112,7 +112,7 @@ class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
 
 class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel(handle, defaultArgs) as T
+    override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoWebViewModel(handle, defaultArgs) as T
 }
 
 class InfoWebFragment : Fragment() {
@@ -395,7 +395,7 @@ class InfoCommentViewModel(id: Int, handle: SavedStateHandle) : ViewModel() {
 
 class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(args?.getInt("id") ?: 0, handle) as T
+    override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(args?.getInt("id") ?: 0, handle) as T
 }
 
 class InfoCommentFragment : Fragment() {
@@ -601,7 +601,7 @@ class InfoCommentFragment : Fragment() {
         val email: EditText = input.edit2
         val content: EditText = input.edit3
         val post = mutableMapOf<String, String>()
-        val preference = PreferenceManager.getDefaultSharedPreferences(activity)
+        val preference = PreferenceManager.getDefaultSharedPreferences(requireActivity())
         if (user != 0) {
             input.input1.visibility = View.GONE
             input.input2.visibility = View.GONE

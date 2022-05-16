@@ -244,7 +244,7 @@ class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : Vi
 
 class ArticleViewModelFactory(owner: SavedStateRegistryOwner, private val args: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, args) {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = ArticleViewModel(handle, args) as T
+    override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = ArticleViewModel(handle, args) as T
 }
 
 class ArticleFragment : Fragment() {
@@ -277,17 +277,17 @@ class ArticleFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragmentListBinding.inflate(inflater, container, false).apply {
-            viewModel.source.state.observe(viewLifecycleOwner, {
+            viewModel.source.state.observe(viewLifecycleOwner) {
                 adapter.state.postValue(it)
                 swipe.isRefreshing = it is LoadState.Loading
                 image1.visibility = if (it is LoadState.Error && adapter.itemCount == 0) View.VISIBLE else View.INVISIBLE
                 if (it is LoadState.Error && adapter.itemCount == 0) if (viewModel.retry) activity?.openOptionsMenu() else activity?.toast(R.string.app_network_retry)
-            })
+            }
             if (requireActivity().title.isNullOrEmpty()) {
                 requireActivity().title = getString(R.string.app_name)
-                viewModel.title.observe(viewLifecycleOwner, {
+                viewModel.title.observe(viewLifecycleOwner) {
                     requireActivity().title = it
-                })
+                }
             }
             image1.setOnClickListener {
                 viewModel.retry = true
