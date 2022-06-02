@@ -62,7 +62,7 @@ dependencies {
     val glideVersion = "4.13.2"
     val okhttpVersion = "4.9.3"
     val kotlinxCoroutinesVersion = "1.6.1-native-mt"
-    implementation("androidx.appcompat:appcompat:1.4.1")
+    implementation("androidx.appcompat:appcompat:1.4.2")
     implementation("com.google.android.material:material:1.6.0")
     implementation("androidx.preference:preference-ktx:1.2.0")
     implementation("androidx.cardview:cardview:1.0.0")
