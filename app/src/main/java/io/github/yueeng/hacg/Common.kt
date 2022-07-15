@@ -737,7 +737,7 @@ class HacgPermissionFragment : Fragment() {
 
     fun request(vararg permissions: String, call: (Map<String, Boolean>) -> Unit) {
         callback = call
-        requestPermissions.launch(permissions)
+        requestPermissions.launch(arrayOf(*permissions))
     }
 
 }

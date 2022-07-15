@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.*
@@ -107,7 +108,7 @@ class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     val error = handle.getLiveData("error", false)
     val magnet = handle.getLiveData<List<String>>("magnet", emptyList())
     val progress = handle.getLiveData("progress", false)
-    val article: MutableLiveData<Article> = handle.getLiveData("article", args?.getParcelable("article"))
+    val article: MutableLiveData<Article> = handle.getLiveData("article", args?.getParcelable("article")!!)
 }
 
 class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
@@ -186,8 +187,8 @@ class InfoWebFragment : Fragment() {
             @SuppressLint("SetJavaScriptEnabled")
             settings.javaScriptEnabled = true
             binding.web.webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    activity?.openUri(url)
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    activity?.openUri(request?.url?.toString())
                     return true
                 }
 
@@ -398,7 +399,7 @@ class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val ar
     override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = InfoCommentViewModel(args?.getInt("id") ?: 0, handle) as T
 }
 
-class InfoCommentFragment : Fragment() {
+class InfoCommentFragment : Fragment(), MenuProvider {
     private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this, bundleOf("id" to _id)) }
     private val _article by lazy { requireArguments().getParcelable<Article>("article") }
     private val _url by lazy { _article?.link ?: requireArguments().getString("url")!! }
@@ -449,9 +450,13 @@ class InfoCommentFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
         viewModel.data.value?.let { _adapter.addAll(it) }
         if (_adapter.itemCount == 0) query()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -459,13 +464,11 @@ class InfoCommentFragment : Fragment() {
         viewModel.data.value = _adapter.data
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_comment, menu)
-        super.onCreateOptionsMenu(menu, inflater)
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        super.onPrepareOptionsMenu(menu)
+    override fun onPrepareMenu(menu: Menu) {
         when (viewModel.sorting.value) {
             InfoCommentViewModel.Sorting.Newest -> menu.findItem(R.id.newest).isChecked = true
             InfoCommentViewModel.Sorting.Oldest -> menu.findItem(R.id.oldest).isChecked = true
@@ -473,7 +476,7 @@ class InfoCommentFragment : Fragment() {
         }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+    override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.vote, R.id.newest, R.id.oldest -> true.also {
             viewModel.sorting.postValue(
                 when (item.itemId) {
@@ -484,7 +487,7 @@ class InfoCommentFragment : Fragment() {
             )
             query(true)
         }
-        else -> super.onOptionsItemSelected(item)
+        else -> false
     }
 
     inner class CommentHolder(private val binding: CommentItemBinding) : RecyclerView.ViewHolder(binding.root) {

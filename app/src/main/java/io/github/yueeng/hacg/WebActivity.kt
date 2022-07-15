@@ -7,9 +7,11 @@ import android.view.*
 import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.AbstractSavedStateViewModelFactory
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.savedstate.SavedStateRegistryOwner
@@ -56,7 +58,7 @@ class WebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArg
     override fun <T : ViewModel> create(key: String, modelClass: Class<T>, handle: SavedStateHandle): T = WebViewModel(handle, defaultArgs) as T
 }
 
-class WebFragment : Fragment() {
+class WebFragment : Fragment(), MenuProvider {
     private val viewModel: WebViewModel by viewModels { WebViewModelFactory(this, bundleOf("url" to defuri)) }
 
     private val defuri: String
@@ -73,21 +75,20 @@ class WebFragment : Fragment() {
         return false
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_web, menu)
-        return super.onCreateOptionsMenu(menu, inflater)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+    override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.open -> true.also {
             activity?.openUri(viewModel.uri.value!!)
         }
-        else -> super.onOptionsItemSelected(item)
+        else -> false
     }
 
-    override fun onCreate(state: Bundle?) {
-        super.onCreate(state)
-        setHasOptionsMenu(true)
+    override fun onViewCreated(view: View, state: Bundle?) {
+        super.onViewCreated(view, state)
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     override fun onDestroyView() {
@@ -109,8 +110,8 @@ class WebFragment : Fragment() {
         val back = binding.button2
         val fore = binding.button3
         binding.web.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean =
-                activity?.openUri(url, false) == true
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean =
+                activity?.openUri(request?.url?.toString(), false) == true
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 viewModel.busy.postValue(true)
