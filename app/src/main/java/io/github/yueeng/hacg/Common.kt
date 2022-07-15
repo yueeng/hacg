@@ -326,8 +326,8 @@ fun String.test(timeout: Int = 1000): Pair<Boolean, Int> = try {
     e.printStackTrace(); (false to 0)
 }
 
-val rmagnet = """\b([a-zA-Z0-9]{32}|[a-zA-Z0-9]{40})\b""".toRegex()
-val rbaidu = """\b([a-zA-Z0-9]{8})\b\s+\b([a-zA-Z0-9]{4})\b""".toRegex()
+val rmagnet = """(?<=[^\da-z])([a-z0-9]{40}|[a-z0-9]{32})(?=[^\da-z])""".toRegex(RegexOption.IGNORE_CASE)
+val rbaidu = """\b([a-z0-9]{8})\b\s+\b([a-z0-9]{4})\b""".toRegex(RegexOption.IGNORE_CASE)
 fun String.magnet(): Sequence<String> = rmagnet.findAll(this).map { it.value } +
         rbaidu.findAll(this).map { m -> "${m.groups[1]!!.value},${m.groups[2]!!.value}" }
 
