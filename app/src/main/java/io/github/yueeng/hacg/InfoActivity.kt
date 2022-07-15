@@ -47,7 +47,7 @@ import java.util.*
  * Created by Rain on 2015/5/12.
  */
 
-class InfoActivity : BaseSlideCloseActivity() {
+class InfoActivity : SwipeFinishActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_info)
@@ -58,6 +58,9 @@ class InfoActivity : BaseSlideCloseActivity() {
 
         manager.beginTransaction().replace(R.id.container, fragment).commit()
     }
+
+    override fun canSwipeFinish(): Boolean = supportFragmentManager.findFragmentById(R.id.container)
+        ?.let { it as? InfoFragment }?.canBackPressed() ?: super.canSwipeFinish()
 
     override fun onBackPressed() {
         supportFragmentManager.findFragmentById(R.id.container)?.let { it as InfoFragment }?.takeIf { it.onBackPressed() }
@@ -73,11 +76,6 @@ class InfoActivity : BaseSlideCloseActivity() {
 }
 
 class InfoFragment : Fragment() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragmentInfoBinding.inflate(inflater, container, false).also { binding ->
             val activity = activity as AppCompatActivity
@@ -99,6 +97,7 @@ class InfoFragment : Fragment() {
 
     }
 
+    fun canBackPressed(): Boolean = FragmentInfoBinding.bind(requireView()).container.currentItem == 0
     fun onBackPressed(): Boolean = FragmentInfoBinding.bind(requireView()).container
         .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
 }

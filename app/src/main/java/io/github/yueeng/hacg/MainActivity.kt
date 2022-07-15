@@ -162,7 +162,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-class ListActivity : BaseSlideCloseActivity() {
+class ListActivity : SwipeFinishActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)

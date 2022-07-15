@@ -23,16 +23,14 @@ import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
-import android.util.AttributeSet
 import android.view.*
+import android.view.GestureDetector.SimpleOnGestureListener
 import android.webkit.CookieManager
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
@@ -46,7 +44,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
-import androidx.slidingpanelayout.widget.SlidingPaneLayout
 import com.bumptech.glide.Glide
 import com.bumptech.glide.GlideBuilder
 import com.bumptech.glide.Registry
@@ -90,7 +87,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.abs
 import kotlin.math.roundToInt
+
 
 fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
@@ -614,120 +613,42 @@ fun RecyclerView.loading(last: Int = 1, call: () -> Unit) {
     })
 }
 
-class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : SlidingPaneLayout(context, attrs, defStyle) {
-    private var mInitialMotionX: Float = 0F
-    private var mInitialMotionY: Float = 0F
-    private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
+abstract class SwipeFinishActivity : AppCompatActivity() {
+    companion object {
+        private const val SWIPE_MIN_DISTANCE = 120
+        private const val SWIPE_MAX_OFF_PATH = 250
+        private const val SWIPE_THRESHOLD_VELOCITY = 200
+    }
 
-    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = when (ev.action) {
-        MotionEvent.ACTION_DOWN -> {
-            mInitialMotionX = ev.x
-            mInitialMotionY = ev.y
-            null
-        }
-        MotionEvent.ACTION_MOVE -> {
-            val x = ev.x
-            val y = ev.y
-            val dx = (x - mInitialMotionX).roundToInt()
-            when {
-                mInitialMotionX <= mEdgeSlop -> null
-                isOpen -> null
-                dx == 0 -> null
-                !canScroll(this, false, dx, x.roundToInt(), y.roundToInt()) -> null
-                else -> {
-                    val me = MotionEvent.obtain(ev)
-                    me.action = MotionEvent.ACTION_CANCEL
-                    super.onInterceptTouchEvent(me).also {
-                        me.recycle()
-                    }
-                }
+    private val gestureDetector: GestureDetector by lazy { GestureDetector(this, SwipeDetector()) }
+
+    private inner class SwipeDetector : SimpleOnGestureListener() {
+        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+
+            // Check movement along the Y-axis. If it exceeds SWIPE_MAX_OFF_PATH,
+            // then dismiss the swipe.
+            if (abs(e1.y - e2.y) > SWIPE_MAX_OFF_PATH) return false
+
+            // Swipe from left to right.
+            // The swipe needs to exceed a certain distance (SWIPE_MIN_DISTANCE)
+            // and a certain velocity (SWIPE_THRESHOLD_VELOCITY).
+            if (e2.x - e1.x > SWIPE_MIN_DISTANCE && abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                finish()
+                return true
             }
+            return false
         }
-        else -> null
-    } ?: super.onInterceptTouchEvent(ev)
+    }
+
+    open fun canSwipeFinish(): Boolean = true
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean =
+        if (canSwipeFinish() && gestureDetector.onTouchEvent(event)) true
+        else super.dispatchTouchEvent(event)
+
+    override fun onTouchEvent(event: MotionEvent): Boolean =
+        if (canSwipeFinish() && gestureDetector.onTouchEvent(event)) true
+        else super.onTouchEvent(event)
 }
-
-@SuppressLint("Registered")
-open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.PanelSlideListener {
-
-    override fun onCreate(state: Bundle?) {
-        swipe()
-        super.onCreate(state)
-        (window.decorView as? ViewGroup)?.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener, View.OnLayoutChangeListener {
-            override fun onChildViewRemoved(parent: View?, child: View?) {
-                child?.removeOnLayoutChangeListener(this)
-            }
-
-            override fun onChildViewAdded(parent: View?, child: View?) {
-                if (child?.id == android.R.id.navigationBarBackground) {
-                    reset(child.height)
-                    child.addOnLayoutChangeListener(this)
-                }
-            }
-
-            override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
-                reset(bottom - top)
-            }
-
-            fun reset(height: Int) {
-                (window.decorView as? ViewGroup)?.children?.firstOrNull { it is PagerSlidingPaneLayout }?.let {
-                    it.layoutParams = (it.layoutParams as? FrameLayout.LayoutParams)?.apply {
-                        bottomMargin = height
-                    }
-                }
-            }
-        })
-    }
-
-    private fun swipe() {
-        val swipe = PagerSlidingPaneLayout(this)
-        // 通过反射改变mOverhangSize的值为0，
-        // 这个mOverhangSize值为菜单到右边屏幕的最短距离，
-        // 默认是32dp，现在给它改成0
-        try {
-            val overhang = SlidingPaneLayout::class.java.getDeclaredField("mOverhangSize")
-            overhang.isAccessible = true
-            overhang.set(swipe, 0)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        swipe.setPanelSlideListener(this)
-        swipe.sliderFadeColor = ContextCompat.getColor(this, android.R.color.transparent)
-
-        // 左侧的透明视图
-        val leftView = View(this)
-        leftView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        swipe.addView(leftView, 0)
-        swipe.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        val decorView = window.decorView as ViewGroup
-
-        // 右侧的内容视图
-        val decorChild = decorView.getChildAt(0) as ViewGroup
-        theme.obtainStyledAttributes(intArrayOf(android.R.attr.colorBackground)).also {
-            decorChild.setBackgroundColor(it.getColor(0, 0))
-        }.recycle()
-        decorView.removeView(decorChild)
-        decorView.addView(swipe)
-
-        // 为 SlidingPaneLayout 添加内容视图
-        swipe.addView(decorChild, 1)
-    }
-
-    override fun onPanelSlide(panel: View, slideOffset: Float) {
-
-    }
-
-    override fun onPanelOpened(panel: View) {
-        finish()
-        overridePendingTransition(0, 0)
-    }
-
-    override fun onPanelClosed(panel: View) {
-
-    }
-}
-
 
 class HacgPermissionFragment : Fragment() {
     private lateinit var callback: (Map<String, Boolean>) -> Unit
