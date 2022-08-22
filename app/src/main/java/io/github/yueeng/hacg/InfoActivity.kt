@@ -50,17 +50,15 @@ import java.util.*
 class InfoActivity : SwipeFinishActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_info)
-        val manager = supportFragmentManager
+        setContentView(R.layout.activity_info) {
+            val manager = supportFragmentManager
 
-        val fragment = manager.findFragmentById(R.id.container)?.takeIf { it is InfoFragment }
-            ?: InfoFragment().arguments(intent.extras)
+            val fragment = manager.findFragmentById(R.id.container)?.takeIf { it is InfoFragment }
+                ?: InfoFragment().arguments(intent.extras)
 
-        manager.beginTransaction().replace(R.id.container, fragment).commit()
+            manager.beginTransaction().replace(R.id.container, fragment).commit()
+        }
     }
-
-    override fun canSwipeFinish(): Boolean = supportFragmentManager.findFragmentById(R.id.container)
-        ?.let { it as? InfoFragment }?.canBackPressed() ?: super.canSwipeFinish()
 
     override fun onBackPressed() {
         supportFragmentManager.findFragmentById(R.id.container)?.let { it as InfoFragment }?.takeIf { it.onBackPressed() }
@@ -97,7 +95,6 @@ class InfoFragment : Fragment() {
 
     }
 
-    fun canBackPressed(): Boolean = FragmentInfoBinding.bind(requireView()).container.currentItem == 0
     fun onBackPressed(): Boolean = FragmentInfoBinding.bind(requireView()).container
         .takeIf { it.currentItem > 0 }?.let { it.currentItem = 0; true } ?: false
 }

@@ -167,31 +167,32 @@ class ListActivity : SwipeFinishActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         val binding = ActivityListBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        val (url: String?, name: String?) = intent.let { i ->
-            when {
-                i.hasExtra("url") -> (i.getStringExtra("url") to i.getStringExtra("name"))
-                i.hasExtra(SearchManager.QUERY) -> {
-                    val key = i.getStringExtra(SearchManager.QUERY)
-                    val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
-                    suggestions.saveRecentQuery(key, null)
-                    ("""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""" to key)
+        setContentView(binding.root) {
+            setSupportActionBar(binding.toolbar)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            val (url: String?, name: String?) = intent.let { i ->
+                when {
+                    i.hasExtra("url") -> (i.getStringExtra("url") to i.getStringExtra("name"))
+                    i.hasExtra(SearchManager.QUERY) -> {
+                        val key = i.getStringExtra(SearchManager.QUERY)
+                        val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+                        suggestions.saveRecentQuery(key, null)
+                        ("""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""" to key)
+                    }
+                    else -> null to null
                 }
-                else -> null to null
             }
+            if (url == null) {
+                finish()
+                return@setContentView
+            }
+            title = name
+            val transaction = supportFragmentManager.beginTransaction()
+            val fragment = supportFragmentManager.findFragmentById(R.id.container).takeIf { it is ArticleFragment }
+                ?: ArticleFragment().arguments(Bundle().string("url", url))
+            transaction.replace(R.id.container, fragment)
+            transaction.commit()
         }
-        if (url == null) {
-            finish()
-            return
-        }
-        title = name
-        val transaction = supportFragmentManager.beginTransaction()
-        val fragment = supportFragmentManager.findFragmentById(R.id.container).takeIf { it is ArticleFragment }
-            ?: ArticleFragment().arguments(Bundle().string("url", url))
-        transaction.replace(R.id.container, fragment)
-        transaction.commit()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -234,7 +235,7 @@ class ArticlePagingSource(private val title: (String) -> Unit) : PagingSource<St
 
 class ArticleViewModel(private val handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     var retry: Boolean
-        get() = handle.get("retry") ?: false
+        get() = handle["retry"] ?: false
         set(value) = handle.set("retry", value)
     val title = handle.getLiveData<String>("title")
     val source = Paging(handle, args?.getString("url")) { ArticlePagingSource { title.postValue(it) } }

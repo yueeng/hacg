@@ -23,9 +23,10 @@ import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
+import android.util.AttributeSet
 import android.view.*
-import android.view.GestureDetector.SimpleOnGestureListener
 import android.webkit.CookieManager
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +36,7 @@ import androidx.core.content.PermissionChecker
 import androidx.core.os.LocaleListCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.view.children
+import androidx.core.view.descendants
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -44,6 +46,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingSource
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.*
+import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.bumptech.glide.GlideBuilder
 import com.bumptech.glide.Registry
@@ -87,8 +90,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 
 fun debug(call: () -> Unit) {
@@ -613,41 +617,162 @@ fun RecyclerView.loading(last: Int = 1, call: () -> Unit) {
     })
 }
 
-abstract class SwipeFinishActivity : AppCompatActivity() {
-    companion object {
-        private const val SWIPE_MIN_DISTANCE = 120
-        private const val SWIPE_MAX_OFF_PATH = 250
-        private const val SWIPE_THRESHOLD_VELOCITY = 200
+open class SwipeFinishActivity : AppCompatActivity() {
+    @Deprecated("Disable super setContentView", ReplaceWith("super.setContentView(layoutResID)", "io.github.yueeng.hacg.SwipeFinishActivity"))
+    override fun setContentView(layoutResID: Int) {
+        super.setContentView(layoutResID)
     }
 
-    private val gestureDetector: GestureDetector by lazy { GestureDetector(this, SwipeDetector()) }
+    @Deprecated("Disable super setContentView", ReplaceWith("super.setContentView(layoutResID)", "io.github.yueeng.hacg.SwipeFinishActivity"))
+    override fun setContentView(view: View?) {
+        super.setContentView(view)
+    }
 
-    private inner class SwipeDetector : SimpleOnGestureListener() {
-        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+    @Deprecated("Disable super setContentView", ReplaceWith("super.setContentView(layoutResID)", "io.github.yueeng.hacg.SwipeFinishActivity"))
+    override fun setContentView(view: View?, params: ViewGroup.LayoutParams?) {
+        super.setContentView(view, params)
+    }
 
-            // Check movement along the Y-axis. If it exceeds SWIPE_MAX_OFF_PATH,
-            // then dismiss the swipe.
-            if (abs(e1.y - e2.y) > SWIPE_MAX_OFF_PATH) return false
+    fun setContentView(layout: Int, callback: (View) -> Unit) {
+        setContentView(layoutInflater.inflate(layout, null), callback)
+    }
 
-            // Swipe from left to right.
-            // The swipe needs to exceed a certain distance (SWIPE_MIN_DISTANCE)
-            // and a certain velocity (SWIPE_THRESHOLD_VELOCITY).
-            if (e2.x - e1.x > SWIPE_MIN_DISTANCE && abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                finish()
-                return true
+    fun setContentView(layout: View, callback: (View) -> Unit) {
+        super.setContentView(R.layout.activity_swipeback)
+        val pager = super.findViewById<ViewPager2>(R.id.swipe_host)
+        pager.adapter = SwipeBackAdapter(layout, callback)
+        pager.offscreenPageLimit = 2
+        pager.setCurrentItem(1, false)
+        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            var pos = -1
+
+            override fun onPageSelected(position: Int) {
+                pos = position
             }
-            return false
+
+            override fun onPageScrollStateChanged(state: Int) {
+                if (state != ViewPager2.SCROLL_STATE_IDLE || pos != 0) return
+                finish()
+                overridePendingTransition(0, 0)
+            }
+        })
+    }
+
+    override fun <T : View?> findViewById(id: Int): T? {
+        val pager = super.findViewById<ViewPager2>(R.id.swipe_host)?.children?.firstOrNull() as? RecyclerView
+        val holder = pager?.findViewHolderForLayoutPosition(1)
+        return holder?.itemView?.findViewById<T>(id)
+    }
+
+    class SwipeBackHolder(view: View) : RecyclerView.ViewHolder(view)
+
+    class SwipeBackAdapter(private val layout: View, private val callback: (View) -> Unit) : RecyclerView.Adapter<SwipeBackHolder>() {
+        override fun getItemViewType(position: Int): Int = when (position) {
+            0 -> 0
+            1 -> 1
+            else -> throw IllegalArgumentException("Position $position is not supported")
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SwipeBackHolder = when (viewType) {
+            0 -> SwipeBackHolder(LayoutInflater.from(parent.context).inflate(R.layout.swipeback_start, parent, false))
+            1 -> LayoutInflater.from(parent.context).let { inflater ->
+                val host = inflater.inflate(R.layout.swipeback_container, parent, false) as ViewGroup
+                host.addView(layout)
+                SwipeBackHolder(host)
+            }
+            else -> throw IllegalArgumentException("ViewType $viewType is not supported")
+        }
+
+
+        override fun onBindViewHolder(holder: SwipeBackHolder, position: Int) {
+            if (position == 1) holder.itemView.post { callback(holder.itemView) }
+        }
+
+        override fun getItemCount(): Int = 2
+    }
+
+}
+
+/**
+ * Layout to wrap a scrollable component inside a ViewPager2. Provided as a solution to the problem
+ * where pages of ViewPager2 have nested scrollable elements that scroll in the same direction as
+ * ViewPager2. The scrollable element needs to be the immediate and only child of this host layout.
+ *
+ * This solution has limitations when using multiple levels of nested scrollable elements
+ * (e.g. a horizontal RecyclerView in a vertical RecyclerView in a horizontal ViewPager2).
+ */
+class NestedScrollableHost : FrameLayout {
+    constructor(context: Context) : super(context)
+    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+
+    private var touchSlop = 0
+    private var initialX = 0f
+    private var initialY = 0f
+    private val parentViewPager: ViewPager2?
+        get() {
+            var v: View? = parent as? View
+            while (v != null && v !is ViewPager2) {
+                v = v.parent as? View
+            }
+            return v as? ViewPager2
+        }
+
+    init {
+        touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    }
+
+    private fun canChildScroll(orientation: Int, delta: Float): Boolean {
+        val direction = -delta.sign.toInt()
+        return when (orientation) {
+            0 -> descendants.any { it.canScrollHorizontally(direction) }
+            1 -> descendants.any { it.canScrollVertically(direction) }
+            else -> throw IllegalArgumentException()
         }
     }
 
-    open fun canSwipeFinish(): Boolean = true
-    override fun dispatchTouchEvent(event: MotionEvent): Boolean =
-        if (canSwipeFinish() && gestureDetector.onTouchEvent(event)) true
-        else super.dispatchTouchEvent(event)
+    override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
+        handleInterceptTouchEvent(e)
+        return super.onInterceptTouchEvent(e)
+    }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean =
-        if (canSwipeFinish() && gestureDetector.onTouchEvent(event)) true
-        else super.onTouchEvent(event)
+    private fun handleInterceptTouchEvent(e: MotionEvent) {
+        val orientation = parentViewPager?.orientation ?: return
+
+        // Early return if child can't scroll in same direction as parent
+        if (!canChildScroll(orientation, -1f) && !canChildScroll(orientation, 1f)) {
+            return
+        }
+
+        if (e.action == MotionEvent.ACTION_DOWN) {
+            initialX = e.x
+            initialY = e.y
+            parent.requestDisallowInterceptTouchEvent(true)
+        } else if (e.action == MotionEvent.ACTION_MOVE) {
+            val dx = e.x - initialX
+            val dy = e.y - initialY
+            val isVpHorizontal = orientation == ViewPager2.ORIENTATION_HORIZONTAL
+
+            // assuming ViewPager2 touch-slop is 2x touch-slop of child
+            val scaledDx = dx.absoluteValue * if (isVpHorizontal) .5f else 1f
+            val scaledDy = dy.absoluteValue * if (isVpHorizontal) 1f else .5f
+
+            if (scaledDx > touchSlop || scaledDy > touchSlop) {
+                if (isVpHorizontal == (scaledDy > scaledDx)) {
+                    // Gesture is perpendicular, allow all parents to intercept
+                    parent.requestDisallowInterceptTouchEvent(false)
+                } else {
+                    // Gesture is parallel, query child if movement in that direction is possible
+                    if (canChildScroll(orientation, if (isVpHorizontal) dx else dy)) {
+                        // Child can scroll, disallow all parents to intercept
+                        parent.requestDisallowInterceptTouchEvent(true)
+                    } else {
+                        // Child cannot scroll, allow all parents to intercept
+                        parent.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+            }
+        }
+    }
 }
 
 class HacgPermissionFragment : Fragment() {
