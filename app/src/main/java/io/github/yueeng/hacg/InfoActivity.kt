@@ -104,7 +104,7 @@ class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     val error = handle.getLiveData("error", false)
     val magnet = handle.getLiveData<List<String>>("magnet", emptyList())
     val progress = handle.getLiveData("progress", false)
-    val article: MutableLiveData<Article> = handle.getLiveData("article", args?.getParcelable("article")!!)
+    val article: MutableLiveData<Article?> = handle.getLiveData("article", args?.getParcelable("article"))
 }
 
 class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
