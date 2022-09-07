@@ -81,7 +81,7 @@ class WebFragment : Fragment(), MenuProvider {
 
     override fun onMenuItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.open -> true.also {
-            activity?.openUri(viewModel.uri.value!!)
+            activity?.openUri(viewModel.uri.value!!, true)
         }
         else -> false
     }

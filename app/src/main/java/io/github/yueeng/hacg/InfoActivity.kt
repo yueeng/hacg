@@ -124,7 +124,7 @@ class InfoWebFragment : Fragment() {
             binding.menu1.setRandomColor()
             val click = View.OnClickListener { v ->
                 when (v.id) {
-                    R.id.button1 -> activity?.openUri(_url)
+                    R.id.button1 -> activity?.openUri(_url, true)
                     R.id.button2 -> activity?.window?.decorView
                         ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
                     R.id.button4 -> share()

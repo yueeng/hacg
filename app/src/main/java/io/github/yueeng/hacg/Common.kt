@@ -194,14 +194,15 @@ val String.isWordpress
         false
     }
 
-fun Context.openUri(url: String?, web: Boolean = true): Boolean = when {
+fun Context.openUri(url: String?, web: Boolean? = null): Boolean = when {
+    web == true -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     url.isNullOrEmpty() -> null
     !url.isWordpress -> Uri.parse(url).let { uri ->
         startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
     }
     Article.getIdFromUrl(url) != null -> startActivity(Intent(this, InfoActivity::class.java).putExtra("url", url))
     Article.isList(url) -> startActivity(Intent(this, ListActivity::class.java).putExtra("url", url))
-    web -> startActivity(Intent(this, WebActivity::class.java).putExtra("url", url))
+    web == null -> startActivity(Intent(this, WebActivity::class.java).putExtra("url", url))
     else -> null
 } != null
 
