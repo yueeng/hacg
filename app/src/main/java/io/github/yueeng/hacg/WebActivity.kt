@@ -31,18 +31,14 @@ class WebActivity : AppCompatActivity() {
                 ?.let { it as? WebFragment }
                 ?: WebFragment().arguments(intent.extras))
             .commit()
-    }
-
-    override fun onBackPressed() {
-        supportFragmentManager.findFragmentById(R.id.container)
-            ?.let { it as? WebFragment }
-            ?.takeIf { it.onBackPressed() }
-            ?: super.onBackPressed()
+        addOnBackPressedCallback {
+            supportFragmentManager.findFragmentById(R.id.container)?.let { (it as? WebFragment)?.onBackPressed() } ?: false
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> true.also {
-            super.onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
         else -> super.onOptionsItemSelected(item)
     }

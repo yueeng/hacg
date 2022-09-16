@@ -8,13 +8,13 @@ plugins {
 }
 
 android {
-    compileSdk = 32
-    buildToolsVersion = "32.0.0"
+    compileSdk = 33
+    buildToolsVersion = "33.0.0"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
         minSdk = 21
-        targetSdk = 32
+        targetSdk = 33
         versionCode = 42
         versionName = "1.5.6"
         resourceConfigurations.add("zh-rCN")

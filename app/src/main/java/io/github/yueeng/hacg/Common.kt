@@ -15,6 +15,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.provider.Settings
@@ -28,6 +29,10 @@ import android.view.*
 import android.webkit.CookieManager
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -41,6 +46,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commitNow
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingSource
@@ -81,6 +87,7 @@ import org.jsoup.nodes.Document
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.io.Serializable
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -112,7 +119,7 @@ val okhttp = OkHttpClient.Builder()
     .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
     .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
     .build()
-val okdownload = OkHttpClient.Builder()
+val okdownloader = OkHttpClient.Builder()
     .connectTimeout(10, TimeUnit.SECONDS)
     .cache(Cache(HAcgApplication.instance.cacheDir, 1024L * 1024L * 256L))
     .cookieJar(WebkitCookieJar(CookieManager.getInstance()))
@@ -303,7 +310,7 @@ suspend fun String.httpPostAwait(post: Map<String, String>): Pair<String, String
 
 suspend fun String.httpDownloadAwait(file: String? = null): File? = try {
     val request = Request.Builder().get().url(this).build()
-    okdownload.newCall(request).await { _, response ->
+    okdownloader.newCall(request).await { _, response ->
         val target = if (file == null) {
             val path = response.request.url.toUri().path
             File(HAcgApplication.instance.externalCacheDir, path.substring(path.lastIndexOf('/') + 1))
@@ -351,12 +358,7 @@ fun Pair<String, String>.jsoup(): Document = this.let { h ->
 }
 
 fun <T> Pair<String, String>.jsoup(f: (Document) -> T?): T? = f(this.jsoup())
-fun Context.version(): Version? = try {
-    Version(packageManager.getPackageInfo(packageName, 0).versionName)
-} catch (e: Exception) {
-    e.printStackTrace(); null
-}
-
+fun Context.version(): Version? = runCatching { Version(BuildConfig.VERSION_NAME) }.getOrNull()
 inline fun <reified T : View> View.findViewByViewType(id: Int = 0): Sequence<T> =
     this.childrenRecursiveSequence().mapNotNull { it as? T }.filter { id == 0 || id == it.id }
 
@@ -836,4 +838,30 @@ class HacgPermission(val fragmentManager: FragmentManager) {
         fun Fragment.checkPermissions(vararg permission: String, granted: () -> Unit) =
             with(this).checkPermissions(requireActivity(), *permission, granted = granted)
     }
+}
+
+inline fun <reified T> Intent.getParcelableExtraCompat(key: String): T? = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableExtra(key, T::class.java)
+    else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T?
+}
+
+inline fun <reified T : Serializable> Intent.getSerializableExtraCompat(key: String): T? = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getSerializableExtra(key, T::class.java)
+    else -> @Suppress("DEPRECATION") getSerializableExtra(key) as? T?
+}
+
+inline fun <reified T> Bundle.getParcelableCompat(key: String): T? = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelable(key, T::class.java)
+    else -> @Suppress("DEPRECATION") getParcelable(key) as? T?
+}
+
+fun OnBackPressedDispatcher.bubbleOnBackPressed(callback: OnBackPressedCallback) {
+    callback.isEnabled = false
+    onBackPressed()
+    callback.isEnabled = true
+}
+
+fun ComponentActivity.addOnBackPressedCallback(owner: LifecycleOwner? = this, callback: OnBackPressedCallback.() -> Boolean): OnBackPressedCallback = onBackPressedDispatcher.addCallback(owner) {
+    if (callback(this)) return@addCallback
+    onBackPressedDispatcher.bubbleOnBackPressed(this)
 }

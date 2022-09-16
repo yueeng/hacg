@@ -58,16 +58,14 @@ class InfoActivity : SwipeFinishActivity() {
 
             manager.beginTransaction().replace(R.id.container, fragment).commit()
         }
-    }
-
-    override fun onBackPressed() {
-        supportFragmentManager.findFragmentById(R.id.container)?.let { it as InfoFragment }?.takeIf { it.onBackPressed() }
-            ?: super.onBackPressed()
+        addOnBackPressedCallback {
+            supportFragmentManager.findFragmentById(R.id.container)?.let { (it as? InfoFragment)?.onBackPressed() } ?: false
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> true.also {
-            onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
         else -> super.onOptionsItemSelected(item)
     }
@@ -104,7 +102,7 @@ class InfoWebViewModel(handle: SavedStateHandle, args: Bundle?) : ViewModel() {
     val error = handle.getLiveData("error", false)
     val magnet = handle.getLiveData<List<String>>("magnet", emptyList())
     val progress = handle.getLiveData("progress", false)
-    val article: MutableLiveData<Article?> = handle.getLiveData("article", args?.getParcelable("article"))
+    val article: MutableLiveData<Article?> = handle.getLiveData("article", args?.getParcelableCompat("article"))
 }
 
 class InfoWebViewModelFactory(owner: SavedStateRegistryOwner, private val defaultArgs: Bundle? = null) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
@@ -397,7 +395,7 @@ class InfoCommentViewModelFactory(owner: SavedStateRegistryOwner, private val ar
 
 class InfoCommentFragment : Fragment(), MenuProvider {
     private val viewModel: InfoCommentViewModel by viewModels { InfoCommentViewModelFactory(this, bundleOf("id" to _id)) }
-    private val _article by lazy { requireArguments().getParcelable<Article>("article") }
+    private val _article by lazy { requireArguments().getParcelableCompat<Article>("article") }
     private val _url by lazy { _article?.link ?: requireArguments().getString("url")!! }
     private val _id by lazy { _article?.id ?: Article.getIdFromUrl(_url) ?: 0 }
     private val _adapter by lazy { CommentAdapter() }
@@ -571,7 +569,7 @@ class InfoCommentFragment : Fragment(), MenuProvider {
 
     fun comment(c: Comment?, succeed: (Comment) -> Unit) {
         if (c == null) {
-            commenting(c, succeed)
+            commenting(null, succeed)
             return
         }
         MaterialAlertDialogBuilder(requireActivity())

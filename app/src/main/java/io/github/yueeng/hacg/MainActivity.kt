@@ -51,17 +51,15 @@ class MainActivity : AppCompatActivity() {
         }
         setContentView(binding.root)
         if (state == null) checkVersion()
-    }
-
-    private var last = 0L
-
-    override fun onBackPressed() {
-        if (System.currentTimeMillis() - last > 1500) {
-            last = System.currentTimeMillis()
-            this.toast(R.string.app_exit_confirm)
-            return
+        var last = 0L
+        addOnBackPressedCallback {
+            if (System.currentTimeMillis() - last > 1500) {
+                last = System.currentTimeMillis()
+                toast(R.string.app_exit_confirm)
+                return@addOnBackPressedCallback true
+            }
+            false
         }
-        finish()
     }
 
     private fun checkVersion(toast: Boolean = false) = lifecycleScope.launchWhenCreated {
@@ -198,7 +196,7 @@ class ListActivity : SwipeFinishActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> true.also {
-                onBackPressed()
+                onBackPressedDispatcher.onBackPressed()
             }
             else -> super.onOptionsItemSelected(item)
         }
