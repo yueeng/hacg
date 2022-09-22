@@ -60,6 +60,7 @@ android {
 }
 
 dependencies {
+    val lifecycleVersion = "2.5.1"
     val glideVersion = "4.13.2"
     val okhttpVersion = "4.10.0"
     val kotlinxCoroutinesVersion = "1.6.3-native-mt"
@@ -74,6 +75,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-ktx:1.6.0")
     implementation("androidx.fragment:fragment-ktx:1.5.3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
     implementation("androidx.paging:paging-runtime-ktx:3.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinxCoroutinesVersion")
