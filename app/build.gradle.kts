@@ -87,5 +87,5 @@ dependencies {
     implementation("com.github.bumptech.glide:okhttp3-integration:$glideVersion")
     kapt("com.github.bumptech.glide:compiler:$glideVersion")
     implementation("org.jsoup:jsoup:1.15.3")
-    implementation("com.google.code.gson:gson:2.10")
+    implementation("com.google.code.gson:gson:2.10.1")
 }
