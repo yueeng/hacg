@@ -60,7 +60,7 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.6.0"
+    val lifecycleVersion = "2.6.1"
     val glideVersion = "4.15.1"
     val okhttpVersion = "4.10.0"
     val kotlinxCoroutinesVersion = "1.6.3-native-mt"
@@ -73,7 +73,7 @@ dependencies {
     implementation("androidx.slidingpanelayout:slidingpanelayout:1.2.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.activity:activity-ktx:1.6.1")
+    implementation("androidx.activity:activity-ktx:1.7.0")
     implementation("androidx.fragment:fragment-ktx:1.5.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
