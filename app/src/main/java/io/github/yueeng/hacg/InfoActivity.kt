@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.bumptech.glide.Glide
 import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.yueeng.hacg.HacgPermission.Companion.checkPermissions
@@ -274,7 +275,7 @@ class InfoWebFragment : Fragment() {
                 val uri = Uri.parse(url)
                 val image = ImageView(activity)
                 image.adjustViewBounds = true
-                GlideApp.with(requireActivity()).load(uri).placeholder(R.drawable.loading).into(image)
+                Glide.with(requireActivity()).load(uri).placeholder(R.drawable.loading).into(image)
                 val alert = MaterialAlertDialogBuilder(activity!!)
                     .setView(image)
                     .setNeutralButton(R.string.app_share) { _, _ -> share(url) }
@@ -525,7 +526,7 @@ class InfoCommentFragment : Fragment(), MenuProvider {
             if (item.face.isEmpty()) {
                 binding.image1.setImageResource(R.mipmap.ic_launcher)
             } else {
-                GlideApp.with(requireContext()).load(item.face).placeholder(R.mipmap.ic_launcher).into(binding.image1)
+                Glide.with(requireContext()).load(item.face).placeholder(R.mipmap.ic_launcher).into(binding.image1)
             }
         }
     }

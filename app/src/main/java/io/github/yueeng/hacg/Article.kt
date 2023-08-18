@@ -1,4 +1,4 @@
-@file:Suppress("MayBeConstant", "unused", "MemberVisibilityCanBePrivate", "FunctionName")
+@file:Suppress("MayBeConstant", "unused", "MemberVisibilityCanBePrivate", "PropertyName")
 
 package io.github.yueeng.hacg
 

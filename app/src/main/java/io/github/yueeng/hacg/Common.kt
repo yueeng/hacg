@@ -1,4 +1,4 @@
-@file:Suppress("unused", "ObjectPropertyName", "PrivatePropertyName")
+@file:Suppress("unused")
 
 package io.github.yueeng.hacg
 
@@ -56,6 +56,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.bumptech.glide.GlideBuilder
 import com.bumptech.glide.Registry
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.annotation.Excludes
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
@@ -138,7 +139,7 @@ class HacgAppGlideModule : AppGlideModule() {
     }
 }
 
-fun GlideRequest<Drawable>.crossFade(): GlideRequest<Drawable> =
+fun RequestBuilder<Drawable>.crossFade(): RequestBuilder<Drawable> =
     this.transition(DrawableTransitionOptions.withCrossFade())
 
 class HAcgApplication : Application() {
