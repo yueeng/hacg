@@ -22,21 +22,25 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.AbstractSavedStateViewModelFactory
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.bumptech.glide.Glide
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,30 +66,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkVersion(toast: Boolean = false) = lifecycleScope.launchWhenCreated {
-        val release = "https://api.github.com/repos/yueeng/hacg/releases/latest".httpGetAwait()?.let {
-            gson.fromJson(it.first, JGitHubRelease::class.java)
-        }
-        val ver = Version.from(release?.tagName)
-        val apk = release?.assets?.firstOrNull { it.name == "app-release.apk" }?.browserDownloadUrl
-        val local = version()
-        if (local != null && ver != null && local < ver) {
-            MaterialAlertDialogBuilder(this@MainActivity)
-                .setTitle(getString(R.string.app_update_new, local, ver))
-                .setMessage(release?.body ?: "")
-                .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
-                .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
-                .setNegativeButton(R.string.app_cancel, null)
-                .create().show()
-        } else {
-            if (toast) Toast.makeText(this@MainActivity, getString(R.string.app_update_none, local), Toast.LENGTH_SHORT).show()
-            checkConfig()
+    private fun checkVersion(toast: Boolean = false) = lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.CREATED) {
+            val release = "https://api.github.com/repos/yueeng/hacg/releases/latest".httpGetAwait()?.let {
+                gson.fromJson(it.first, JGitHubRelease::class.java)
+            }
+            val ver = Version.from(release?.tagName)
+            val apk = release?.assets?.firstOrNull { it.name == "app-release.apk" }?.browserDownloadUrl
+            val local = version()
+            if (local != null && ver != null && local < ver) {
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(getString(R.string.app_update_new, local, ver))
+                    .setMessage(release?.body ?: "")
+                    .setPositiveButton(R.string.app_update) { _, _ -> openUri(apk) }
+                    .setNeutralButton(R.string.app_publish) { _, _ -> openUri(HAcg.RELEASE) }
+                    .setNegativeButton(R.string.app_cancel, null)
+                    .create().show()
+            } else {
+                if (toast) Toast.makeText(this@MainActivity, getString(R.string.app_update_none, local), Toast.LENGTH_SHORT).show()
+                checkConfig()
+            }
         }
     }
 
-    private fun checkConfig(toast: Boolean = false): Job = lifecycleScope.launchWhenCreated {
-        HAcg.update(this@MainActivity, toast) {
-            reload()
+    private fun checkConfig(toast: Boolean = false): Job = lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.CREATED) {
+            HAcg.update(this@MainActivity, toast) {
+                reload()
+            }
         }
     }
 
@@ -119,33 +127,41 @@ class MainActivity : AppCompatActivity() {
                 val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
                 suggestions.clearHistory()
             }
+
             R.id.config -> true.also {
                 checkConfig(true)
             }
+
             R.id.settings -> true.also {
                 HAcg.setHost(this) { reload() }
             }
+
             R.id.auto -> true.also {
-                lifecycleScope.launchWhenCreated {
-                    val good = withContext(Dispatchers.IO) { HAcg.hosts().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
-                    if (good != null) {
-                        HAcg.host = good.first
-                        toast(getString(R.string.settings_config_auto_choose, good.first))
-                        reload()
-                    } else {
-                        toast(R.string.settings_config_auto_failed)
+                lifecycleScope.launch {
+                    repeatOnLifecycle(Lifecycle.State.CREATED) {
+                        val good = withContext(Dispatchers.IO) { HAcg.hosts().pmap { u -> (u to u.test()) }.filter { it.second.first }.minByOrNull { it.second.second } }
+                        if (good != null) {
+                            HAcg.host = good.first
+                            toast(getString(R.string.settings_config_auto_choose, good.first))
+                            reload()
+                        } else {
+                            toast(R.string.settings_config_auto_failed)
+                        }
                     }
                 }
             }
+
             R.id.user -> true.also {
                 startActivity(Intent(this, WebActivity::class.java).apply {
                     if (user != 0) putExtra("url", "${HAcg.philosophy}/profile/$user")
                     else putExtra("login", true)
                 })
             }
+
             R.id.philosophy -> true.also {
                 startActivity(Intent(this, WebActivity::class.java))
             }
+
             R.id.about -> true.also {
                 MaterialAlertDialogBuilder(this)
                     .setTitle("${getString(R.string.app_name)} ${version()}")
@@ -155,6 +171,7 @@ class MainActivity : AppCompatActivity() {
                     .setNegativeButton(R.string.app_cancel, null)
                     .create().show()
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -177,6 +194,7 @@ class ListActivity : SwipeFinishActivity() {
                         suggestions.saveRecentQuery(key, null)
                         ("""${HAcg.wordpress}/?s=${Uri.encode(key)}&submit=%E6%90%9C%E7%B4%A2""" to key)
                     }
+
                     else -> null to null
                 }
             }
@@ -198,6 +216,7 @@ class ListActivity : SwipeFinishActivity() {
             android.R.id.home -> true.also {
                 onBackPressedDispatcher.onBackPressed()
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -254,10 +273,12 @@ class ArticleFragment : Fragment() {
         get() = requireArguments().getString("url")!!.let { uri -> if (uri.startsWith("/")) "${HAcg.web}$uri" else uri }
 
     private fun query(refresh: Boolean = false) {
-        lifecycleScope.launchWhenCreated {
-            if (refresh) adapter.clear()
-            val (list, _) = viewModel.source.query(refresh)
-            if (list != null) adapter.addAll(list)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                if (refresh) adapter.clear()
+                val (list, _) = viewModel.source.query(refresh)
+                if (list != null) adapter.addAll(list)
+            }
         }
     }
 
@@ -302,9 +323,11 @@ class ArticleFragment : Fragment() {
                     LoadState.NotLoading(false) -> query()
                 }
             }
-            lifecycleScope.launchWhenCreated {
-                adapter.refreshFlow.collectLatest {
-                    recycler.scrollToPosition(0)
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.CREATED) {
+                    adapter.refreshFlow.collectLatest {
+                        recycler.scrollToPosition(0)
+                    }
                 }
             }
         }.root
@@ -385,6 +408,7 @@ class MsgHolder(private val binding: ListMsgItemBinding, retry: () -> Unit) : Re
                     value.endOfPaginationReached -> R.string.app_list_complete
                     else -> R.string.app_list_loadmore
                 }
+
                 is LoadState.Error -> R.string.app_list_failed
                 else -> R.string.app_list_loading
             }

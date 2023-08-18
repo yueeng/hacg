@@ -24,7 +24,6 @@ import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.*
-import androidx.lifecycle.Observer
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.preference.PreferenceManager
@@ -39,6 +38,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.yueeng.hacg.HacgPermission.Companion.checkPermissions
 import io.github.yueeng.hacg.databinding.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.jsoup.safety.Safelist
 import java.util.*
@@ -68,6 +68,7 @@ class InfoActivity : SwipeFinishActivity() {
         android.R.id.home -> true.also {
             onBackPressedDispatcher.onBackPressed()
         }
+
         else -> super.onOptionsItemSelected(item)
     }
 }
@@ -117,8 +118,8 @@ class InfoWebFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragmentInfoWebBinding.inflate(inflater, container, false).also { binding ->
-            viewModel.article.observe(viewLifecycleOwner, Observer { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } })
-            viewModel.error.observe(viewLifecycleOwner, Observer { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE })
+            viewModel.article.observe(viewLifecycleOwner) { it?.title?.takeIf { i -> i.isNotEmpty() }?.let { t -> requireActivity().title = t } }
+            viewModel.error.observe(viewLifecycleOwner) { binding.image1.visibility = if (it) View.VISIBLE else View.INVISIBLE }
             binding.image1.setOnClickListener { query(_url) }
             binding.menu1.setRandomColor()
             val click = View.OnClickListener { v ->
@@ -126,18 +127,19 @@ class InfoWebFragment : Fragment() {
                     R.id.button1 -> activity?.openUri(_url, true)
                     R.id.button2 -> activity?.window?.decorView
                         ?.findViewByViewType<ViewPager2>(R.id.container)?.firstOrNull()?.currentItem = 1
+
                     R.id.button4 -> share()
                 }
                 view?.findViewById<FloatingActionMenu>(R.id.menu1)?.close(true)
             }
             listOf(binding.button1, binding.button2, binding.button4).forEach { it.setOnClickListener(click) }
-            viewModel.progress.observe(viewLifecycleOwner, Observer {
+            viewModel.progress.observe(viewLifecycleOwner) {
                 binding.progress.isIndeterminate = it
                 binding.progress.visibility = if (it) View.VISIBLE else View.INVISIBLE
-            })
-            viewModel.magnet.observe(viewLifecycleOwner, Observer {
+            }
+            viewModel.magnet.observe(viewLifecycleOwner) {
                 binding.button5.visibility = if (it.isNotEmpty()) View.VISIBLE else View.GONE
-            })
+            }
             binding.button5.setOnClickListener(object : View.OnClickListener {
                 val max = 3
                 var magnet = 1
@@ -168,11 +170,13 @@ class InfoWebFragment : Fragment() {
                             }.create().show()
                         binding.menu1.close(true)
                     }
+
                     magnet < max -> {
                         magnet += 1
                         toast?.cancel()
                         toast = Toast.makeText(activity!!, (0 until magnet).joinToString("") { "..." }, Toast.LENGTH_SHORT).also { t -> t.show() }
                     }
+
                     else -> Unit
                 }
             })
@@ -205,6 +209,7 @@ class InfoWebFragment : Fragment() {
                         } catch (_: Exception) {
                             null
                         }
+
                         else -> null
                     } ?: super.shouldInterceptRequest(view, request)
 
@@ -218,9 +223,9 @@ class InfoWebFragment : Fragment() {
             listOf(binding.button1, binding.button2, binding.button4, binding.button5).forEach { b ->
                 b.setRandomColor()
             }
-            viewModel.web.observe(viewLifecycleOwner, Observer { value ->
+            viewModel.web.observe(viewLifecycleOwner) { value ->
                 if (value != null) binding.web.loadDataWithBaseURL(value.second, value.first, "text/html", "utf-8", null)
-            })
+            }
         }.root
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -250,10 +255,12 @@ class InfoWebFragment : Fragment() {
             uri?.let { share.putExtra(Intent.EXTRA_STREAM, uri) }
             startActivity(Intent.createChooser(share, title))
         }
-        lifecycleScope.launchWhenCreated {
-            url?.httpDownloadAwait()?.let { file ->
-                share(FileProvider.getUriForFile(requireActivity(), "${BuildConfig.APPLICATION_ID}.fileprovider", file))
-            } ?: share()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                url?.httpDownloadAwait()?.let { file ->
+                    share(FileProvider.getUriForFile(requireActivity(), "${BuildConfig.APPLICATION_ID}.fileprovider", file))
+                } ?: share()
+            }
         }
     }
 
@@ -306,58 +313,61 @@ class InfoWebFragment : Fragment() {
         if (viewModel.progress.value == true) return
         viewModel.error.postValue(false)
         viewModel.progress.postValue(true)
-        lifecycleScope.launchWhenCreated {
-            val dom = url.httpGetAwait()?.jsoup()
-            val article = dom?.select("article")?.firstOrNull()?.let { Article(it) }
-            val entry = dom?.select(".entry-content")?.let { entry ->
-                val clean = Jsoup.clean(
-                    entry.html(), url, Safelist.basicWithImages()
-                        .addTags("audio", "video", "source")
-                        .addAttributes("audio", "controls", "src")
-                        .addAttributes("video", "controls", "src")
-                        .addAttributes("source", "type", "src", "media")
-                )
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                val dom = url.httpGetAwait()?.jsoup()
+                val article = dom?.select("article")?.firstOrNull()?.let { Article(it) }
+                val entry = dom?.select(".entry-content")?.let { entry ->
+                    val clean = Jsoup.clean(
+                        entry.html(), url, Safelist.basicWithImages()
+                            .addTags("audio", "video", "source")
+                            .addAttributes("audio", "controls", "src")
+                            .addAttributes("video", "controls", "src")
+                            .addAttributes("source", "type", "src", "media")
+                    )
 
-                Jsoup.parse(clean, url).select("body").also { e ->
-                    e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
-                    e.select("img[src]").forEach {
-                        it.attr("data-original", it.attr("src"))
-                            .addClass("lazy")
-                            .removeAttr("src")
-                            .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
+                    Jsoup.parse(clean, url).select("body").also { e ->
+                        e.select("[width],[height]").forEach { it.removeAttr("width").removeAttr("height") }
+                        e.select("img[src]").forEach {
+                            it.attr("data-original", it.attr("src"))
+                                .addClass("lazy")
+                                .removeAttr("src")
+                                .after("""<a href="javascript:hacg.save('${it.attr("data-original")}');">下载此图</a>""")
+                        }
                     }
                 }
-            }
-            val html = entry?.let {
-                activity?.resources?.openRawResource(R.raw.template)?.bufferedReader()?.readText()
-                    ?.replace("{{title}}", article?.title ?: "")
-                    ?.replace("{{body}}", entry.html())
-            }
-            val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
-            if (article != null) viewModel.article.postValue(article)
-            when (html) {
-                null -> {
-                    viewModel.error.postValue(viewModel.web.value == null)
+                val html = entry?.let {
+                    activity?.resources?.openRawResource(R.raw.template)?.bufferedReader()?.readText()
+                        ?.replace("{{title}}", article?.title ?: "")
+                        ?.replace("{{body}}", entry.html())
                 }
-                else -> {
-                    viewModel.magnet.postValue(magnet)
-                    viewModel.web.postValue(html to url)
+                val magnet = entry?.text()?.magnet()?.toList() ?: emptyList()
+                if (article != null) viewModel.article.postValue(article)
+                when (html) {
+                    null -> {
+                        viewModel.error.postValue(viewModel.web.value == null)
+                    }
+
+                    else -> {
+                        viewModel.magnet.postValue(magnet)
+                        viewModel.web.postValue(html to url)
+                    }
                 }
+                viewModel.progress.postValue(false)
             }
-            viewModel.progress.postValue(false)
         }
     }
 }
 
 class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> InfoCommentViewModel.Sorting) : PagingSource<Pair<Int?, Int>, Comment>() {
     override suspend fun load(params: LoadParams<Pair<Int?, Int>>): LoadResult<Pair<Int?, Int>, Comment> = try {
-        val (_postParentId, _postOffset) = params.key!!
+        val (parentId, offset) = params.key!!
         val data = mapOf(
             "action" to "wpdLoadMoreComments",
             "sorting" to sorting().sort,
-            "offset" to "$_postOffset",
-            "lastParentId" to "$_postParentId",
-            "isFirstLoad" to (if (_postOffset == 0) "1" else "0"),
+            "offset" to "$offset",
+            "lastParentId" to "$parentId",
+            "isFirstLoad" to (if (offset == 0) "1" else "0"),
             "wpdType" to "",
             "postId" to "$_id"
         )
@@ -366,7 +376,7 @@ class InfoCommentPagingSource(private val _id: Int, private val sorting: () -> I
         val list = Jsoup.parse(comments!!.data.commentList ?: "", HAcg.wpdiscuz)
             .select("body>.wpd-comment").map { Comment(it) }.toList()
         val next = if (comments.data.isShowLoadMore) {
-            comments.data.lastParentId.toIntOrNull() to (_postOffset + 1)
+            comments.data.lastParentId.toIntOrNull() to (offset + 1)
         } else {
             null
         }
@@ -409,24 +419,28 @@ class InfoCommentFragment : Fragment(), MenuProvider {
     private var COMMENT = "wc_comment"
 
     private fun query(refresh: Boolean = false) {
-        lifecycleScope.launchWhenCreated {
-            if (refresh) _adapter.clear()
-            val (list, _) = viewModel.source.query(refresh)
-            if (list != null) _adapter.addAll(list)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                if (refresh) _adapter.clear()
+                val (list, _) = viewModel.source.query(refresh)
+                if (list != null) _adapter.addAll(list)
+            }
         }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         FragmentInfoListBinding.inflate(inflater, container, false).also { binding ->
             binding.list1.adapter = _adapter.withLoadStateFooter(FooterAdapter({ _adapter.itemCount }) { query() })
-            viewModel.progress.observe(viewLifecycleOwner, Observer { binding.swipe.isRefreshing = it })
-            viewModel.source.state.observe(viewLifecycleOwner, Observer {
+            viewModel.progress.observe(viewLifecycleOwner) { binding.swipe.isRefreshing = it }
+            viewModel.source.state.observe(viewLifecycleOwner) {
                 _adapter.state.postValue(it)
                 binding.swipe.isRefreshing = it is LoadState.Loading
-            })
-            lifecycleScope.launchWhenCreated {
-                _adapter.refreshFlow.collectLatest {
-                    binding.list1.scrollToPosition(0)
+            }
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.CREATED) {
+                    _adapter.refreshFlow.collectLatest {
+                        binding.list1.scrollToPosition(0)
+                    }
                 }
             }
             binding.list1.loading {
@@ -482,6 +496,7 @@ class InfoCommentFragment : Fragment(), MenuProvider {
             )
             query(true)
         }
+
         else -> false
     }
 
@@ -549,22 +564,24 @@ class InfoCommentFragment : Fragment(), MenuProvider {
 
     fun vote(c: Comment?, v: Int, call: (Int) -> Unit) {
         if (c == null) return
-        lifecycleScope.launchWhenCreated {
-            val result = HAcg.wpdiscuz.httpPostAwait(
-                mapOf(
-                    "action" to "wpdVoteOnComment",
-                    "commentId" to "${c.id}",
-                    "voteType" to "$v",
-                    "postId" to "$_id"
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                val result = HAcg.wpdiscuz.httpPostAwait(
+                    mapOf(
+                        "action" to "wpdVoteOnComment",
+                        "commentId" to "${c.id}",
+                        "voteType" to "$v",
+                        "postId" to "$_id"
+                    )
                 )
-            )
-            val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
-            if (succeed?.success != true) {
-                val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
-                Toast.makeText(requireActivity(), json?.data ?: result?.first, Toast.LENGTH_LONG).show()
-                return@launchWhenCreated
+                val succeed = gson.fromJsonOrNull<JWpdiscuzVoteSucceed>(result?.first ?: "")
+                if (succeed?.success != true) {
+                    val json = gson.fromJsonOrNull<JWpdiscuzVote>(result?.first ?: "")
+                    Toast.makeText(requireActivity(), json?.data ?: result?.first, Toast.LENGTH_LONG).show()
+                    return@repeatOnLifecycle
+                }
+                call(succeed.data.votes.toIntOrNull() ?: 0)
             }
-            call(succeed.data.votes.toIntOrNull() ?: 0)
         }
     }
 
@@ -636,20 +653,22 @@ class InfoCommentFragment : Fragment(), MenuProvider {
                     return@setPositiveButton
                 }
                 viewModel.progress.postValue(true)
-                lifecycleScope.launchWhenCreated {
+                lifecycleScope.launch {
+                    repeatOnLifecycle(Lifecycle.State.CREATED) {
 //                        delay(100)
 //                        succeed(Comment(random.nextInt(), c?.id ?: 0, "Test", "ZS", "", 0, datefmt.format(Date()), mutableListOf()))
-                    val result = HAcg.wpdiscuz.httpPostAwait(post.toMap())
-                    val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
-                    val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
-                        .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
-                    if (review == null) {
-                        Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
-                    } else {
-                        post[COMMENT] = ""
-                        succeed(review)
+                        val result = HAcg.wpdiscuz.httpPostAwait(post.toMap())
+                        val json = gson.fromJsonOrNull<JWpdiscuzCommentResult>(result?.first)
+                        val review = Jsoup.parse(json?.data?.message ?: "", result?.second ?: "")
+                            .select("body>.wpd-comment").map { Comment(it) }.firstOrNull()
+                        if (review == null) {
+                            Toast.makeText(requireActivity(), json?.data?.code ?: result?.first, Toast.LENGTH_LONG).show()
+                        } else {
+                            post[COMMENT] = ""
+                            succeed(review)
+                        }
+                        viewModel.progress.postValue(false)
                     }
-                    viewModel.progress.postValue(false)
                 }
             }
             .setNegativeButton(R.string.app_cancel, null)
