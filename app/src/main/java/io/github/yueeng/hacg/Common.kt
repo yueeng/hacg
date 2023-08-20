@@ -486,9 +486,8 @@ open class LoadState : Parcelable {
     }
 
     @Parcelize
-    object Loading : LoadState() {
+    data object Loading : LoadState() {
         override fun toString(): String = "Loading"
-        override fun equals(other: Any?): Boolean = other is Loading
     }
 
     @Parcelize
