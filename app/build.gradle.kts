@@ -9,13 +9,13 @@ plugins {
 
 android {
     namespace = "io.github.yueeng.hacg"
-    compileSdk = 33
-    buildToolsVersion = "33.0.2"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
         minSdk = 21
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 42
         versionName = "1.5.6"
         resourceConfigurations.add("zh-rCN")
