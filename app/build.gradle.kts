@@ -63,7 +63,7 @@ android {
 dependencies {
     val lifecycleVersion = "2.6.1"
     val glideVersion = "4.16.0"
-    val okhttpVersion = "4.11.0"
+    val okhttpVersion = "4.12.0"
     val kotlinxCoroutinesVersion = "1.7.3"
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
