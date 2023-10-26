@@ -208,6 +208,7 @@ fun Context.openUri(url: String?, web: Boolean? = null): Boolean = when {
     !url.isWordpress -> Uri.parse(url).let { uri ->
         startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), uri.scheme))
     }
+
     Article.getIdFromUrl(url) != null -> startActivity(Intent(this, InfoActivity::class.java).putExtra("url", url))
     Article.isList(url) -> startActivity(Intent(this, ListActivity::class.java).putExtra("url", url))
     web == null -> startActivity(Intent(this, WebActivity::class.java).putExtra("url", url))
@@ -518,10 +519,12 @@ class Paging<K : Any, V : Any>(private val handle: SavedStateHandle, private val
                 state.postValue(LoadState.NotLoading(result.nextKey == null))
                 result.data to null
             }
+
             is PagingSource.LoadResult.Error -> {
                 state.postValue(LoadState.Error(result.throwable))
                 null to result.throwable
             }
+
             is PagingSource.LoadResult.Invalid -> {
                 state.postValue(LoadState.Error(Exception("Invalid")))
                 null to Exception("Invalid")
@@ -598,8 +601,10 @@ fun RecyclerView.loading(last: Int = 1, call: () -> Unit) {
                     val v = vis.maxOrNull() ?: 0
                     if (v >= (this@loading.adapter!!.itemCount - last)) call()
                 }
+
                 is GridLayoutManager ->
                     if (layout.findLastVisibleItemPosition() >= this@loading.adapter!!.itemCount - last) call()
+
                 is LinearLayoutManager ->
                     if (layout.findLastVisibleItemPosition() >= this@loading.adapter!!.itemCount - last) call()
             }
@@ -656,7 +661,11 @@ open class SwipeFinishActivity : AppCompatActivity() {
             override fun onPageScrollStateChanged(state: Int) {
                 if (state != ViewPager2.SCROLL_STATE_IDLE || pos != 0) return
                 finish()
-                overridePendingTransition(0, 0)
+                if (Build.VERSION.SDK_INT >= 34) {
+                    overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+                } else {
+                    @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                }
             }
         })
     }
@@ -683,6 +692,7 @@ open class SwipeFinishActivity : AppCompatActivity() {
                 host.addView(layout)
                 SwipeBackHolder(host)
             }
+
             else -> throw IllegalArgumentException("ViewType $viewType is not supported")
         }
 
