@@ -4,7 +4,7 @@
     <string name="app_cancel">Cancel</string>
     <string name="app_chrome">Open with browser</string>
     <string name="app_close">Close</string>
-    <string name="app_copied">Copyed %1$s</string>
+    <string name="app_copied">Copied %1$s</string>
     <string name="app_copy">Copy</string>
     <string name="app_exit">exit</string>
     <string name="app_exit_confirm">Want to exit?</string>
@@ -16,7 +16,7 @@
     <string name="app_list_time">Posted on %1$s by %2$s | %3$d Replies</string>
     <string name="app_magnet">Link</string>
     <string name="app_name">HAcg</string>
-    <string name="app_network_retry">Request hacg failed, click black cat to retry, or chagne host in menu.</string>
+    <string name="app_network_retry">Request hacg failed, click black cat to retry, or change host in menu.</string>
     <string name="app_ok">OK</string>
     <string name="app_open">Open</string>
     <string name="app_philosophy">Philosophy</string>
@@ -30,7 +30,7 @@
     <string name="app_update_check">Check update</string>
     <string name="app_update_new">Update from %1$s to %2$s</string>
     <string name="app_update_none">Version %1$s is newest.</string>
-    <string name="app_user">User Information</string>
+    <string name="app_user">User information</string>
     <string name="app_user_login">Login</string>
 
     <string name="comment_author">Author</string>
