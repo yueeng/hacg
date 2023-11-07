@@ -87,6 +87,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:$glideVersion")
     implementation("com.github.bumptech.glide:okhttp3-integration:$glideVersion")
     ksp("com.github.bumptech.glide:ksp:$glideVersion")
-    implementation("org.jsoup:jsoup:1.16.1")
+    implementation("org.jsoup:jsoup:1.16.2")
     implementation("com.google.code.gson:gson:2.10.1")
 }
