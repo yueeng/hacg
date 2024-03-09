@@ -23,7 +23,7 @@ android {
     }
     signingConfigs {
         create("release") {
-            val config = gradleLocalProperties(rootDir)
+            val config = gradleLocalProperties(rootDir, providers)
             storeFile = file(config.getProperty("storeFile"))
             storePassword = config.getProperty("storePassword")
             keyAlias = config.getProperty("keyAlias")
