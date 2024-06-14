@@ -54,14 +54,14 @@ android {
         outputs.all {
             project.tasks.getByName("assembleRelease").doLast {
                 val folder = File(rootDir, "release").also { it.mkdirs() }
-                outputFile.parentFile.listFiles()?.forEach { it.copyTo(File(folder, it.name), true) }
+                outputFile.parentFile?.listFiles()?.forEach { it.copyTo(File(folder, it.name), true) }
             }
         }
     }
 }
 
 dependencies {
-    val lifecycleVersion = "2.8.1"
+    val lifecycleVersion = "2.8.2"
     val glideVersion = "4.16.0"
     val okhttpVersion = "4.12.0"
     val kotlinxCoroutinesVersion = "1.8.1"
@@ -75,7 +75,7 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-ktx:1.9.0")
-    implementation("androidx.fragment:fragment-ktx:1.7.1")
+    implementation("androidx.fragment:fragment-ktx:1.8.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
     implementation("androidx.paging:paging-runtime-ktx:3.3.0")

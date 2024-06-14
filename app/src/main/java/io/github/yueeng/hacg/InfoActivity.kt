@@ -525,6 +525,7 @@ class InfoCommentFragment : Fragment(), MenuProvider {
             }
         }
 
+        @SuppressLint("SetTextI18n")
         fun bind(item: Comment, payloads: MutableList<Any>) {
             if (payloads.contains("moderation")) {
                 binding.text4.text = "${item.moderation}"
