@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.8.2"
+    val lifecycleVersion = "2.8.3"
     val glideVersion = "4.16.0"
     val okhttpVersion = "4.12.0"
     val kotlinxCoroutinesVersion = "1.8.1"
