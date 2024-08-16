@@ -49,8 +49,8 @@ import java.util.*
  */
 
 class InfoActivity : SwipeFinishActivity() {
-    override fun onCreate(state: Bundle?) {
-        super.onCreate(state)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_info) {
             val manager = supportFragmentManager
 

@@ -46,15 +46,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    override fun onCreate(state: Bundle?) {
-        super.onCreate(state)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         val binding = ActivityMainBinding.inflate(layoutInflater).apply {
             setSupportActionBar(toolbar)
             container.adapter = ArticleFragmentAdapter(this@MainActivity)
             TabLayoutMediator(tab, container) { tab, position -> tab.text = (container.adapter as ArticleFragmentAdapter).getPageTitle(position) }.attach()
         }
         setContentView(binding.root)
-        if (state == null) checkVersion()
+        if (savedInstanceState == null) checkVersion()
         var last = 0L
         addOnBackPressedCallback {
             if (System.currentTimeMillis() - last > 1500) {
@@ -178,9 +178,8 @@ class MainActivity : AppCompatActivity() {
 }
 
 class ListActivity : SwipeFinishActivity() {
-
-    override fun onCreate(state: Bundle?) {
-        super.onCreate(state)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         val binding = ActivityListBinding.inflate(layoutInflater)
         setContentView(binding.root) {
             setSupportActionBar(binding.toolbar)
