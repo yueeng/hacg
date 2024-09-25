@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.8.4"
+    val lifecycleVersion = "2.8.6"
     val glideVersion = "4.16.0"
     val okhttpVersion = "4.12.0"
     val kotlinxCoroutinesVersion = "1.8.1"
@@ -74,8 +74,8 @@ dependencies {
     implementation("androidx.slidingpanelayout:slidingpanelayout:1.2.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.activity:activity-ktx:1.9.1")
-    implementation("androidx.fragment:fragment-ktx:1.8.2")
+    implementation("androidx.activity:activity-ktx:1.9.2")
+    implementation("androidx.fragment:fragment-ktx:1.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
     implementation("androidx.paging:paging-runtime-ktx:3.3.2")
