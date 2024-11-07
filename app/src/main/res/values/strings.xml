@@ -57,9 +57,9 @@
     <string name="settings_config_auto_failed">Auto choose failed</string>
     <string name="settings_config_newest">The config is newest.</string>
     <string name="settings_config_update">Update</string>
-    <string name="settings_config_updating">A new network config.</string>
-    <string name="settings_host">HAcg alternate host url</string>
-    <string name="settings_host_more">Change</string>
+    <string name="settings_config_updating">New network config.</string>
+    <string name="settings_host">HACG Alternate host</string>
+    <string name="settings_host_more">Change host</string>
     <string name="settings_host_reset">Reset all</string>
     <string name="settings_host_sample">Like "www.hacg.me".</string>
 </resources>
