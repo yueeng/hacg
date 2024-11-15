@@ -1,5 +1,5 @@
-## Hacg
-#### An acg reader for Android application.
+## HACG
+#### An ACG reader for Android application.
 
 [![HACG](https://raw.githubusercontent.com/yueeng/hacg/master/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)](https://github.com/yueeng/hacg/releases/latest)
 
