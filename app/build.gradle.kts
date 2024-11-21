@@ -9,13 +9,13 @@ plugins {
 
 android {
     namespace = "io.github.yueeng.hacg"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 42
         versionName = "1.5.6"
         resourceConfigurations.add("zh-rCN")
@@ -78,7 +78,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.5")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
-    implementation("androidx.paging:paging-runtime-ktx:3.3.2")
+    implementation("androidx.paging:paging-runtime-ktx:3.3.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinxCoroutinesVersion")
     implementation("com.github.clans:fab:1.6.4")
