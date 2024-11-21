@@ -245,7 +245,7 @@ private class ViewChildrenRecursiveSequence(private val view: View) : Sequence<V
 
     private class RecursiveViewIterator(view: View) : Iterator<View> {
         private val sequences = arrayListOf(view.childrenSequence())
-        private var current = sequences.removeLast().iterator()
+        private var current = sequences.safeRemoveLast().iterator()
 
         override fun next(): View {
             if (!hasNext()) throw NoSuchElementException()
@@ -258,13 +258,13 @@ private class ViewChildrenRecursiveSequence(private val view: View) : Sequence<V
 
         override fun hasNext(): Boolean {
             if (!current.hasNext() && sequences.isNotEmpty()) {
-                current = sequences.removeLast().iterator()
+                current = sequences.safeRemoveLast().iterator()
             }
             return current.hasNext()
         }
 
         @Suppress("NOTHING_TO_INLINE")
-        private inline fun <T : Any> MutableList<T>.removeLast(): T {
+        private inline fun <T : Any> MutableList<T>.safeRemoveLast(): T {
             if (isEmpty()) throw NoSuchElementException()
             return removeAt(size - 1)
         }
@@ -378,7 +378,17 @@ fun Bundle.string(key: String, value: String): Bundle = this.also { it.putString
 fun Bundle.parcelable(key: String, value: Parcelable): Bundle = this.also { it.putParcelable(key, value) }
 
 suspend fun <A, B> Iterable<A>.pmap(f: suspend (A) -> B): List<B> = coroutineScope { map { async { f(it) } }.awaitAll() }
+fun <T> MutableList<T>.safeRemoveFirst() {
+    if (this.isNotEmpty()) {
+        this.removeAt(0)
+    }
+}
 
+fun <T> MutableList<T>.safeRemoveLast() {
+    if (this.isNotEmpty()) {
+        this.removeAt(this.size - 1)
+    }
+}
 abstract class DataAdapter<V, VH : RecyclerView.ViewHolder>(private val diffCallback: DiffUtil.ItemCallback<V>) : RecyclerView.Adapter<VH>() {
     private val differ by lazy {
         AsyncListDiffer(AdapterListUpdateCallback(this), AsyncDifferConfig.Builder(diffCallback).build())
