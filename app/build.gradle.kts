@@ -1,4 +1,5 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import com.google.devtools.ksp.KspExperimental
 
 plugins {
     id("com.android.application")
@@ -49,6 +50,10 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    ksp {
+        @OptIn(KspExperimental::class)
+        useKsp2 = false
+    }
     applicationVariants.all {
         if (name != "release") return@all
         outputs.all {
@@ -87,6 +92,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:$glideVersion")
     implementation("com.github.bumptech.glide:okhttp3-integration:$glideVersion")
     ksp("com.github.bumptech.glide:ksp:$glideVersion")
-    implementation("org.jsoup:jsoup:1.19.1")
-    implementation("com.google.code.gson:gson:2.13.0")
+    implementation("org.jsoup:jsoup:1.20.1")
+    implementation("com.google.code.gson:gson:2.13.1")
 }
