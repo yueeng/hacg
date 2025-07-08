@@ -68,7 +68,7 @@ android {
 dependencies {
     val lifecycleVersion = "2.9.1"
     val glideVersion = "4.16.0"
-    val okhttpVersion = "4.12.0"
+    val okhttpVersion = "5.1.0"
     val kotlinxCoroutinesVersion = "1.10.2"
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
@@ -92,6 +92,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:$glideVersion")
     implementation("com.github.bumptech.glide:okhttp3-integration:$glideVersion")
     ksp("com.github.bumptech.glide:ksp:$glideVersion")
-    implementation("org.jsoup:jsoup:1.20.1")
+    implementation("org.jsoup:jsoup:1.21.1")
     implementation("com.google.code.gson:gson:2.13.1")
 }
