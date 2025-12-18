@@ -79,7 +79,7 @@ dependencies {
     implementation("androidx.slidingpanelayout:slidingpanelayout:1.2.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("androidx.activity:activity-ktx:1.10.1")
+    implementation("androidx.activity:activity-ktx:1.12.2")
     implementation("androidx.fragment:fragment-ktx:1.8.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
