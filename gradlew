@@ -65,6 +65,12 @@ cd "`dirname \"$PRG\"`/" >&-
 APP_HOME="`pwd -P`"
 cd "$SAVED" >&-
 
+# Keep Gradle cache on the same drive/path family as the project by default.
+if [ -z "$GRADLE_USER_HOME" ] ; then
+    GRADLE_USER_HOME="$APP_HOME/.gradle-user-home"
+fi
+export GRADLE_USER_HOME
+
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
 # Determine the Java command to use to start the JVM.

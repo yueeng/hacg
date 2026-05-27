@@ -10,13 +10,13 @@ plugins {
 
 android {
     namespace = "io.github.yueeng.hacg"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         applicationId = "io.github.yueeng.hacg"
-        minSdk = 21
-        targetSdk = 35
+        minSdk = 23
+        targetSdk = 36
         versionCode = 42
         versionName = "1.5.6"
         resourceConfigurations.add("zh-rCN")
@@ -35,7 +35,7 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
     }
@@ -49,6 +49,11 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    packaging {
+        resources {
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
     }
     ksp {
         @OptIn(KspExperimental::class)
@@ -69,10 +74,10 @@ dependencies {
     val lifecycleVersion = "2.10.0"
     val glideVersion = "5.0.7"
     val okhttpVersion = "5.3.2"
-    val kotlinxCoroutinesVersion = "1.10.2"
+    val kotlinxCoroutinesVersion = "1.11.0"
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
@@ -83,7 +88,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
-    implementation("androidx.paging:paging-runtime-ktx:3.4.2")
+    implementation("androidx.paging:paging-runtime-ktx:3.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinxCoroutinesVersion")
     implementation("com.github.clans:fab:1.6.4")
